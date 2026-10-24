@@ -2,6 +2,15 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
+  "outputDirectory": ".",
+  "functions": {
+    "index.js": {
+      "includeFiles": "{css/**,js/**,vendor/**,templates/**,*.html,seeds/**}"
+    },
+    "api/*.js": {
+      "includeFiles": "seeds/**"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -29,9 +38,16 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]
+    },
+    {
+      "source": "/js/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
     }
   ],
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/penyisihan", "destination": "/penyisihan-cerdas-cermat.html" },
     { "source": "/semifinal", "destination": "/semifinal-cerdas-cermat.html" },
     { "source": "/final", "destination": "/final-cerdas-cermat.html" }

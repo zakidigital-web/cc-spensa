@@ -1,6 +1,6 @@
 import http from "node:http";
 import { join } from "node:path";
-import { existsSync, statSync, createReadStream, promises as fsPromises } from "node:fs";
+import { existsSync, statSync, promises as fsPromises } from "node:fs";
 import { networkInterfaces } from "node:os";
 
 // API Handlers (PostgreSQL Cloud Neon Integration)
@@ -46,29 +46,24 @@ function getLocalIp() {
   return "localhost";
 }
 
-function serveStaticNode(filePath, req, res) {
+async function serveStaticNode(filePath, req, res) {
   try {
     const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
     const mime = MIME_TYPES[ext] || "application/octet-stream";
+    const content = await fsPromises.readFile(filePath);
 
     res.setHeader("Content-Type", mime);
+    res.setHeader("Content-Length", Buffer.byteLength(content));
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", ext === ".html" ? "no-cache" : "public, max-age=86400");
     res.statusCode = 200;
-
-    const stream = createReadStream(filePath);
-    stream.on("error", (err) => {
-      console.error("Stream error for", filePath, err);
-      if (!res.headersSent) {
-        res.statusCode = 500;
-        res.end("Internal Server Error");
-      }
-    });
-    stream.pipe(res);
+    return res.end(content);
   } catch (err) {
+    console.error("Error serving static file:", filePath, err);
     if (!res.headersSent) {
-      res.statusCode = 500;
-      res.end("Error loading file");
+      res.statusCode = 404;
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      return res.end("File not found");
     }
   }
 }
@@ -82,6 +77,12 @@ export default async function handler(req, res) {
   const rawUrl = req.url || "/";
   const url = new URL(rawUrl, `http://${hostHeader}`);
   let pathname = decodeURIComponent(url.pathname);
+
+  // Normalize static asset paths if requested with a prefix (e.g., /penyisihan/css/... -> /css/...)
+  if (pathname.includes('/css/')) pathname = pathname.slice(pathname.indexOf('/css/'));
+  else if (pathname.includes('/js/')) pathname = pathname.slice(pathname.indexOf('/js/'));
+  else if (pathname.includes('/vendor/')) pathname = pathname.slice(pathname.indexOf('/vendor/'));
+  else if (pathname.includes('/templates/')) pathname = pathname.slice(pathname.indexOf('/templates/'));
 
   // Handle CORS Preflight
   if (req.method === "OPTIONS") {
@@ -149,17 +150,21 @@ export default async function handler(req, res) {
 
   // Standard Node.js / Vercel Serverless handling
   if (existsSync(filePath) && statSync(filePath).isFile()) {
-    return serveStaticNode(filePath, req, res);
+    return await serveStaticNode(filePath, req, res);
   }
 
-  // Fallback to index.html
-  const indexPath = join(ROOT, "index.html");
-  if (existsSync(indexPath)) {
-    return serveStaticNode(indexPath, req, res);
+  // Only fallback to index.html for page navigation without file extension
+  const hasExtension = Boolean(pathname.match(/\.[a-zA-Z0-9]+$/));
+  if (!hasExtension) {
+    const indexPath = join(ROOT, "index.html");
+    if (existsSync(indexPath)) {
+      return await serveStaticNode(indexPath, req, res);
+    }
   }
 
   res.statusCode = 404;
-  res.end("Not Found");
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  return res.end("Not Found: " + pathname);
 }
 
 // ─── STANDALONE SERVER STARTUP (Local Dev / Docker / VPS) ───
