@@ -540,6 +540,109 @@
           alert('Pengaturan tema dan identitas berhasil disimpan!');
         });
       }
+
+      // ─── SEEDER & DATABASE CONTROLS ─────────────────────────
+      const btnSeedFull = document.getElementById('btn-seed-full');
+      if (btnSeedFull) {
+        btnSeedFull.addEventListener('click', async () => {
+          if (!confirm('Muat data simulasi kejuaraan lengkap (3 babak, skor riil, finalis & juara)? Data lama akan ditimpa.')) return;
+          btnSeedFull.disabled = true;
+          const origText = btnSeedFull.textContent;
+          btnSeedFull.textContent = '⏳ Memproses...';
+          try {
+            await window.DatabaseSeeder.seedFullTournament();
+            const updatedCfg = await window.PortalStorage.getConfig();
+            Object.assign(cfg, updatedCfg);
+            this.updateHeaderInfo(cfg);
+            this.renderBankList();
+            this.refreshReports();
+            closeModal();
+            alert('✅ Berhasil melakukan seed data demo kejuaraan lengkap!');
+          } catch (e) {
+            alert('Gagal melakukan seed: ' + e.message);
+          } finally {
+            btnSeedFull.disabled = false;
+            btnSeedFull.textContent = origText;
+          }
+        });
+      }
+
+      const btnSeedClean = document.getElementById('btn-seed-clean');
+      if (btnSeedClean) {
+        btnSeedClean.addEventListener('click', async () => {
+          if (!confirm('Reset ke Bank Soal bawaan bersih tanpa skor riwayat lama?')) return;
+          btnSeedClean.disabled = true;
+          try {
+            await window.DatabaseSeeder.seedCleanTournament();
+            this.renderBankList();
+            this.refreshReports();
+            closeModal();
+            alert('✅ Database telah di-reset ke Bank Soal bersih siap pertandingan baru!');
+          } catch (e) {
+            alert('Gagal reset bank soal: ' + e.message);
+          } finally {
+            btnSeedClean.disabled = false;
+          }
+        });
+      }
+
+      const btnExportJson = document.getElementById('btn-export-db-json');
+      if (btnExportJson) {
+        btnExportJson.addEventListener('click', async () => {
+          try {
+            await window.DatabaseSeeder.exportDatabaseJSON();
+          } catch (e) {
+            alert('Gagal ekspor cadangan database: ' + e.message);
+          }
+        });
+      }
+
+      const btnImportTrigger = document.getElementById('btn-import-db-json-trigger');
+      const inputImportJson = document.getElementById('input-import-db-json');
+      if (btnImportTrigger && inputImportJson) {
+        btnImportTrigger.addEventListener('click', () => inputImportJson.click());
+        inputImportJson.addEventListener('change', async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          try {
+            const text = await file.text();
+            await window.DatabaseSeeder.importDatabaseJSON(text);
+            const updatedCfg = await window.PortalStorage.getConfig();
+            Object.assign(cfg, updatedCfg);
+            this.updateHeaderInfo(cfg);
+            this.renderBankList();
+            this.refreshReports();
+            closeModal();
+            alert('✅ Cadangan database JSON berhasil diimpor!');
+          } catch (err) {
+            alert('Gagal impor database: ' + err.message);
+          } finally {
+            inputImportJson.value = '';
+          }
+        });
+      }
+
+      const btnClearDb = document.getElementById('btn-clear-db');
+      if (btnClearDb) {
+        btnClearDb.addEventListener('click', async () => {
+          if (!confirm('⚠️ Anda yakin ingin mengosongkan seluruh isi database? Tindakan ini tidak dapat dibatalkan.')) return;
+          try {
+            await window.DatabaseSeeder.clearDatabase();
+            this.renderBankList();
+            this.refreshReports();
+            closeModal();
+            alert('Database telah dikosongkan.');
+          } catch (e) {
+            alert('Gagal mengosongkan database: ' + e.message);
+          }
+        });
+      }
+    },
+
+    refreshReports() {
+      if (window.ReportEngine) {
+        window.ReportEngine.renderReportHTML('report-preview-container');
+      }
     }
   };
 

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "bun server.js",
     "dev": "bun server.js",
+    "seed": "bun seed.js",
     "test": "bun test-analyzer.js",
     "build": "echo 'Client-side web app ready for Vercel'"
   },
