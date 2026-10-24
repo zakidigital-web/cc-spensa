@@ -172,7 +172,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const fresh=()=>({title:'CERDAS CERMAT FINAL',n:5,init:100,dur:90,np:5,snd:1,rb:0,names:['Tim 1','Tim 2','Tim 3','Tim 4','Tim 5','Tim 6'],score:Array(5).fill(100),done:Array(15).fill(false),q:SAMPLE,tie:null,started:false});
 let S=fresh(),cur=null,hist=[],armed=false,celebrated=false,prev=null;
 try{const r=localStorage.getItem('cc-final3');if(r)S=Object.assign(fresh(),JSON.parse(r))}catch(e){}
-const save=()=>{try{localStorage.setItem('cc-final3',JSON.stringify(S))}catch(e){}};
+const save=()=>{try{localStorage.setItem('cc-final3',JSON.stringify(S));if(window.top&&window.top!==window.self){window.top.postMessage({type:'FINAL_STATE_UPDATED',state:S},'*');}}catch(e){}};
 const snap=()=>{hist.push(JSON.stringify(S));if(hist.length>40)hist.shift()};
 const val=i=>i>14?100:TIER[Math.floor(i/5)],pen=i=>PEN[Math.floor(i/5)];
 const nextIdx=()=>S.done.indexOf(false);

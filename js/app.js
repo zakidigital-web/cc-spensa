@@ -248,6 +248,21 @@
           }
         } else if (e.data.type === 'SWITCH_VIEW' && e.data.view) {
           this.switchView(e.data.view);
+        } else if (e.data.type === 'FINAL_STATE_UPDATED' && e.data.state) {
+          if (window.PortalStorage) {
+            window.PortalStorage.saveFinalState(e.data.state);
+          }
+          if (currentView === 'laporan' && window.ReportEngine) {
+            window.ReportEngine.renderReportHTML('report-preview-container');
+          }
+        } else if (e.data.type === 'PENYISIHAN_SKOR_UPDATED') {
+          if (window.PortalStorage) {
+            window.PortalStorage.getPenyisihanState();
+          }
+        } else if (e.data.type === 'SEMIFINAL_GAME_UPDATED') {
+          if (window.PortalStorage) {
+            window.PortalStorage.getSemifinalState();
+          }
         }
       });
     },

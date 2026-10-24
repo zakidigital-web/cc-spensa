@@ -176,7 +176,7 @@ function loadSample(){
   saveBank()}
 const saveBank=()=>kvSet('bank',bank);
 const saveCfg=()=>kvSet('cfg',cfg);
-const saveSkor=()=>kvSet('skor',skorAll);
+const saveSkor=()=>{kvSet('skor',skorAll);if(window.top&&window.top!==window.self){try{window.top.postMessage({type:'PENYISIHAN_SKOR_UPDATED',skor:skorAll},'*')}catch(e){}}};
 const saveSess=()=>S&&kvSet('sess',S);
 const avail=(j,m)=>bank.soal[j].filter(s=>s.mapel===m).length;
 const buildQI=()=>{QI={};bank.soal[S.cfg.jenjang].forEach(s=>QI[s.id]=s)};

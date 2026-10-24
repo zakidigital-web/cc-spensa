@@ -1,6 +1,7 @@
 /**
- * Unified Storage Engine (IndexedDB + Auto-Migration)
+ * Unified Storage Engine (IndexedDB + Auto-Migration + Dual-Sync Bridge)
  * Centralizes stage-specific settings, isolated question banks, and tournament state.
+ * Bridges seamlessly with legacy IndexedDB ('cerdascermat') and localStorage ('cc-final3').
  */
 (function(window) {
   'use strict';
@@ -9,12 +10,13 @@
   const DB_VERSION = 1;
 
   let dbPromise = null;
+  let legacyDbPromise = null;
 
   function openDB() {
     if (!dbPromise) {
       dbPromise = new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = (e) => {
+        req.onupgradeneeded = () => {
           const db = req.result;
           if (!db.objectStoreNames.contains('kv')) {
             db.createObjectStore('kv');
@@ -25,6 +27,27 @@
       });
     }
     return dbPromise;
+  }
+
+  function openLegacyDB() {
+    if (!legacyDbPromise) {
+      legacyDbPromise = new Promise((resolve, reject) => {
+        try {
+          const req = indexedDB.open('cerdascermat', 1);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains('kv')) {
+              db.createObjectStore('kv');
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+    return legacyDbPromise;
   }
 
   async function get(key) {
@@ -45,6 +68,36 @@
   async function set(key, val) {
     try {
       const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('kv', 'readwrite');
+        const store = tx.objectStore('kv');
+        const req = store.put(val, key);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function getLegacy(key) {
+    try {
+      const db = await openLegacyDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction('kv', 'readonly');
+        const store = tx.objectStore('kv');
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(undefined);
+      });
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  async function setLegacy(key, val) {
+    try {
+      const db = await openLegacyDB();
       return new Promise((resolve, reject) => {
         const tx = db.transaction('kv', 'readwrite');
         const store = tx.objectStore('kv');
@@ -98,6 +151,9 @@
 
     // ─── BABAK 1: PENYISIHAN ───────────────────────────────────
     async getPenyisihanState() {
+      let legacySkor = await getLegacy('skor');
+      let legacyCfg = await getLegacy('cfg');
+
       let state = await get('state_penyisihan');
       if (!state) {
         const defaultTeams = ['9A', '9B', '9C', '9D', '9E', '9F', '9G', '9H', '9I'];
@@ -119,16 +175,25 @@
           },
           skor: { 7: {}, 8: {}, 9: {} }
         };
-        await set('state_penyisihan', state);
       }
+
+      if (legacyCfg) state.cfg = Object.assign({}, state.cfg, legacyCfg);
+      if (legacySkor) state.skor = Object.assign({ 7: {}, 8: {}, 9: {} }, state.skor, legacySkor);
+
+      await set('state_penyisihan', state);
       return state;
     },
     async savePenyisihanState(state) {
+      if (state.cfg) await setLegacy('cfg', state.cfg);
+      if (state.skor) await setLegacy('skor', state.skor);
       return set('state_penyisihan', state);
     },
 
     // ─── BABAK 2: SEMIFINAL ─────────────────────────────────────
     async getSemifinalState() {
+      let legacyCfg3 = await getLegacy('cfg3');
+      let legacyGame3 = await getLegacy('game3');
+
       let state = await get('state_semifinal');
       if (!state) {
         const defaultTeams = ['Tim 1', 'Tim 2', 'Tim 3', 'Tim 4', 'Tim 5', 'Tim 6', 'Tim 7', 'Tim 8', 'Tim 9'];
@@ -149,18 +214,36 @@
             pin: '',
             jenis: jenis
           },
-          game: null // null indicates needs setup/draw
+          game: null
         };
-        await set('state_semifinal', state);
       }
+
+      if (legacyCfg3) state.cfg = Object.assign({}, state.cfg, legacyCfg3);
+      if (legacyGame3) state.game = legacyGame3;
+
+      await set('state_semifinal', state);
       return state;
     },
     async saveSemifinalState(state) {
+      if (state.cfg) await setLegacy('cfg3', state.cfg);
+      if (state.game) await setLegacy('game3', state.game);
       return set('state_semifinal', state);
     },
 
     // ─── BABAK 3: GRAND FINAL ───────────────────────────────────
     async getFinalState() {
+      // Prioritize live state from Grand Final localStorage ('cc-final3')
+      try {
+        const local = localStorage.getItem('cc-final3');
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (parsed && Array.isArray(parsed.score) && Array.isArray(parsed.names)) {
+            await set('state_final', parsed);
+            return parsed;
+          }
+        }
+      } catch (e) {}
+
       let state = await get('state_final');
       if (!state) {
         const defaultTeams = ['Tim 1', 'Tim 2', 'Tim 3', 'Tim 4', 'Tim 5'];
@@ -171,13 +254,16 @@
           dur: 90,
           np: 5,
           snd: 1,
-          rb: 0, // 0 = 1 kesempatan tidak dilempar, 1 = dilempar
+          rb: 0,
           names: defaultTeams,
           score: Array(5).fill(100),
           done: Array(15).fill(false),
           started: false
         };
         await set('state_final', state);
+        try {
+          localStorage.setItem('cc-final3', JSON.stringify(state));
+        } catch (e) {}
       }
       return state;
     },
