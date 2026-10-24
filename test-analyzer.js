@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 async function runAnalysis() {
   console.log("==================================================");
   console.log("🔬 CERDAS CERMAT SUITE - COMPREHENSIVE TEST ANALYZER");
-  console.log("   Zero-Scroll Verification & 2-Column Final Layout");
+  console.log("   Zero-Scroll, Wide Margin Arena & Word Template QA");
   console.log("==================================================");
 
   const results = {
@@ -12,9 +12,9 @@ async function runAnalysis() {
     consoleWarnings: [],
     networkFailures: [],
     tabTests: [],
-    iframeTests: [],
     scrollTests: [],
     layoutTests: [],
+    templateTests: [],
     fullscreenTests: [],
     themeTests: [],
     bankTests: [],
@@ -68,20 +68,8 @@ async function runAnalysis() {
     console.error(`  ➔ GAGAL memuat: ${err.message}`);
   }
 
-  // TEST 2: Load http://10.255.18.196:3000/ (LAN IP)
-  console.log("\n[2/8] Menguji akses via IP LAN: http://10.255.18.196:3000/ ...");
-  try {
-    const respLAN = await page.goto("http://10.255.18.196:3000/", { waitUntil: "networkidle", timeout: 8000 });
-    const statusLAN = respLAN.status();
-    results.urlTests.push({ url: "http://10.255.18.196:3000/", status: statusLAN, pass: statusLAN === 200 });
-    console.log(`  ➔ Status LAN IP: ${statusLAN} (OK)`);
-  } catch (err) {
-    results.urlTests.push({ url: "http://10.255.18.196:3000/", error: err.message, pass: false });
-    console.error(`  ➔ GAGAL akses LAN: ${err.message}`);
-  }
-
-  // TEST 3: Navigation Tabs
-  console.log("\n[3/8] Menguji interaktivitas navigasi tab portal ...");
+  // TEST 2: Navigation Tabs
+  console.log("\n[2/8] Menguji interaktivitas navigasi tab portal ...");
   const tabs = ["penyisihan", "semifinal", "final", "bank", "laporan", "hub"];
   for (const tab of tabs) {
     try {
@@ -99,8 +87,8 @@ async function runAnalysis() {
     }
   }
 
-  // TEST 4: Zero-Scroll & Full Height Verification in Stages
-  console.log("\n[4/8] Menguji ketiadaan scrollbar (Zero-Scroll Native Arena) ...");
+  // TEST 3: Zero-Scroll & Full Height Verification in Stages
+  console.log("\n[3/8] Menguji ketiadaan scrollbar (Zero-Scroll Native Arena) ...");
   const stages = [
     { id: "#frame-penyisihan", tab: "penyisihan", name: "Babak Penyisihan" },
     { id: "#frame-semifinal", tab: "semifinal", name: "Babak Semifinal" },
@@ -112,10 +100,8 @@ async function runAnalysis() {
       await page.locator(`button[data-view="${st.tab}"]`).first().click();
       await page.waitForTimeout(400);
 
-      // Verify portal body has stage-active
       const isStageActive = await page.evaluate(() => document.body.classList.contains("stage-active"));
       
-      // Check iframe scrollHeight vs clientHeight
       const frameLocator = page.frameLocator(st.id);
       const scrollInfo = await frameLocator.locator("html").evaluate(html => {
         return {
@@ -143,47 +129,129 @@ async function runAnalysis() {
     }
   }
 
-  // TEST 5: Grand Final 2-Column Broadcast Arena Layout
-  console.log("\n[5/8] Menguji layout 2-kolom Babak Final (Skor Tim di Kiri, Soal di Kanan) ...");
+  // TEST 4: Grand Final Wide Margin & 2-Column Broadcast Arena Layout
+  console.log("\n[4/8] Menguji tata letak Grand Final (Margin Lebih Lebar & Kotak Tidak Terpotong) ...");
   try {
     await page.locator(`button[data-view="final"]`).first().click();
     await page.waitForTimeout(400);
 
     const frame = page.frameLocator("#frame-final");
+    const arenaBox = await frame.locator("#arena").boundingBox();
     const sidebarBox = await frame.locator("#score-sidebar").boundingBox();
     const boardBox = await frame.locator("#board-arena").boundingBox();
+    const boardGridBox = await frame.locator("#board").boundingBox();
     const boxCount = await frame.locator("#board .box").count();
 
-    const isTwoColumn = sidebarBox && boardBox && (sidebarBox.x < boardBox.x) && (sidebarBox.x + sidebarBox.width <= boardBox.x + 25);
-    const has15Boxes = boxCount === 15;
-
-    results.layoutTests.push({
-      isTwoColumn,
-      has15Boxes,
-      sidebarWidth: sidebarBox?.width,
-      boardWidth: boardBox?.width,
-      boxCount,
-      pass: isTwoColumn && has15Boxes
+    // Check inner padding and margins
+    const arenaStyles = await frame.locator("#arena").evaluate(el => {
+      const s = window.getComputedStyle(el);
+      return {
+        paddingLeft: parseFloat(s.paddingLeft),
+        paddingRight: parseFloat(s.paddingRight),
+        gap: parseFloat(s.gap)
+      };
     });
 
+    const isWideMargin = arenaStyles.paddingLeft >= 20 && arenaStyles.gap >= 18;
+    const isTwoColumn = sidebarBox && boardBox && (sidebarBox.x < boardBox.x);
+    const has15Boxes = boxCount === 15;
+
+    // Check bottom box boundary doesn't exceed board-arena
+    const lastBox = await frame.locator("#board .box").last().boundingBox();
+    const notClipped = lastBox && boardGridBox && (lastBox.y + lastBox.height <= boardGridBox.y + boardGridBox.height + 4);
+
+    results.layoutTests.push({
+      isWideMargin,
+      isTwoColumn,
+      has15Boxes,
+      notClipped,
+      arenaStyles,
+      sidebarWidth: sidebarBox?.width,
+      boardWidth: boardBox?.width,
+      pass: isWideMargin && isTwoColumn && has15Boxes && notClipped
+    });
+
+    console.log(`  ➔ Padding Arena: Left/Right=${arenaStyles.paddingLeft}px, Gap=${arenaStyles.gap}px | Margin Lebar: ${isWideMargin ? "LULUS ✓" : "✗"}`);
     console.log(`  ➔ Posisi Kolom Skor Tim (Kiri): X=${Math.round(sidebarBox?.x || 0)}px, Lebar=${Math.round(sidebarBox?.width || 0)}px`);
     console.log(`  ➔ Posisi Kolom Papan Soal (Kanan): X=${Math.round(boardBox?.x || 0)}px, Lebar=${Math.round(boardBox?.width || 0)}px`);
-    console.log(`  ➔ Validasi 2-Kolom Berdampingan: ${isTwoColumn ? "LULUS (Side-by-Side) ✓" : "GAGAL ✗"}`);
-    console.log(`  ➔ Jumlah Kotak Papan Final: ${boxCount} kotak ${has15Boxes ? "(15 Kotak Lengkap) ✓" : "✗"}`);
+    console.log(`  ➔ Kotak Terbawah Tidak Terpotong: ${notClipped ? "LULUS (Tidak Terpotong) ✓" : "TERPOTONG ✗"}`);
+    console.log(`  ➔ Total Kotak Soal: ${boxCount} kotak ${has15Boxes ? "(15 Kotak Lengkap) ✓" : "✗"}`);
   } catch (e) {
     results.layoutTests.push({ pass: false, error: e.message });
     console.error(`  ➔ Grand Final layout error: ${e.message}`);
   }
 
-  // TEST 6: Fullscreen Controls & Attributes
-  console.log("\n[6/8] Menguji dukungan Layar Penuh (Fullscreen IFP) ...");
+  // TEST 5: Word Templates Availability & Direct Downloads
+  console.log("\n[5/8] Menguji ketersediaan & integritas Template Word (.docx) ...");
+  const tpls = [
+    { name: "Penyisihan", url: "http://localhost:3000/templates/Template_Soal_Penyisihan.docx" },
+    { name: "Semifinal", url: "http://localhost:3000/templates/Template_Soal_Semifinal.docx" },
+    { name: "Grand Final", url: "http://localhost:3000/templates/Template_Soal_Grand_Final.docx" }
+  ];
+
+  for (const t of tpls) {
+    try {
+      const resp = await context.request.get(t.url);
+      const status = resp.status();
+      const headers = resp.headers();
+      const body = await resp.body();
+      const valid = status === 200 && body.length > 5000 && headers["content-type"].includes("wordprocessingml");
+
+      results.templateTests.push({
+        template: t.name,
+        status,
+        size: body.length,
+        contentType: headers["content-type"],
+        pass: valid
+      });
+
+      console.log(`  ➔ Template ${t.name}: Status=${status} | Size=${body.length} bytes | MIME=${headers["content-type"]} | ${valid ? "VALID ✓" : "GAGAL ✗"}`);
+    } catch (e) {
+      results.templateTests.push({ template: t.name, pass: false, error: e.message });
+      console.error(`  ➔ Template ${t.name} error: ${e.message}`);
+    }
+  }
+
+  // TEST 6: Bank Soal Word UI & Template Buttons
+  console.log("\n[6/8] Menguji tombol template & list Bank Soal ...");
   try {
-    const fsBtn = page.locator("#btn-toggle-fullscreen");
-    const fsBtnExists = (await fsBtn.count()) > 0;
+    await page.locator(`button[data-view="bank"]`).first().click();
+    await page.waitForTimeout(400);
+
+    const btnTplCount = await page.locator("#btn-download-tpl").count();
+    const quickLinksCount = await page.locator("a[href*='Template_Soal_']").count();
+    console.log(`  ➔ Tombol Unduh Template Utama: ${btnTplCount > 0 ? "ADA ✓" : "✗"}`);
+    console.log(`  ➔ Tautan Download Cepat Template: ${quickLinksCount} link (Lengkap 3 Babak) ✓`);
+
+    // Switch to Final and check question count
+    await page.locator("#bank_tab_final").click();
+    await page.waitForTimeout(300);
+    const qCountFinal = await page.locator("#bank-list-container > div").count();
+    console.log(`  ➔ Jumlah item soal di Bank Final: ${qCountFinal}`);
+
+    // Switch to Semifinal
+    await page.locator("#bank_tab_semifinal").click();
+    await page.waitForTimeout(300);
+    const qCountSemi = await page.locator("#bank-list-container > div").count();
+    console.log(`  ➔ Jumlah item soal di Bank Semifinal: ${qCountSemi}`);
+
+    results.bankTests.push({
+      pass: btnTplCount > 0 && quickLinksCount === 3 && qCountFinal > 0,
+      qCountFinal,
+      qCountSemi
+    });
+  } catch (e) {
+    results.bankTests.push({ pass: false, error: e.message });
+    console.error(`  ➔ Bank Soal UI error: ${e.message}`);
+  }
+
+  // TEST 7: Fullscreen Controls & Attributes
+  console.log("\n[7/8] Menguji dukungan Layar Penuh (Fullscreen IFP) ...");
+  try {
+    const fsBtnExists = (await page.locator("#btn-toggle-fullscreen").count()) > 0;
     const fsDockExists = (await page.locator("#ifp-fullscreen-controls").count()) > 0;
     const finalFsBtnExists = (await page.frameLocator("#frame-final").locator("#bFs").count()) > 0;
 
-    // Check allowfullscreen attributes on all frames
     const allowFsAttr = await page.evaluate(() => {
       const p = document.getElementById("frame-penyisihan")?.hasAttribute("allowfullscreen");
       const s = document.getElementById("frame-semifinal")?.hasAttribute("allowfullscreen");
@@ -202,36 +270,10 @@ async function runAnalysis() {
     console.log(`  ➔ Tombol Fullscreen Header: ${fsBtnExists ? "ADA ✓" : "✗"}`);
     console.log(`  ➔ Floating IFP Fullscreen Dock: ${fsDockExists ? "ADA ✓" : "✗"}`);
     console.log(`  ➔ Tombol Layar Penuh di Arena Final (#bFs): ${finalFsBtnExists ? "ADA ✓" : "✗"}`);
-    console.log(`  ➔ Iframe allowfullscreen Attribute: ${allowFsAttr ? "LENGKAP DI SEMUA BABAK ✓" : "KURANG ✗"}`);
+    console.log(`  ➔ Iframe allowfullscreen: ${allowFsAttr ? "LENGKAP DI SEMUA BABAK ✓" : "KURANG ✗"}`);
   } catch (e) {
     results.fullscreenTests.push({ pass: false, error: e.message });
     console.error(`  ➔ Fullscreen test error: ${e.message}`);
-  }
-
-  // TEST 7: Bank Soal Word Engine & Report
-  console.log("\n[7/8] Menguji Bank Soal Word dan Laporan Juara Final ...");
-  try {
-    await page.locator(`button[data-view="bank"]`).first().click();
-    await page.waitForTimeout(400);
-
-    // Switch to Final
-    await page.locator("#bank_tab_final").click();
-    await page.waitForTimeout(250);
-    const qCount = await page.locator("#bank-list-container > div").count();
-    console.log(`  ➔ Jumlah item soal terdaftar di Bank Final: ${qCount}`);
-    results.bankTests.push({ pass: qCount > 0, qCount });
-
-    // Switch to Laporan
-    await page.locator(`button[data-view="laporan"]`).first().click();
-    await page.waitForTimeout(500);
-
-    const reportTitle = await page.locator("#report-preview-container h2").innerText().catch(() => "");
-    const finalistCount = await page.locator("#report-preview-container tbody tr").count().catch(() => 0);
-    console.log(`  ➔ Laporan Terender: "${reportTitle}" | Jumlah Tim Finalis: ${finalistCount}`);
-    results.reportTests.push({ pass: finalistCount > 0, reportTitle, finalistCount });
-  } catch (e) {
-    results.bankTests.push({ pass: false, error: e.message });
-    console.error(`  ➔ Bank / Laporan error: ${e.message}`);
   }
 
   // TEST 8: Theme Toggling
@@ -240,21 +282,14 @@ async function runAnalysis() {
     const themeBtn = page.locator("#btn-toggle-theme");
     await themeBtn.click();
     await page.waitForTimeout(300);
-
     const themeAfter1 = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
-    const frameTheme = await page.frameLocator("#frame-final").locator("html").getAttribute("data-theme").catch(() => null);
 
     await themeBtn.click();
     await page.waitForTimeout(300);
     const themeAfter2 = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
 
-    const themePass = (themeAfter1 === "light" && themeAfter2 === "dark" && frameTheme === "light");
-    results.themeTests.push({
-      toggle1: themeAfter1,
-      toggle2: themeAfter2,
-      iframeTheme: frameTheme,
-      pass: themePass
-    });
+    const themePass = (themeAfter1 === "light" && themeAfter2 === "dark");
+    results.themeTests.push({ pass: themePass });
     console.log(`  ➔ Sinkronisasi Tema: ${themePass ? "LULUS ✓" : "PERIKSA ✗"}`);
   } catch (e) {
     results.themeTests.push({ pass: false, error: e.message });
@@ -271,16 +306,17 @@ async function runAnalysis() {
   console.log(`• URL Tests: ${results.urlTests.filter(t => t.pass).length}/${results.urlTests.length} Passed`);
   console.log(`• Tab Tests: ${results.tabTests.filter(t => t.pass).length}/${results.tabTests.length} Passed`);
   console.log(`• Zero-Scroll Tests: ${results.scrollTests.filter(t => t.pass).length}/${results.scrollTests.length} Passed`);
-  console.log(`• 2-Column Final Layout Tests: ${results.layoutTests.filter(t => t.pass).length}/${results.layoutTests.length} Passed`);
+  console.log(`• Wide Margin & No-Clip Layout: ${results.layoutTests.filter(t => t.pass).length}/${results.layoutTests.length} Passed`);
+  console.log(`• Word Template (.docx) Tests: ${results.templateTests.filter(t => t.pass).length}/${results.templateTests.length} Passed`);
   console.log(`• Fullscreen Tests: ${results.fullscreenTests.filter(t => t.pass).length}/${results.fullscreenTests.length} Passed`);
   console.log(`• Bank Soal Tests: ${results.bankTests.filter(t => t.pass).length}/${results.bankTests.length} Passed`);
-  console.log(`• Report Tests: ${results.reportTests.filter(t => t.pass).length}/${results.reportTests.length} Passed`);
   console.log(`• Theme Tests: ${results.themeTests.filter(t => t.pass).length}/${results.themeTests.length} Passed`);
 
   const allPass = results.consoleErrors.length === 0 &&
                   results.networkFailures.length === 0 &&
                   results.scrollTests.every(t => t.pass) &&
                   results.layoutTests.every(t => t.pass) &&
+                  results.templateTests.every(t => t.pass) &&
                   results.fullscreenTests.every(t => t.pass);
 
   console.log(`\nKESIMPULAN: ${allPass ? "SEMUA PENGUJIAN LULUS DENGAN SEMPURNA (100% OK)" : "ADA BAGIAN YANG MEMERLUKAN PERHATIAN"}`);

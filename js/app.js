@@ -236,9 +236,20 @@
       if (btnDownloadTpl) {
         btnDownloadTpl.addEventListener('click', async () => {
           try {
-            await window.DocxEngine.downloadTemplateDocx(activeBankStage);
+            const fileNameMap = {
+              penyisihan: 'templates/Template_Soal_Penyisihan.docx',
+              semifinal: 'templates/Template_Soal_Semifinal.docx',
+              final: 'templates/Template_Soal_Grand_Final.docx'
+            };
+            const fileUrl = fileNameMap[activeBankStage];
+            const a = document.createElement('a');
+            a.href = fileUrl;
+            a.download = `Template_Soal_${activeBankStage.toUpperCase()}.docx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
           } catch (e) {
-            alert('Gagal mengunduh template: ' + e.message);
+            await window.DocxEngine.downloadTemplateDocx(activeBankStage);
           }
         });
       }

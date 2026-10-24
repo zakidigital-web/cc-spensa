@@ -183,7 +183,7 @@
             const optC = cells[5] ? cells[5].textContent.trim() : '';
             const optD = cells[6] ? cells[6].textContent.trim() : '';
             const keyRaw = cells[7] ? cells[7].textContent.trim().toUpperCase() : 'A';
-            const options = [optA, optB, optC, optD].filter(Boolean);
+            const options = [optA, optB, optC, optD];
 
             let keyIdx = 0;
             if (keyRaw === 'B' || keyRaw === '1') keyIdx = 1;
@@ -200,23 +200,64 @@
             });
           } else if (targetStage === 'semifinal') {
             const tipe = (/ES|ESSAY|URAIAN/i.test(category)) ? 'ES' :
-                         (/PG2/i.test(category)) ? 'PG2' :
-                         (/PG1|PG/i.test(category)) ? 'PG1' : 'BS';
-            const optRaw = cells[3] ? cells[3].textContent.trim() : '';
-            const keyRaw = cells[4] ? cells[4].textContent.trim() : (cells[3] ? cells[3].textContent.trim() : '');
+                         (/CAD/i.test(category)) ? 'CAD' :
+                         (/PG200|PG2/i.test(category)) ? 'PG2' :
+                         (/PG150|PG1|PG/i.test(category)) ? 'PG1' : 'BS';
+
+            // Support both 9-column and legacy 5-column formats
+            let options = [];
+            let keyIndex = null;
+            let ansText = '';
+
+            if (cells.length >= 8) {
+              const optA = cells[3] ? cells[3].textContent.trim() : '';
+              const optB = cells[4] ? cells[4].textContent.trim() : '';
+              const optC = cells[5] ? cells[5].textContent.trim() : '';
+              const optD = cells[6] ? cells[6].textContent.trim() : '';
+              const keyRaw = cells[7] ? cells[7].textContent.trim().toUpperCase() : '';
+              const esRaw = cells[8] ? cells[8].textContent.trim() : (cells[7] ? cells[7].textContent.trim() : '');
+
+              if (tipe === 'BS') {
+                options = ['Benar', 'Salah'];
+                keyIndex = /S|SALAH|FALSE|1/i.test(keyRaw || optA) ? 1 : 0;
+              } else if (tipe === 'PG1' || tipe === 'PG2') {
+                options = [optA, optB, optC, optD];
+                keyIndex = (keyRaw === 'B' || keyRaw === '1') ? 1 :
+                           (keyRaw === 'C' || keyRaw === '2') ? 2 :
+                           (keyRaw === 'D' || keyRaw === '3') ? 3 : 0;
+              } else {
+                options = [];
+                keyIndex = null;
+                ansText = esRaw;
+              }
+            } else {
+              const optRaw = cells[3] ? cells[3].textContent.trim() : '';
+              const keyRaw = cells[4] ? cells[4].textContent.trim() : '';
+              if (tipe === 'BS') {
+                options = ['Benar', 'Salah'];
+                keyIndex = /S|SALAH|FALSE|1/i.test(keyRaw) ? 1 : 0;
+              } else if (tipe === 'PG1' || tipe === 'PG2') {
+                options = optRaw.split(',').map(s => s.trim());
+                keyIndex = (keyRaw.toUpperCase() === 'B' || keyRaw === '1') ? 1 :
+                           (keyRaw.toUpperCase() === 'C' || keyRaw === '2') ? 2 :
+                           (keyRaw.toUpperCase() === 'D' || keyRaw === '3') ? 3 : 0;
+              } else {
+                ansText = keyRaw || optRaw;
+              }
+            }
 
             parsedQuestions.push({
               id: 'sm_imp_' + Date.now().toString(36) + i,
               tipe: tipe,
               q: qText,
-              o: tipe === 'BS' ? ['Benar', 'Salah'] : (optRaw ? optRaw.split(',').map(s=>s.trim()) : []),
-              key: /salah|b/i.test(keyRaw) ? 1 : 0,
-              ans: keyRaw,
+              o: options,
+              key: keyIndex,
+              ans: ansText,
               img: imgSrc
             });
           } else {
             // Final
-            const keyRaw = cells[3] ? cells[3].textContent.trim() : '';
+            const keyRaw = cells[3] ? cells[3].textContent.trim() : (cells[2] ? cells[2].textContent.trim() : '');
             parsedQuestions.push({
               q: qText,
               ans: keyRaw,
@@ -230,19 +271,35 @@
       if (targetStage === 'penyisihan') {
         let b = (await kvGetLegacy('bank')) || { mapel: [], soal: { 7: [], 8: [], 9: [] } };
         b.soal = b.soal || { 7: [], 8: [], 9: [] };
+        // Sync to all jenjang classes 7, 8, and 9 so questions are immediately available
+        b.soal[7] = (b.soal[7] || []).concat(parsedQuestions);
+        b.soal[8] = (b.soal[8] || []).concat(parsedQuestions);
         b.soal[9] = (b.soal[9] || []).concat(parsedQuestions);
         await kvSetLegacy('bank', b);
 
-        // Notify iframe
+        // Also save to PortalStorage
+        if (window.PortalStorage) {
+          await window.PortalStorage.saveStageBank('penyisihan', b.soal[9]);
+        }
+
+        // Reload iframe
         const frame = document.getElementById('frame-penyisihan');
-        if (frame) frame.src = frame.src;
+        if (frame && frame.contentWindow) {
+          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
+        }
       } else if (targetStage === 'semifinal') {
         let b3 = (await kvGetLegacy('bank3')) || { soal: [] };
         b3.soal = (b3.soal || []).concat(parsedQuestions);
         await kvSetLegacy('bank3', b3);
 
+        if (window.PortalStorage) {
+          await window.PortalStorage.saveStageBank('semifinal', b3.soal);
+        }
+
         const frame = document.getElementById('frame-semifinal');
-        if (frame) frame.src = frame.src;
+        if (frame && frame.contentWindow) {
+          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
+        }
       } else {
         try {
           let curFinal = JSON.parse(localStorage.getItem('cc-final3') || '{}');
@@ -250,8 +307,23 @@
           curFinal.q = (curFinal.q ? curFinal.q + '\n' : '') + newLines.join('\n');
           localStorage.setItem('cc-final3', JSON.stringify(curFinal));
 
+          if (window.PortalStorage) {
+            const finalItems = curFinal.q.split('\n').filter(Boolean).map((line, idx) => {
+              const p = line.split('|||');
+              return {
+                id: `fn_${idx+1}`,
+                tier: idx < 5 ? 'Tier 1 (50 Poin)' : (idx < 10 ? 'Tier 2 (75 Poin)' : (idx < 15 ? 'Tier 3 (100 Poin)' : 'Soal Tambahan')),
+                q: (p[0] || '').trim(),
+                ans: (p[1] || '').trim()
+              };
+            });
+            await window.PortalStorage.saveStageBank('final', finalItems);
+          }
+
           const frame = document.getElementById('frame-final');
-          if (frame) frame.src = frame.src;
+          if (frame && frame.contentWindow) {
+            try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
+          }
         } catch (e) {}
       }
 
@@ -337,29 +409,80 @@
         title = "TEMPLATE SOAL BABAK SEMIFINAL";
         rows.push(new TableRow({
           children: [
-            createHeaderCell("No", 8),
-            createHeaderCell("Jenis Soal (BS / PG1 / PG2 / ES)", 26),
-            createHeaderCell("Pertanyaan & Gambar", 42),
-            createHeaderCell("Pilihan (Jika PG)", 24),
-            createHeaderCell("Kunci Jawaban", 26)
+            createHeaderCell("No", 5),
+            createHeaderCell("Jenis Soal", 12),
+            createHeaderCell("Pertanyaan & Gambar (Bisa Rumus $...$)", 33),
+            createHeaderCell("Pilihan A", 9),
+            createHeaderCell("Pilihan B", 9),
+            createHeaderCell("Pilihan C", 9),
+            createHeaderCell("Pilihan D", 9),
+            createHeaderCell("Kunci", 6),
+            createHeaderCell("Kunci Jawaban Esai (Juri)", 18)
           ]
         }));
         rows.push(new TableRow({
           children: [
-            createCell("1", 8, AlignmentType.CENTER),
-            createCell("BS", 26),
-            createCell("Matahari terbit dari arah timur.", 42),
-            createCell("Benar, Salah", 24),
-            createCell("Benar", 26)
+            createCell("1", 5, AlignmentType.CENTER),
+            createCell("BS", 12, AlignmentType.CENTER),
+            createCell("Matahari terbit dari arah timur dan tenggelam di barat.", 33),
+            createCell("Benar", 9),
+            createCell("Salah", 9),
+            createCell("-", 9),
+            createCell("-", 9),
+            createCell("B", 6, AlignmentType.CENTER),
+            createCell("-", 18)
           ]
         }));
         rows.push(new TableRow({
           children: [
-            createCell("2", 8, AlignmentType.CENTER),
-            createCell("ES", 26),
-            createCell("Sebutkan bunyi sila ke-4 Pancasila!", 42),
-            createCell("-", 24),
-            createCell("Kerakyatan yang dipimpin oleh hikmat...", 26)
+            createCell("2", 5, AlignmentType.CENTER),
+            createCell("PG150", 12, AlignmentType.CENTER),
+            createCell("Ibu kota Provinsi Jawa Timur adalah ...", 33),
+            createCell("Surabaya", 9),
+            createCell("Malang", 9),
+            createCell("Madiun", 9),
+            createCell("Kediri", 9),
+            createCell("A", 6, AlignmentType.CENTER),
+            createCell("-", 18)
+          ]
+        }));
+        rows.push(new TableRow({
+          children: [
+            createCell("3", 5, AlignmentType.CENTER),
+            createCell("PG200", 12, AlignmentType.CENTER),
+            createCell("Hasil dari operasi pecahan $\\frac{3}{4} + \\frac{1}{2}$ adalah ...", 33),
+            createCell("$\\frac{5}{4}$", 9),
+            createCell("$\\frac{4}{6}$", 9),
+            createCell("$\\frac{3}{8}$", 9),
+            createCell("$1$", 9),
+            createCell("A", 6, AlignmentType.CENTER),
+            createCell("-", 18)
+          ]
+        }));
+        rows.push(new TableRow({
+          children: [
+            createCell("4", 5, AlignmentType.CENTER),
+            createCell("ES", 12, AlignmentType.CENTER),
+            createCell("Sebutkan bunyi sila ke-4 dalam rumusan dasar negara Pancasila!", 33),
+            createCell("-", 9),
+            createCell("-", 9),
+            createCell("-", 9),
+            createCell("-", 9),
+            createCell("-", 6, AlignmentType.CENTER),
+            createCell("Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan.", 18)
+          ]
+        }));
+        rows.push(new TableRow({
+          children: [
+            createCell("5", 5, AlignmentType.CENTER),
+            createCell("CAD", 12, AlignmentType.CENTER),
+            createCell("Hasil dari perhitungan $25 \\times 4$ adalah ...", 33),
+            createCell("-", 9),
+            createCell("-", 9),
+            createCell("-", 9),
+            createCell("-", 9),
+            createCell("-", 6, AlignmentType.CENTER),
+            createCell("100", 18)
           ]
         }));
       } else {
@@ -367,25 +490,41 @@
         rows.push(new TableRow({
           children: [
             createHeaderCell("No", 8),
-            createHeaderCell("Tier (50 / 75 / 100)", 26),
-            createHeaderCell("Pertanyaan Rebutan & Gambar", 42),
-            createHeaderCell("Kunci Jawaban Resmi", 24)
+            createHeaderCell("Tier & Poin (Tier 1/2/3/Cadangan)", 24),
+            createHeaderCell("Teks Pertanyaan Rebutan & Kotak", 44),
+            createHeaderCell("Kunci Jawaban Singkat & Jelas", 24)
           ]
         }));
         rows.push(new TableRow({
           children: [
             createCell("1", 8, AlignmentType.CENTER),
-            createCell("Tier 1 (50 Poin)", 26),
-            createCell("Apa kepanjangan dari CPU?", 42),
+            createCell("Tier 1 (50 Poin)", 24),
+            createCell("Apa kepanjangan dari CPU?", 44),
             createCell("Central Processing Unit", 24)
           ]
         }));
         rows.push(new TableRow({
           children: [
-            createCell("2", 8, AlignmentType.CENTER),
-            createCell("Tier 3 (100 Poin)", 26),
-            createCell("Ubah bilangan desimal 13 ke biner!", 42),
+            createCell("6", 8, AlignmentType.CENTER),
+            createCell("Tier 2 (75 Poin)", 24),
+            createCell("Ubah bilangan biner 1010 ke dalam bentuk desimal!", 44),
+            createCell("10", 24)
+          ]
+        }));
+        rows.push(new TableRow({
+          children: [
+            createCell("11", 8, AlignmentType.CENTER),
+            createCell("Tier 3 (100 Poin)", 24),
+            createCell("Ubah bilangan desimal 13 ke representasi biner!", 44),
             createCell("1101", 24)
+          ]
+        }));
+        rows.push(new TableRow({
+          children: [
+            createCell("16", 8, AlignmentType.CENTER),
+            createCell("Soal Tambahan (100 Poin)", 24),
+            createCell("SOAL TAMBAHAN: Satu byte terdiri dari berapa bit?", 44),
+            createCell("8 bit", 24)
           ]
         }));
       }
