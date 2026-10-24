@@ -308,7 +308,7 @@ function updTimers(){
 /* ===== PLAY ===== */
 function vPlay(){
   return `<div id="play"><div id="top"><div class="t">🎓 Cerdas Cermat · Kelas ${S.cfg.jenjang} · Gelombang ${S.cfg.gel+1}</div>
-  <div id="gt">${mmss(S.gLeft)}</div><div><button class="ghost" data-act="panel" style="padding:6px 14px">⚙ Panitia</button></div></div>
+  <div id="gt">${mmss(S.gLeft)}</div><div><button class="ghost" data-act="fs" style="padding:6px 14px;margin-right:6px">⛶ Layar Penuh</button><button class="ghost" data-act="panel" style="padding:6px 14px">⚙ Panitia</button></div></div>
   <div id="cols" style="grid-template-columns:repeat(${S.groups.length},1fr)">${S.groups.map((g,i)=>`<div class="col" id="col${i}" style="--c:var(--c${i})"></div>`).join('')}</div></div>`}
 function renderCol(i){
   const g=S.groups[i],el=$('#col'+i);if(!el)return;
@@ -449,6 +449,7 @@ function csvTemplate(){
   download('template-soal.csv',t,'text/csv')}
 /* ===== EVENTS ===== */
 const acts={
+  fs(){try{const d=(window.top!==window.self&&window.top.document)?window.top.document:document;if(d.fullscreenElement)d.exitFullscreen().catch(()=>{});else d.documentElement.requestFullscreen().catch(()=>{})}catch(x){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen();}catch(y){}}},
   jen(d){readSetup();cfg.jenjang=+d.j;cfg.gel=0;saveCfg();render()},
   gel(d){readSetup();cfg.gel=+d.gi;saveCfg();render()},
   start(){startGame()},

@@ -111,6 +111,10 @@
         targetSec.classList.add('active');
       }
 
+      // Zero-scroll native presentation arena when viewing stage iframes
+      const isStage = ['penyisihan', 'semifinal', 'final'].includes(viewName);
+      document.body.classList.toggle('stage-active', isStage);
+
       // Sync theme on iframe switch
       const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
       this.applyTheme(currentTheme);
@@ -142,6 +146,22 @@
           } else {
             document.exitFullscreen().catch(() => {});
           }
+        });
+      }
+
+      const fsExitDock = document.getElementById('btn-fs-exit-dock');
+      if (fsExitDock) {
+        fsExitDock.addEventListener('click', () => {
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          }
+        });
+      }
+
+      const fsHubDock = document.getElementById('btn-fs-hub-dock');
+      if (fsHubDock) {
+        fsHubDock.addEventListener('click', () => {
+          this.switchView('hub');
         });
       }
     },

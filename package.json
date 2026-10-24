@@ -1,6 +1,7 @@
 {
   "name": "portal-cerdas-cermat-ifp",
   "version": "1.0.0",
+  "type": "module",
   "description": "Portal Terpadu Cerdas Cermat IFP - Penyisihan, Semifinal, Grand Final dengan Mesin Word & Laporan Resmi",
   "scripts": {
     "start": "bun server.js",

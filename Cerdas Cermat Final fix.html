@@ -7,35 +7,47 @@
 :root{color-scheme:dark;--bg:#070b22;--card:#111a40;--card2:#0c1331;--line:#2a3877;--tx:#f2f5ff;--mut:#93a0d6;--gold:#f6c744;--ok:#27d98f;--bad:#ff4d6d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;color:var(--tx);font-family:"Poppins","Segoe UI",system-ui,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#1d2c78,transparent 70%),radial-gradient(900px 500px at 100% 100%,#3a1670,transparent 60%),var(--bg)}
+html,body{margin:0;height:100vh;width:100vw;color:var(--tx);font-family:"Poppins","Segoe UI",system-ui,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#1d2c78,transparent 70%),radial-gradient(900px 500px at 100% 100%,#3a1670,transparent 60%),var(--bg);overflow:hidden !important}
 body:before{content:"";position:fixed;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0 2px,transparent 2px 22px);pointer-events:none}
 button{font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:12px;padding:9px 18px;transition:.15s}
 button:hover:not(:disabled){transform:translateY(-2px);border-color:var(--gold)}
-header{position:relative;display:flex;justify-content:space-between;align-items:center;padding:14px 26px;gap:12px;flex-wrap:wrap;border-bottom:1px solid rgba(246,199,68,.35);background:linear-gradient(180deg,rgba(17,26,64,.8),transparent)}
-.kick{font-size:12px;letter-spacing:.35em;color:var(--gold);font-weight:600}
-h1{margin:0;font-size:clamp(22px,3.2vw,40px);font-weight:800;letter-spacing:.02em}
+header{position:relative;display:flex;justify-content:space-between;align-items:center;padding:10px 24px;gap:12px;flex-wrap:wrap;border-bottom:1px solid rgba(246,199,68,.35);background:linear-gradient(180deg,rgba(17,26,64,.8),transparent);height:56px;box-sizing:border-box;flex:none}
+.kick{font-size:11px;letter-spacing:.3em;color:var(--gold);font-weight:700}
+h1{margin:0;font-size:clamp(18px,2.4vw,28px);font-weight:800;letter-spacing:.02em}
 .tools{display:flex;gap:8px}
-#score{position:relative;display:grid;gap:12px;padding:18px 26px 0}
-.team{position:relative;background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-top:5px solid var(--c);border-radius:16px;padding:12px 10px 12px;text-align:center;box-shadow:0 10px 24px rgba(0,0,0,.35)}
-.badge{width:clamp(28px,3vw,42px);height:clamp(28px,3vw,42px);margin:0 auto 4px;border-radius:50%;background:var(--c);color:#0a0f2a;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:clamp(14px,1.8vw,22px)}
-.team b{display:block;font-weight:600;font-size:clamp(13px,1.6vw,20px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.team span{display:block;font-size:clamp(34px,5.2vw,68px);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
-.team small{color:var(--mut);font-size:12px}
+
+/* 2-COLUMN SIDE-BY-SIDE ARENA */
+#arena{display:grid;grid-template-columns:clamp(260px,24vw,350px) 1fr;gap:18px;padding:12px 20px 14px;height:calc(100vh - 56px);box-sizing:border-box;overflow:hidden}
+#score-sidebar{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
+.sidebar-label{font-size:11.5px;font-weight:800;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;flex:none}
+#score{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;justify-content:space-evenly}
+.team{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-radius:14px;background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-left:6px solid var(--c) !important;box-shadow:0 6px 16px rgba(0,0,0,.25);transition:all .25s ease;flex:1}
+.team .tleft{display:flex;align-items:center;gap:10px;min-width:0}
+.team .badge{width:34px;height:34px;border-radius:50%;background:var(--c);color:#0a0f2a;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;margin:0}
+.team .tinfo{display:flex;flex-direction:column;min-width:0}
+.team b{font-size:clamp(13px,1.2vw,17px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;color:var(--tx)}
+.team small{color:var(--mut);font-size:11px}
+.team .tpts{font-family:'JetBrains Mono',monospace;font-size:clamp(22px,2.6vw,38px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--tx);flex:none;text-align:right}
 .team.up{animation:up .9s}.team.dn{animation:dn .9s}
 @keyframes up{30%{box-shadow:0 0 0 4px var(--ok),0 0 34px var(--ok)}}
 @keyframes dn{30%{box-shadow:0 0 0 4px var(--bad),0 0 34px var(--bad)}}
-.team.out{opacity:.38;filter:grayscale(1)}.team.out span{font-size:clamp(14px,1.8vw,22px);color:var(--bad);padding:16px 0;font-weight:700;letter-spacing:.1em}
-#board{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:20px 26px}
-.box{aspect-ratio:16/10;display:flex;flex-direction:column;align-items:center;justify-content:center;border:0;border-radius:18px;font-weight:800;font-size:clamp(28px,4.6vw,64px);color:#fff;box-shadow:0 8px 0 rgba(0,0,0,.35);line-height:1;position:relative;overflow:hidden}
+.team.out{opacity:.38;filter:grayscale(1)}
+.team.out .tpts{font-size:12px;color:var(--bad);font-weight:800;letter-spacing:.08em}
+
+#board-arena{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
+.board-top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex:none}
+.board-badge{font-size:11.5px;font-weight:800;letter-spacing:.15em;color:var(--gold);text-transform:uppercase}
+#board{flex:1;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(3,1fr);gap:10px;min-height:0;padding:0}
+.box{width:100%;height:100%;aspect-ratio:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;border:0;border-radius:16px;font-weight:800;font-size:clamp(24px,3.8vw,52px);color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.35);line-height:1;position:relative;overflow:hidden;cursor:pointer;transition:.18s}
 .box:after{content:"";position:absolute;inset:0 0 55% 0;background:linear-gradient(180deg,rgba(255,255,255,.22),transparent)}
-.box small{font-size:clamp(11px,1.5vw,19px);font-weight:600;margin-top:6px;letter-spacing:.12em;text-transform:uppercase;opacity:.95}
+.box small{font-size:clamp(10px,1.2vw,16px);font-weight:600;margin-top:4px;letter-spacing:.1em;text-transform:uppercase;opacity:.95}
 .t0{background:linear-gradient(145deg,#25d6a0,#0a8f69)}.t1{background:linear-gradient(145deg,#ffb23e,#d9560b)}.t2{background:linear-gradient(145deg,#f0529c,#6d28d9)}
 .box:disabled{filter:saturate(.3) brightness(.55);cursor:not-allowed}
 .box.next{filter:none;cursor:pointer;outline:4px solid var(--gold);outline-offset:3px;animation:glow 1s infinite alternate}
-@keyframes glow{to{transform:scale(1.045);box-shadow:0 0 40px 6px rgba(246,199,68,.6)}}
+@keyframes glow{to{transform:scale(1.03);box-shadow:0 0 35px 5px rgba(246,199,68,.6)}}
 .box.done{opacity:.14;filter:grayscale(1)}
-#banner{position:relative;margin:0 26px 20px;text-align:center;font-size:clamp(20px,3vw,40px);font-weight:700;color:var(--gold)}
-#banner button{font-size:inherit;background:var(--gold);color:#1b1b1b;border:0;margin-top:10px}
+#banner{font-size:clamp(16px,2vw,24px);font-weight:700;color:var(--gold);text-align:right}
+#banner button{font-size:13px;background:var(--gold);color:#1b1b1b;border:0;padding:6px 14px;border-radius:8px}
 .screen{position:fixed;inset:0;display:none;z-index:9;overflow:auto;padding:20px;background:rgba(5,8,26,.97)}
 .screen.show{display:flex}
 #setup{align-items:flex-start;justify-content:center}
@@ -90,8 +102,20 @@ try {
 </head>
 <body>
 <header><div><div class="kick">BABAK FINAL</div><h1 id="title">CERDAS CERMAT</h1></div>
-<div class="tools"><button id="bUndo">Undo</button><button id="bSet">Pengaturan</button></div></header>
-<div id="score"></div><div id="board"></div><div id="banner"></div>
+<div class="tools"><button id="bFs" title="Layar Penuh IFP">⛶ Layar Penuh</button><button id="bUndo">Undo</button><button id="bSet">Pengaturan</button></div></header>
+<div id="arena">
+  <aside id="score-sidebar">
+    <div class="sidebar-label">SKOR TIM</div>
+    <div id="score"></div>
+  </aside>
+  <main id="board-arena">
+    <div class="board-top-bar">
+      <span class="board-badge">PAPAN SOAL BABAK FINAL</span>
+      <div id="banner"></div>
+    </div>
+    <div id="board"></div>
+  </main>
+</div>
 
 <div id="setup" class="screen"><div class="panel">
 <h2>Pengaturan Cerdas Cermat</h2><p class="sub">Atur semuanya terlebih dahulu, lalu tekan Mulai.</p>
@@ -165,10 +189,18 @@ function confetti(){const c=document.createElement('div');c.id='cf';for(let i=0;
 /* render */
 function render(){
   $('#title').textContent=S.title;
-  $('#score').style.gridTemplateColumns=`repeat(${S.n},1fr)`;
   $('#score').innerHTML=S.score.map((s,i)=>{
     const c=prev&&prev.length===S.score.length&&prev[i]!==s?(s>prev[i]?'up':'dn'):'';
-    return `<div class="team ${s<=0?'out':''} ${c}" style="--c:${COL[i]}"><div class="badge">${i+1}</div><b>${esc(S.names[i])}</b><span>${s<=0?'TERELIMINASI':s}</span><small>bel ${i+1}</small></div>`}).join('');
+    return `<div class="team ${s<=0?'out':''} ${c}" style="--c:${COL[i]}">
+      <div class="tleft">
+        <div class="badge">${i+1}</div>
+        <div class="tinfo">
+          <b>${esc(S.names[i])}</b>
+          <small>bel ${i+1}</small>
+        </div>
+      </div>
+      <div class="tpts">${s<=0?'GUGUR':s}</div>
+    </div>`}).join('');
   prev=S.score.slice();
   const nx=nextIdx();
   $('#board').innerHTML=S.done.map((d,i)=>`<button class="box t${Math.floor(i/5)} ${d?'done':''} ${i===nx?'next':''}" data-i="${i}" ${i===nx?'':'disabled'}>${i+1}<small>${val(i)} poin</small></button>`).join('');
@@ -262,6 +294,7 @@ document.addEventListener('click',e=>{
   else if(b.id==='bAns'){cur.ans=!cur.ans;upd()}
   else if(b.id==='bCancel')undo();
   else if(b.id==='bTie')open(15,true);
+  else if(b.id==='bFs'){try{const doc=(window.top!==window.self&&window.top.document)?window.top.document:document;if(!doc.fullscreenElement)doc.documentElement.requestFullscreen().catch(()=>{});else doc.exitFullscreen().catch(()=>{})}catch(x){if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen().catch(()=>{})}}
   else if(b.id==='bUndo')undo();
   else if(b.id==='bSet')showSetup();
   else if(b.id==='bSample')$('#sQ').value=SAMPLE;
