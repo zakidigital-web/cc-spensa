@@ -24,6 +24,22 @@
       this.bindBankSoal();
       this.bindLaporan();
       this.bindSettings(cfg);
+      this.bindShortcuts();
+
+      // Protocol alert for file:// protocol
+      if (window.location.protocol === 'file:') {
+        const alertEl = document.getElementById('protocol-alert');
+        if (alertEl) alertEl.style.display = 'flex';
+      }
+
+      // Pre-unlock AudioContext on first user interaction
+      const unlockAudio = () => {
+        if (window.SoundFX) window.SoundFX.playTileOpen();
+        window.removeEventListener('click', unlockAudio);
+        window.removeEventListener('touchstart', unlockAudio);
+      };
+      window.addEventListener('click', unlockAudio, { once: true });
+      window.addEventListener('touchstart', unlockAudio, { once: true });
 
       // Attach iframe load theme sync
       ['frame-penyisihan', 'frame-semifinal', 'frame-final'].forEach(id => {
@@ -117,6 +133,45 @@
       if (themeBtn) {
         themeBtn.addEventListener('click', () => this.toggleTheme());
       }
+
+      const fsBtn = document.getElementById('btn-toggle-fullscreen');
+      if (fsBtn) {
+        fsBtn.addEventListener('click', () => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          } else {
+            document.exitFullscreen().catch(() => {});
+          }
+        });
+      }
+    },
+
+    // ─── KEYBOARD SHORTCUTS MODAL ─────────────────────────
+    bindShortcuts() {
+      const modal = document.getElementById('shortcuts-modal');
+      const btnOpen = document.getElementById('btn-open-shortcuts');
+      const btnClose = document.getElementById('btn-close-shortcuts');
+      const btnOk = document.getElementById('btn-ok-shortcuts');
+
+      const openModal = () => { if (modal) modal.classList.add('active'); };
+      const closeModal = () => { if (modal) modal.classList.remove('active'); };
+
+      if (btnOpen) btnOpen.addEventListener('click', openModal);
+      if (btnClose) btnClose.addEventListener('click', closeModal);
+      if (btnOk) btnOk.addEventListener('click', closeModal);
+
+      // Global keyboard listener for ? and Escape
+      window.addEventListener('keydown', e => {
+        if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+          if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+            openModal();
+          }
+        } else if (e.key === 'Escape') {
+          closeModal();
+          const setModal = document.getElementById('settings-modal');
+          if (setModal) setModal.classList.remove('active');
+        }
+      });
     },
 
     // ─── BANK SOAL INTERACTION (SEPARATE PER STAGE) ─────────

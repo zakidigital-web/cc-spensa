@@ -1,8 +1,21 @@
 import { join } from "path";
 import { existsSync, statSync } from "fs";
+import { networkInterfaces } from "os";
 
 const ROOT = "/home/darkverst/workspace/CC";
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
+
+function getLocalIp() {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return "localhost";
+}
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -40,7 +53,8 @@ const server = Bun.serve({
       return new Response(Bun.file(filePath), {
         headers: {
           "Content-Type": mime,
-          "Access-Control-Allow-Origin": "*"
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=3600"
         }
       });
     }
@@ -50,10 +64,17 @@ const server = Bun.serve({
     return new Response(Bun.file(indexPath), {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache"
       }
     });
   }
 });
 
-console.log(`[Cerdas Cermat Portal] Local Server aktif di: http://localhost:${PORT}`);
+const lanIp = getLocalIp();
+console.log("══════════════════════════════════════════════════════════");
+console.log("  🎓 PORTAL RESMI CERDAS CERMAT IFP — SERVER AKTIF");
+console.log("══════════════════════════════════════════════════════════");
+console.log(`  ➜  Lokal:    http://localhost:${PORT}/`);
+console.log(`  ➜  Jaringan: http://${lanIp}:${PORT}/ (Gunakan di HP/IFP)`);
+console.log("══════════════════════════════════════════════════════════");

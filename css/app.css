@@ -998,3 +998,33 @@ main#app-root {
     height: calc(100vh - 120px);
   }
 }
+
+/* ════════════ LUXURY KBD & SHORTCUT STYLES ════════════ */
+kbd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--card-bg-solid);
+  border: 1.5px solid var(--card-border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  color: var(--text-main);
+  display: inline-block;
+  line-height: 1.2;
+}
+[data-theme="light"] kbd {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* ════════════ FULLSCREEN IFP ARENA OPTIMIZATION ════════════ */
+:fullscreen body {
+  background-attachment: scroll;
+}
+:fullscreen .frame-wrapper {
+  height: calc(100vh - 65px);
+}
+

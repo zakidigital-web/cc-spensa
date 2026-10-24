@@ -32,6 +32,12 @@
     </nav>
 
     <div class="header-actions">
+      <button class="btn btn-ghost btn-icon" id="btn-toggle-fullscreen" title="Layar Penuh IFP / F11">
+        <span>⛶</span>
+      </button>
+      <button class="btn btn-ghost btn-icon" id="btn-open-shortcuts" title="Panduan Pintasan Keyboard (?)">
+        <span>⌨️</span>
+      </button>
       <button class="btn btn-ghost btn-icon" id="btn-toggle-theme" title="Ganti Tema Terang/Gelap">
         <span id="theme-icon">🌙</span>
       </button>
@@ -43,6 +49,17 @@
 
   <!-- Main Container -->
   <main id="app-root">
+
+    <!-- Protocol Alert for file:// -->
+    <div id="protocol-alert" style="display:none;background:rgba(245,158,11,0.15);border:1.5px solid var(--gold);color:var(--text-main);padding:12px 22px;border-radius:14px;margin-bottom:20px;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:24px;">💡</span>
+        <span style="font-size:13.5px;line-height:1.45;">
+          <strong>Tip Akses &amp; Jaringan:</strong> Anda membuka portal secara langsung dari file lokal. Untuk performa terbaik &amp; sinkronisasi penuh antar babak, disarankan mengakses via server lokal (<code style="background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:6px;font-family:monospace;font-weight:700;">http://localhost:3000</code>) atau via IP jaringan Wi-Fi (<code style="background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:6px;font-family:monospace;font-weight:700;">http://10.255.18.196:3000</code> di HP/IFP).
+        </span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="this.parentElement.style.display='none'" style="padding:4px 12px;font-size:12px;">✕ Tutup</button>
+    </div>
 
     <!-- ════════════ VIEW 1: HUB / BERANDA ════════════ -->
     <section id="view-hub" class="view-section active">
@@ -65,7 +82,10 @@
               <span><b>Poin:</b> Benar +2 · Tanpa minus</span>
             </div>
           </div>
-          <button class="btn btn-primary" data-view="penyisihan">Buka Arena Penyisihan ➔</button>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+            <button class="btn btn-primary" style="flex:1;" data-view="penyisihan">Buka Arena Penyisihan ➔</button>
+            <a href="penyisihan-cerdas-cermat.html" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Buka babak ini di tab atau monitor terpisah">Tab Baru ↗</a>
+          </div>
         </div>
 
         <div class="stage-card s2">
@@ -79,7 +99,10 @@
               <span><b>Poin:</b> 100–300 Poin · Rubrik Juri Essay</span>
             </div>
           </div>
-          <button class="btn btn-gold" data-view="semifinal">Buka Papan Semifinal ➔</button>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+            <button class="btn btn-gold" style="flex:1;" data-view="semifinal">Buka Papan Semifinal ➔</button>
+            <a href="semifinal-cerdas-cermat.html" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Buka babak ini di tab atau monitor terpisah">Tab Baru ↗</a>
+          </div>
         </div>
 
         <div class="stage-card s3">
@@ -93,7 +116,10 @@
               <span><b>Sistem:</b> Gugur jika skor &le; 0 · Konfeti Juara</span>
             </div>
           </div>
-          <button class="btn btn-danger" data-view="final">Buka Arena Grand Final ➔</button>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+            <button class="btn btn-danger" style="flex:1;" data-view="final">Buka Arena Grand Final ➔</button>
+            <a href="Cerdas%20Cermat%20Final%20fix.html" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Buka babak ini di tab atau monitor terpisah">Tab Baru ↗</a>
+          </div>
         </div>
       </div>
 
@@ -233,6 +259,48 @@
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
         <button class="btn btn-ghost" id="btn-close-settings">Batal</button>
         <button class="btn btn-primary" id="btn-save-settings">Simpan Pengaturan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ KEYBOARD SHORTCUTS MODAL ════════════ -->
+  <div id="shortcuts-modal" class="modal-overlay">
+    <div class="glass-panel" style="width:min(580px, 100%);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <h2 style="font-size:20px;font-weight:800;margin:0;">⌨️ Pintasan Keyboard Juri &amp; Operator</h2>
+        <button class="btn btn-ghost btn-sm" id="btn-close-shortcuts" style="padding:4px 10px;font-size:14px;">✕</button>
+      </div>
+      <p style="color:var(--text-mut);font-size:13.5px;margin-bottom:16px;">
+        Gunakan pintasan keyboard berikut saat mengoperasikan Cerdas Cermat di atas panggung atau layar IFP:
+      </p>
+      <div style="display:grid;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:12px;">
+          <span style="font-weight:600;font-size:14px;">Pilih Tim Penekan Bel (Grand Final)</span>
+          <span style="display:flex;gap:4px;"><kbd style="background:var(--card-bg-solid);padding:3px 8px;border-radius:6px;border:1px solid var(--card-border);font-family:monospace;font-weight:700;">1</kbd> s.d. <kbd style="background:var(--card-bg-solid);padding:3px 8px;border-radius:6px;border:1px solid var(--card-border);font-family:monospace;font-weight:700;">6</kbd></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:12px;">
+          <span style="font-weight:600;font-size:14px;">Keputusan Jawaban BENAR</span>
+          <kbd style="background:var(--card-bg-solid);color:var(--ok);padding:3px 12px;border-radius:6px;border:1px solid var(--ok);font-family:monospace;font-weight:800;">B</kbd>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:12px;">
+          <span style="font-weight:600;font-size:14px;">Keputusan Jawaban SALAH</span>
+          <kbd style="background:var(--card-bg-solid);color:var(--bad);padding:3px 12px;border-radius:6px;border:1px solid var(--bad);font-family:monospace;font-weight:800;">S</kbd>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:12px;">
+          <span style="font-weight:600;font-size:14px;">Jeda / Lanjutkan Waktu Timer</span>
+          <kbd style="background:var(--card-bg-solid);padding:3px 12px;border-radius:6px;border:1px solid var(--card-border);font-family:monospace;font-weight:800;">P</kbd>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:12px;">
+          <span style="font-weight:600;font-size:14px;">Buka Kunci Jawaban Soal</span>
+          <kbd style="background:var(--card-bg-solid);color:var(--gold);padding:3px 12px;border-radius:6px;border:1px solid var(--gold);font-family:monospace;font-weight:800;">J</kbd>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:12px;">
+          <span style="font-weight:600;font-size:14px;">Mode Layar Penuh IFP</span>
+          <kbd style="background:var(--card-bg-solid);padding:3px 10px;border-radius:6px;border:1px solid var(--card-border);font-family:monospace;font-weight:800;">F11</kbd>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+        <button class="btn btn-primary" id="btn-ok-shortcuts">Tutup Panduan</button>
       </div>
     </div>
   </div>

@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Portal Terpadu Cerdas Cermat IFP - Penyisihan, Semifinal, Grand Final dengan Mesin Word & Laporan Resmi",
   "scripts": {
-    "start": "bun x serve .",
-    "dev": "bun x serve .",
+    "start": "bun server.js",
+    "dev": "bun server.js",
+    "test": "bun test-analyzer.js",
     "build": "echo 'Client-side web app ready for Vercel'"
   },
   "keywords": [
