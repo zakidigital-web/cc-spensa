@@ -1,4 +1,5 @@
 import { sql } from '../db/client.js';
+import { sendResponse } from './_utils.js';
 
 export default async function handler(req, res) {
   try {
@@ -20,20 +21,14 @@ export default async function handler(req, res) {
       stats: counts[0]
     };
 
-    if (res) {
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(200).json(data);
-    }
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    return sendResponse(res, 200, data);
   } catch (err) {
-    const errData = { status: 'error', message: err.message };
-    if (res) return res.status(500).json(errData);
-    return new Response(JSON.stringify(errData), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    console.error("API Health Error:", err);
+    return sendResponse(res, 200, {
+      status: 'offline_or_error',
+      provider: 'Neon PostgreSQL',
+      error: err.message,
+      hint: 'Periksa koneksi DATABASE_URL di Environment Variables Vercel.'
     });
   }
 }

@@ -40,71 +40,73 @@ const MIME_TYPES = {
   ".ttf": "font/ttf"
 };
 
-const server = Bun.serve({
-  port: PORT,
-  async fetch(req) {
-    const url = new URL(req.url);
-    let pathname = decodeURIComponent(url.pathname);
+if (typeof Bun !== "undefined") {
+  const server = Bun.serve({
+    port: PORT,
+    async fetch(req) {
+      const url = new URL(req.url);
+      let pathname = decodeURIComponent(url.pathname);
 
-    // Handle CORS Preflight
-    if (req.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization"
-        }
-      });
-    }
-
-    // ─── POSTGRESQL CLOUD BACKEND API ROUTES ───
-    if (pathname === "/api/health") return healthHandler(req);
-    if (pathname === "/api/config") return configHandler(req);
-    if (pathname === "/api/banks") return banksHandler(req);
-    if (pathname === "/api/state") return stateHandler(req);
-    if (pathname === "/api/reports") return reportsHandler(req);
-    if (pathname === "/api/seed") return seedHandler(req);
-
-    // Exact rewrites matching vercel.json
-    if (pathname === "/penyisihan") pathname = "/penyisihan-cerdas-cermat.html";
-    else if (pathname === "/semifinal") pathname = "/semifinal-cerdas-cermat.html";
-    else if (pathname === "/final") pathname = existsSync(join(ROOT, "final-cerdas-cermat.html")) ? "/final-cerdas-cermat.html" : "/Cerdas Cermat Final fix.html";
-    else if (pathname === "/") pathname = "/index.html";
-
-    let filePath = join(ROOT, pathname);
-
-    // If file exists and is a file, serve it
-    if (existsSync(filePath) && statSync(filePath).isFile()) {
-      const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-      const mime = MIME_TYPES[ext] || "application/octet-stream";
-      return new Response(Bun.file(filePath), {
-        headers: {
-          "Content-Type": mime,
-          "Access-Control-Allow-Origin": "*",
-          "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=3600"
-        }
-      });
-    }
-
-    // Fallback to index.html for SPA routes
-    const indexPath = join(ROOT, "index.html");
-    return new Response(Bun.file(indexPath), {
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "no-cache"
+      // Handle CORS Preflight
+      if (req.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization"
+          }
+        });
       }
-    });
-  }
-});
 
-const lanIp = getLocalIp();
-console.log("══════════════════════════════════════════════════════════");
-console.log("  🎓 PORTAL RESMI CERDAS CERMAT IFP — SERVER AKTIF");
-console.log("  🐘 Cloud Database: Neon PostgreSQL Connected");
-console.log("══════════════════════════════════════════════════════════");
-console.log(`  ➜  Lokal:    http://localhost:${PORT}/`);
-console.log(`  ➜  Jaringan: http://${lanIp}:${PORT}/ (Gunakan di HP/IFP)`);
-console.log(`  ➜  API Health: http://localhost:${PORT}/api/health`);
-console.log("══════════════════════════════════════════════════════════");
+      // ─── POSTGRESQL CLOUD BACKEND API ROUTES ───
+      if (pathname === "/api/health") return healthHandler(req);
+      if (pathname === "/api/config") return configHandler(req);
+      if (pathname === "/api/banks") return banksHandler(req);
+      if (pathname === "/api/state") return stateHandler(req);
+      if (pathname === "/api/reports") return reportsHandler(req);
+      if (pathname === "/api/seed") return seedHandler(req);
+
+      // Exact rewrites matching vercel.json
+      if (pathname === "/penyisihan") pathname = "/penyisihan-cerdas-cermat.html";
+      else if (pathname === "/semifinal") pathname = "/semifinal-cerdas-cermat.html";
+      else if (pathname === "/final") pathname = existsSync(join(ROOT, "final-cerdas-cermat.html")) ? "/final-cerdas-cermat.html" : "/Cerdas Cermat Final fix.html";
+      else if (pathname === "/") pathname = "/index.html";
+
+      let filePath = join(ROOT, pathname);
+
+      // If file exists and is a file, serve it
+      if (existsSync(filePath) && statSync(filePath).isFile()) {
+        const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
+        const mime = MIME_TYPES[ext] || "application/octet-stream";
+        return new Response(Bun.file(filePath), {
+          headers: {
+            "Content-Type": mime,
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=3600"
+          }
+        });
+      }
+
+      // Fallback to index.html for SPA routes
+      const indexPath = join(ROOT, "index.html");
+      return new Response(Bun.file(indexPath), {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-cache"
+        }
+      });
+    }
+  });
+
+  const lanIp = getLocalIp();
+  console.log("══════════════════════════════════════════════════════════");
+  console.log("  🎓 PORTAL RESMI CERDAS CERMAT IFP — SERVER AKTIF");
+  console.log("  🐘 Cloud Database: Neon PostgreSQL Connected");
+  console.log("══════════════════════════════════════════════════════════");
+  console.log(`  ➜  Lokal:    http://localhost:${PORT}/`);
+  console.log(`  ➜  Jaringan: http://${lanIp}:${PORT}/ (Gunakan di HP/IFP)`);
+  console.log(`  ➜  API Health: http://localhost:${PORT}/api/health`);
+  console.log("══════════════════════════════════════════════════════════");
+}

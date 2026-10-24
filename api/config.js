@@ -1,16 +1,12 @@
 import { sql } from '../db/client.js';
+import { sendResponse, parseBody } from './_utils.js';
 
 export default async function handler(req, res) {
-  const method = req.method || (req.headers ? 'GET' : 'GET');
+  const method = req.method || 'GET';
 
   try {
     if (method === 'POST') {
-      let body = {};
-      if (typeof req.json === 'function') {
-        body = await req.json();
-      } else if (req.body) {
-        body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      }
+      const body = await parseBody(req);
 
       await sql`
         INSERT INTO events (
@@ -34,12 +30,7 @@ export default async function handler(req, res) {
           updated_at = NOW()
       `;
 
-      const responseData = { success: true, message: 'Config saved to PostgreSQL' };
-      if (res) return res.status(200).json(responseData);
-      return new Response(JSON.stringify(responseData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
+      return sendResponse(res, 200, { success: true, message: 'Config saved to PostgreSQL' });
     }
 
     // Default GET:
@@ -60,17 +51,9 @@ export default async function handler(req, res) {
       };
     }
 
-    if (res) return res.status(200).json({ success: true, config });
-    return new Response(JSON.stringify({ success: true, config }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    return sendResponse(res, 200, { success: true, config });
   } catch (err) {
-    const errData = { success: false, error: err.message };
-    if (res) return res.status(500).json(errData);
-    return new Response(JSON.stringify(errData), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    console.error("API Config Error:", err);
+    return sendResponse(res, 200, { success: false, error: err.message });
   }
 }

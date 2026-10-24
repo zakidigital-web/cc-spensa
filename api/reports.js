@@ -1,14 +1,12 @@
 import { sql } from '../db/client.js';
+import { sendResponse, parseBody } from './_utils.js';
 
 export default async function handler(req, res) {
   const method = req.method || 'GET';
 
   try {
     if (method === 'POST') {
-      let body = {};
-      if (typeof req.json === 'function') body = await req.json();
-      else if (req.body) body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-
+      const body = await parseBody(req);
       const docNumber = body.doc_number || `421.3/CC-FINAL/${new Date().getFullYear()}`;
       const title = body.title || 'LOMBA CERDAS CERMAT IFP';
       const schoolName = body.school_name || 'SMP NEGERI 1 KABUPATEN';
@@ -31,29 +29,16 @@ export default async function handler(req, res) {
           signatories = EXCLUDED.signatories
       `;
 
-      const responseData = { success: true, message: 'Report saved to PostgreSQL' };
-      if (res) return res.status(200).json(responseData);
-      return new Response(JSON.stringify(responseData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
+      return sendResponse(res, 200, { success: true, message: 'Report saved to PostgreSQL' });
     }
 
     // Default GET:
     const rows = await sql`SELECT * FROM reports ORDER BY id DESC LIMIT 1`;
     const report = rows.length > 0 ? rows[0] : null;
 
-    if (res) return res.status(200).json({ success: true, report });
-    return new Response(JSON.stringify({ success: true, report }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    return sendResponse(res, 200, { success: true, report });
   } catch (err) {
-    const errData = { success: false, error: err.message };
-    if (res) return res.status(500).json(errData);
-    return new Response(JSON.stringify(errData), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    console.error("API Reports Error:", err);
+    return sendResponse(res, 200, { success: false, error: err.message, report: null });
   }
 }

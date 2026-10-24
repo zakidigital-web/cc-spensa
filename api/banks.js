@@ -1,4 +1,5 @@
 import { sql } from '../db/client.js';
+import { sendResponse, parseBody } from './_utils.js';
 
 export default async function handler(req, res) {
   const method = req.method || 'GET';
@@ -7,15 +8,12 @@ export default async function handler(req, res) {
 
   try {
     if (method === 'POST') {
-      let body = {};
-      if (typeof req.json === 'function') body = await req.json();
-      else if (req.body) body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-
+      const body = await parseBody(req);
       const targetStage = body.stage;
       const questions = body.questions || [];
 
       if (!targetStage || !Array.isArray(questions)) {
-        throw new Error("Invalid payload: stage and questions array required");
+        return sendResponse(res, 400, { success: false, error: "Invalid payload: stage and questions required" });
       }
 
       await sql`DELETE FROM question_banks WHERE stage = ${targetStage}`;
@@ -40,12 +38,7 @@ export default async function handler(req, res) {
         `;
       }
 
-      const responseData = { success: true, count: questions.length, message: `Questions for ${targetStage} saved` };
-      if (res) return res.status(200).json(responseData);
-      return new Response(JSON.stringify(responseData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
+      return sendResponse(res, 200, { success: true, count: questions.length, message: `Questions for ${targetStage} saved` });
     }
 
     // Default GET:
@@ -65,18 +58,9 @@ export default async function handler(req, res) {
       `;
     }
 
-    const payload = { success: true, count: rows.length, questions: rows };
-    if (res) return res.status(200).json(payload);
-    return new Response(JSON.stringify(payload), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    return sendResponse(res, 200, { success: true, count: rows.length, questions: rows });
   } catch (err) {
-    const errData = { success: false, error: err.message };
-    if (res) return res.status(500).json(errData);
-    return new Response(JSON.stringify(errData), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    console.error("API Banks Error:", err);
+    return sendResponse(res, 200, { success: false, error: err.message, questions: [] });
   }
 }

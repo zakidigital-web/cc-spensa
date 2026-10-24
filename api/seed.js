@@ -1,15 +1,30 @@
 import { sql } from '../db/client.js';
+import { sendResponse } from './_utils.js';
 import fs from 'fs';
 import path from 'path';
 
 export default async function handler(req, res) {
   try {
-    const seedFile = path.join(process.cwd(), 'seeds', 'seed-database.json');
-    if (!fs.existsSync(seedFile)) {
-      throw new Error("seeds/seed-database.json not found");
+    let seed = null;
+    const candidates = [
+      path.join(process.cwd(), 'seeds', 'seed-database.json'),
+      path.join(import.meta.dir || '', '..', 'seeds', 'seed-database.json')
+    ];
+
+    for (const c of candidates) {
+      if (c && fs.existsSync(c)) {
+        seed = JSON.parse(fs.readFileSync(c, 'utf-8'));
+        break;
+      }
     }
 
-    const seed = JSON.parse(fs.readFileSync(seedFile, 'utf-8'));
+    if (!seed) {
+      return sendResponse(res, 200, {
+        success: false,
+        message: 'Berkas seeds/seed-database.json tidak ditemukan di serverless bundle.'
+      });
+    }
+
     const cfg = seed.event_config;
 
     // 1. Events
@@ -104,24 +119,14 @@ export default async function handler(req, res) {
         signatories = EXCLUDED.signatories
     `;
 
-    const data = {
+    return sendResponse(res, 200, {
       success: true,
       message: 'PostgreSQL database successfully seeded!',
       total_questions: count,
       finalists: seed.champions.length
-    };
-
-    if (res) return res.status(200).json(data);
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
   } catch (err) {
-    const errData = { success: false, error: err.message };
-    if (res) return res.status(500).json(errData);
-    return new Response(JSON.stringify(errData), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    console.error("API Seed Error:", err);
+    return sendResponse(res, 200, { success: false, error: err.message });
   }
 }

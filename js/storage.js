@@ -126,11 +126,16 @@
   function cloudSyncPost(endpoint, payload) {
     if (typeof window === 'undefined' || !window.fetch) return;
     try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 4000) : null;
       fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
+        body: JSON.stringify(payload),
+        signal: controller ? controller.signal : undefined
+      })
+      .then(() => { if (timer) clearTimeout(timer); })
+      .catch(() => {});
     } catch (e) {}
   }
 
