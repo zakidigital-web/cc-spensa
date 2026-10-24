@@ -122,12 +122,64 @@
     sound: true
   };
 
+  // ─── CLOUD DATABASE BRIDGE (NEON POSTGRESQL API) ─────────────
+  function cloudSyncPost(endpoint, payload) {
+    if (typeof window === 'undefined' || !window.fetch) return;
+    try {
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
   const Storage = {
+    async checkCloudDatabase() {
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          const data = await res.json();
+          return data && data.status === 'online' ? data : null;
+        }
+      } catch (e) {}
+      return null;
+    },
+
+    async syncFromCloud() {
+      try {
+        const cloud = await this.checkCloudDatabase();
+        if (!cloud) return false;
+
+        const resCfg = await fetch('/api/config');
+        if (resCfg.ok) {
+          const dataCfg = await resCfg.json();
+          if (dataCfg && dataCfg.config) {
+            await set('event_config', dataCfg.config);
+          }
+        }
+
+        for (const stage of ['penyisihan', 'semifinal', 'final']) {
+          const resB = await fetch(`/api/banks?stage=${stage}`);
+          if (resB.ok) {
+            const dataB = await resB.json();
+            if (dataB && Array.isArray(dataB.questions) && dataB.questions.length > 0) {
+              await set(`bank_${stage}`, dataB.questions);
+            }
+          }
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+
     async getConfig() {
       const saved = await get('event_config');
       return Object.assign({}, defaultEventConfig, saved || {});
     },
     async saveConfig(cfg) {
+      cloudSyncPost('/api/config', cfg);
       return set('event_config', cfg);
     },
 
@@ -146,6 +198,7 @@
       return bank;
     },
     async saveStageBank(stage, questions) {
+      cloudSyncPost('/api/banks', { stage, questions });
       return set(`bank_${stage}`, questions);
     },
 
@@ -184,6 +237,7 @@
       return state;
     },
     async savePenyisihanState(state) {
+      cloudSyncPost('/api/state', { stage: 'penyisihan', config: state.cfg, state_data: { skor: state.skor } });
       if (state.cfg) await setLegacy('cfg', state.cfg);
       if (state.skor) await setLegacy('skor', state.skor);
       return set('state_penyisihan', state);
@@ -225,6 +279,7 @@
       return state;
     },
     async saveSemifinalState(state) {
+      cloudSyncPost('/api/state', { stage: 'semifinal', config: state.cfg, state_data: { game: state.game } });
       if (state.cfg) await setLegacy('cfg3', state.cfg);
       if (state.game) await setLegacy('game3', state.game);
       return set('state_semifinal', state);
@@ -268,6 +323,11 @@
       return state;
     },
     async saveFinalState(state) {
+      cloudSyncPost('/api/state', {
+        stage: 'final',
+        config: { title: state.title, n: state.n, init: state.init, dur: state.dur, np: state.np, snd: state.snd, rb: state.rb },
+        state_data: { names: state.names, score: state.score, done: state.done, started: state.started }
+      });
       try {
         localStorage.setItem('cc-final3', JSON.stringify(state));
       } catch (e) {}

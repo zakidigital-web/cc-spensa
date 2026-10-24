@@ -2,6 +2,14 @@ import { join } from "path";
 import { existsSync, statSync } from "fs";
 import { networkInterfaces } from "os";
 
+// API Handlers (PostgreSQL Cloud Neon Integration)
+import healthHandler from "./api/health.js";
+import configHandler from "./api/config.js";
+import banksHandler from "./api/banks.js";
+import stateHandler from "./api/state.js";
+import reportsHandler from "./api/reports.js";
+import seedHandler from "./api/seed.js";
+
 const ROOT = "/home/darkverst/workspace/CC";
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -34,9 +42,29 @@ const MIME_TYPES = {
 
 const server = Bun.serve({
   port: PORT,
-  fetch(req) {
+  async fetch(req) {
     const url = new URL(req.url);
     let pathname = decodeURIComponent(url.pathname);
+
+    // Handle CORS Preflight
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        }
+      });
+    }
+
+    // ─── POSTGRESQL CLOUD BACKEND API ROUTES ───
+    if (pathname === "/api/health") return healthHandler(req);
+    if (pathname === "/api/config") return configHandler(req);
+    if (pathname === "/api/banks") return banksHandler(req);
+    if (pathname === "/api/state") return stateHandler(req);
+    if (pathname === "/api/reports") return reportsHandler(req);
+    if (pathname === "/api/seed") return seedHandler(req);
 
     // Exact rewrites matching vercel.json
     if (pathname === "/penyisihan") pathname = "/penyisihan-cerdas-cermat.html";
@@ -74,7 +102,9 @@ const server = Bun.serve({
 const lanIp = getLocalIp();
 console.log("══════════════════════════════════════════════════════════");
 console.log("  🎓 PORTAL RESMI CERDAS CERMAT IFP — SERVER AKTIF");
+console.log("  🐘 Cloud Database: Neon PostgreSQL Connected");
 console.log("══════════════════════════════════════════════════════════");
 console.log(`  ➜  Lokal:    http://localhost:${PORT}/`);
 console.log(`  ➜  Jaringan: http://${lanIp}:${PORT}/ (Gunakan di HP/IFP)`);
+console.log(`  ➜  API Health: http://localhost:${PORT}/api/health`);
 console.log("══════════════════════════════════════════════════════════");
