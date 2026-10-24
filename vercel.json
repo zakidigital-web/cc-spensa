@@ -19,6 +19,12 @@
       ]
     },
     {
+      "source": "/templates/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
       "source": "/css/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
@@ -28,7 +34,6 @@
   "rewrites": [
     { "source": "/penyisihan", "destination": "/penyisihan-cerdas-cermat.html" },
     { "source": "/semifinal", "destination": "/semifinal-cerdas-cermat.html" },
-    { "source": "/final", "destination": "/Cerdas Cermat Final fix.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/final", "destination": "/final-cerdas-cermat.html" }
   ]
 }

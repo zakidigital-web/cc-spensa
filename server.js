@@ -41,7 +41,7 @@ const server = Bun.serve({
     // Exact rewrites matching vercel.json
     if (pathname === "/penyisihan") pathname = "/penyisihan-cerdas-cermat.html";
     else if (pathname === "/semifinal") pathname = "/semifinal-cerdas-cermat.html";
-    else if (pathname === "/final") pathname = "/Cerdas Cermat Final fix.html";
+    else if (pathname === "/final") pathname = existsSync(join(ROOT, "final-cerdas-cermat.html")) ? "/final-cerdas-cermat.html" : "/Cerdas Cermat Final fix.html";
     else if (pathname === "/") pathname = "/index.html";
 
     let filePath = join(ROOT, pathname);
