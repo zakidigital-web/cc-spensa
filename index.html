@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Portal Resmi Cerdas Cermat IFP</title>
+  <meta name="description" content="Portal Terpadu Cerdas Cermat IFP — Penyisihan, Semifinal, Grand Final dengan Mesin Word Equation & Gambar serta Laporan Juara Final">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+  <link rel="stylesheet" href="css/katex.min.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <!-- Top App Bar Navigation -->
+  <header id="app-header">
+    <div class="brand-wrapper" data-view="hub">
+      <div class="brand-badge">🎓</div>
+      <div class="brand-title">
+        <h1 id="header-event-title">CERDAS CERMAT IFP</h1>
+        <p id="header-school-name">PORTAL RESMI KEJUARAAN</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="app-nav">
+      <button class="nav-btn active" data-view="hub">🏠 Beranda</button>
+      <button class="nav-btn" data-view="penyisihan">⚡ Penyisihan</button>
+      <button class="nav-btn" data-view="semifinal">🎲 Semifinal</button>
+      <button class="nav-btn" data-view="final">🔥 Grand Final</button>
+      <button class="nav-btn" data-view="bank">📝 Bank Soal Word</button>
+      <button class="nav-btn" data-view="laporan">📊 Laporan Juara Final</button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-icon" id="btn-toggle-theme" title="Ganti Tema Terang/Gelap">
+        <span id="theme-icon">🌙</span>
+      </button>
+      <button class="btn btn-primary" id="btn-open-settings">
+        ⚙️ Pengaturan
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main id="app-root">
+
+    <!-- ════════════ VIEW 1: HUB / BERANDA ════════════ -->
+    <section id="view-hub" class="view-section active">
+      <div class="hub-hero">
+        <span class="badge">Satu Pintu Akses Terpadu</span>
+        <h2>Portal Kejuaraan Cerdas Cermat IFP</h2>
+        <p>Aplikasi cerdas cermat interaktif dengan tampilan dan pengaturan asli di setiap babaknya, didukung mesin impor/ekspor soal Word (persamaan matematika &amp; gambar) serta laporan penetapan juara resmi.</p>
+      </div>
+
+      <!-- Stage Cards -->
+      <div class="stages-grid">
+        <div class="stage-card s1">
+          <div>
+            <span class="stage-card-num">BABAK I</span>
+            <h3>Kualifikasi / Penyisihan</h3>
+            <p>Pengaturan asli lengkap: Jenjang 7/8/9, gelombang 3 tim, mode terbatas/loop, estafet 10 anak, timer, dan alokasi 11 mata pelajaran kurikulum SMP.</p>
+            <div class="stage-meta">
+              <span><b>Layar:</b> 3-Split Screen Touch IFP</span>
+              <span><b>Timer:</b> 30 detik per soal · 30 menit global</span>
+              <span><b>Poin:</b> Benar +2 · Tanpa minus</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" data-view="penyisihan">Buka Arena Penyisihan ➔</button>
+        </div>
+
+        <div class="stage-card s2">
+          <div>
+            <span class="stage-card-num">BABAK II</span>
+            <h3>Semifinal 45 Kotak</h3>
+            <p>Pengaturan asli lengkap: Stepper jumlah tim 2–12, undi urutan awal dengan animasi, pergeseran ronde bergeser (*fair play*), dan papan 45 kotak terbuka.</p>
+            <div class="stage-meta">
+              <span><b>Papan:</b> 45 Kotak Soal Terbuka</span>
+              <span><b>Kategori:</b> BS, PG 1, PG 2, dan Essay</span>
+              <span><b>Poin:</b> 100–300 Poin · Rubrik Juri Essay</span>
+            </div>
+          </div>
+          <button class="btn btn-gold" data-view="semifinal">Buka Papan Semifinal ➔</button>
+        </div>
+
+        <div class="stage-card s3">
+          <div>
+            <span class="stage-card-num">BABAK III</span>
+            <h3>Grand Final Knockout</h3>
+            <p>Pengaturan asli lengkap: Modal awal 100 poin, waktu 90s, penalti waktu habis tanpa bel (-5 poin), risiko tier (+50/-25 s.d. +100/-50), dan eliminasi gugur.</p>
+            <div class="stage-meta">
+              <span><b>Format:</b> Bel Rebutan Cepat-Tepat</span>
+              <span><b>Efek:</b> Cincin Timer SVG &amp; Detak Jantung</span>
+              <span><b>Sistem:</b> Gugur jika skor &le; 0 · Konfeti Juara</span>
+            </div>
+          </div>
+          <button class="btn btn-danger" data-view="final">Buka Arena Grand Final ➔</button>
+        </div>
+      </div>
+
+      <!-- Quick Action Banner -->
+      <div class="progression-banner" style="margin-top:36px;">
+        <div class="progression-info">
+          <h4>Mesin Bank Soal Word &amp; Laporan Juara</h4>
+          <p>Kelola bank soal masing-masing babak melalui dokumen Word (.docx) dengan rumus matematika dan gambar, atau unduh Berita Acara penetapan juara resmi.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" data-view="bank">📥 Kelola Bank Soal Word</button>
+          <button class="btn btn-primary" data-view="laporan">🏆 Lihat Laporan Juara Final</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ VIEW 2: PENYISIHAN (NATIVE FRAME) ════════════ -->
+    <section id="view-penyisihan" class="view-section">
+      <div class="frame-wrapper">
+        <iframe id="frame-penyisihan" src="penyisihan-cerdas-cermat.html" class="stage-frame" title="Babak Penyisihan"></iframe>
+      </div>
+    </section>
+
+    <!-- ════════════ VIEW 3: SEMIFINAL (NATIVE FRAME) ════════════ -->
+    <section id="view-semifinal" class="view-section">
+      <div class="frame-wrapper">
+        <iframe id="frame-semifinal" src="semifinal-cerdas-cermat.html" class="stage-frame" title="Babak Semifinal"></iframe>
+      </div>
+    </section>
+
+    <!-- ════════════ VIEW 4: GRAND FINAL (NATIVE FRAME) ════════════ -->
+    <section id="view-final" class="view-section">
+      <div class="frame-wrapper">
+        <iframe id="frame-final" src="Cerdas Cermat Final fix.html" class="stage-frame" title="Babak Grand Final"></iframe>
+      </div>
+    </section>
+
+    <!-- ════════════ VIEW 5: BANK SOAL & WORD ENGINE ════════════ -->
+    <section id="view-bank" class="view-section">
+      <div class="bank-toolbar">
+        <div>
+          <h2 style="font-size:24px;font-weight:900;">📝 Bank Soal Word (Setiap Babak)</h2>
+          <p style="color:var(--text-mut);font-size:14px;">
+            Pilih babak untuk mengunduh template Word, mengekspor soal, atau mengimpor soal dari dokumen Microsoft Word (.docx) lengkap dengan rumus matematika (Equation) dan gambar.
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-gold" id="btn-download-tpl">📥 Unduh Template Word (.docx)</button>
+          <button class="btn btn-primary" id="btn-export-bank-word">📤 Ekspor Bank Soal ke Word</button>
+        </div>
+      </div>
+
+      <!-- Sub-Tabs Selector for Stages -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;background:rgba(255,255,255,0.06);border:1px solid var(--card-border);padding:4px;border-radius:14px;gap:6px;">
+          <button class="btn btn-ghost btn-sm btn-primary" id="bank_tab_penyisihan" style="padding:8px 18px;font-size:13.5px;">⚡ Bank Penyisihan</button>
+          <button class="btn btn-ghost btn-sm" id="bank_tab_semifinal" style="padding:8px 18px;font-size:13.5px;">🎲 Bank Semifinal</button>
+          <button class="btn btn-ghost btn-sm" id="bank_tab_final" style="padding:8px 18px;font-size:13.5px;">🔥 Bank Grand Final</button>
+        </div>
+        <span id="active-bank-stage-label" class="badge" style="background:rgba(245,158,11,0.15);color:var(--gold);padding:6px 16px;border-radius:20px;font-size:12.5px;font-weight:700;">
+          Target Aktif: Babak Penyisihan (11 Mapel)
+        </span>
+      </div>
+
+      <!-- Dropzone for Word .docx -->
+      <div class="dropzone-word" id="word-dropzone">
+        <div class="icon">📄</div>
+        <h3 style="font-size:18px;font-weight:800;margin-bottom:6px;">Klik atau Tarik File Word (.docx) ke Sini</h3>
+        <p style="color:var(--text-mut);font-size:13.5px;max-width:560px;margin:0 auto 12px;">
+          Sistem otomatis membaca soal, pilihan jawaban, kunci, gambar ilustrasi (Base64), dan persamaan matematika (Office MathML / LaTeX).
+        </p>
+        <input type="file" id="word-file-input" accept=".docx" style="display:none;">
+        <span class="badge" style="background:rgba(59,130,246,0.15);color:var(--blue);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;">
+          Dukungan Penuh: Equation Matematika &amp; Gambar
+        </span>
+      </div>
+      <div id="import-status-msg" style="text-align:center;font-weight:bold;margin:12px 0;color:var(--gold);"></div>
+
+      <!-- Question List Preview -->
+      <h3 style="font-size:18px;font-weight:800;margin:28px 0 14px;">Daftar Soal pada Babak Ini:</h3>
+      <div id="bank-list-container"></div>
+    </section>
+
+    <!-- ════════════ VIEW 6: LAPORAN JUARA GRAND FINAL ════════════ -->
+    <section id="view-laporan" class="view-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-size:24px;font-weight:900;">🏆 Berita Acara &amp; Penetapan Juara Grand Final</h2>
+          <p style="color:var(--text-mut);font-size:14px;">
+            Laporan resmi khusus pemenang dan finalis babak Grand Final (Juara 1, 2, 3, Harapan 1 &amp; 2) siap diekspor dan dicetak.
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-primary" id="btn-export-report-docx">📥 Unduh Laporan Word (.docx)</button>
+          <button class="btn btn-gold" id="btn-print-report-pdf">🖨️ Cetak / Simpan PDF (A4)</button>
+        </div>
+      </div>
+
+      <!-- Report Paper Container -->
+      <div id="report-preview-container"></div>
+    </section>
+
+  </main>
+
+  <!-- ════════════ SETTINGS MODAL ════════════ -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="glass-panel" style="width:min(640px, 100%);">
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:16px;">⚙️ Pengaturan Identitas Kegiatan</h2>
+      <div style="display:grid;gap:12px;">
+        <div>
+          <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Judul Kejuaraan</label>
+          <input type="text" id="set-event-title" class="input-field">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Nama Sekolah / Penyelenggara</label>
+          <input type="text" id="set-school-name" class="input-field">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Tanggal Pelaksanaan</label>
+          <input type="date" id="set-event-date" class="input-field">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Ketua Dewan Juri</label>
+            <input type="text" id="set-jury-name" class="input-field">
+          </div>
+          <div>
+            <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Ketua Panitia Pelaksana</label>
+            <input type="text" id="set-chairman-name" class="input-field">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Kepala Sekolah</label>
+          <input type="text" id="set-principal-name" class="input-field">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+        <button class="btn btn-ghost" id="btn-close-settings">Batal</button>
+        <button class="btn btn-primary" id="btn-save-settings">Simpan Pengaturan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor Libraries -->
+  <script src="vendor/katex.min.js"></script>
+  <script src="vendor/jszip.min.js"></script>
+  <script src="vendor/mammoth.min.js"></script>
+  <script src="vendor/docx.min.js"></script>
+
+  <!-- Default Questions Data -->
+  <script src="js/default-banks.js"></script>
+
+  <!-- Core App Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/docx-engine.js"></script>
+  <script src="js/report-engine.js"></script>
+
+  <!-- Main Controller -->
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "portal-cerdas-cermat-ifp",
+  "version": "1.0.0",
+  "description": "Portal Terpadu Cerdas Cermat IFP - Penyisihan, Semifinal, Grand Final dengan Mesin Word & Laporan Resmi",
+  "scripts": {
+    "start": "bun x serve .",
+    "dev": "bun x serve .",
+    "build": "echo 'Client-side web app ready for Vercel'"
+  },
+  "keywords": [
+    "cerdas-cermat",
+    "ifp",
+    "smart-screen",
+    "education",
+    "gamification",
+    "docx-parser"
+  ],
+  "author": "Antigravity Engineering",
+  "license": "MIT"
+}

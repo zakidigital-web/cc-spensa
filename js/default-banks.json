@@ -1,0 +1,1344 @@
+{
+  "penyisihan": [
+    {
+      "id": "p_1",
+      "mapel": "Pendidikan Agama",
+      "q": "Rukun Islam yang pertama adalah ...",
+      "o": [
+        "Syahadat",
+        "Salat",
+        "Zakat",
+        "Puasa"
+      ],
+      "k": 0,
+      "ans": "Syahadat",
+      "img": null
+    },
+    {
+      "id": "p_2",
+      "mapel": "Pendidikan Agama",
+      "q": "Hari raya Idulfitri dirayakan setelah bulan ...",
+      "o": [
+        "Ramadan",
+        "Syaban",
+        "Syawal",
+        "Zulhijah"
+      ],
+      "k": 0,
+      "ans": "Ramadan",
+      "img": null
+    },
+    {
+      "id": "p_3",
+      "mapel": "Pendidikan Agama",
+      "q": "Jumlah rukun iman dalam Islam ada ...",
+      "o": [
+        "6",
+        "5",
+        "7",
+        "4"
+      ],
+      "k": 0,
+      "ans": "6",
+      "img": null
+    },
+    {
+      "id": "p_4",
+      "mapel": "Pendidikan Agama",
+      "q": "Kitab suci agama Hindu adalah ...",
+      "o": [
+        "Weda",
+        "Tripitaka",
+        "Alkitab",
+        "Quran"
+      ],
+      "k": 0,
+      "ans": "Weda",
+      "img": null
+    },
+    {
+      "id": "p_5",
+      "mapel": "PPKn",
+      "q": "Sila ke-3 Pancasila berbunyi ...",
+      "o": [
+        "Persatuan Indonesia",
+        "Kemanusiaan yang adil dan beradab",
+        "Kerakyatan yang dipimpin hikmat",
+        "Keadilan sosial"
+      ],
+      "k": 0,
+      "ans": "Persatuan Indonesia",
+      "img": null
+    },
+    {
+      "id": "p_6",
+      "mapel": "PPKn",
+      "q": "Lambang sila ke-1 Pancasila adalah ...",
+      "o": [
+        "Bintang",
+        "Rantai",
+        "Pohon beringin",
+        "Kepala banteng"
+      ],
+      "k": 0,
+      "ans": "Bintang",
+      "img": null
+    },
+    {
+      "id": "p_7",
+      "mapel": "PPKn",
+      "q": "UUD 1945 disahkan pada tanggal ...",
+      "o": [
+        "18 Agustus 1945",
+        "17 Agustus 1945",
+        "1 Juni 1945",
+        "28 Oktober 1928"
+      ],
+      "k": 0,
+      "ans": "18 Agustus 1945",
+      "img": null
+    },
+    {
+      "id": "p_8",
+      "mapel": "PPKn",
+      "q": "Semboyan negara Indonesia adalah ...",
+      "o": [
+        "Bhinneka Tunggal Ika",
+        "Tut Wuri Handayani",
+        "Garuda Pancasila",
+        "Merdeka"
+      ],
+      "k": 0,
+      "ans": "Bhinneka Tunggal Ika",
+      "img": null
+    },
+    {
+      "id": "p_9",
+      "mapel": "Bahasa Indonesia",
+      "q": "Antonim kata \"tinggi\" adalah ...",
+      "o": [
+        "rendah",
+        "panjang",
+        "besar",
+        "luas"
+      ],
+      "k": 0,
+      "ans": "rendah",
+      "img": null
+    },
+    {
+      "id": "p_10",
+      "mapel": "Bahasa Indonesia",
+      "q": "Kalimat berhuruf kapital yang benar adalah ...",
+      "o": [
+        "Ibu pergi ke Surabaya.",
+        "ibu pergi ke surabaya.",
+        "Ibu pergi ke surabaya.",
+        "ibu Pergi ke Surabaya."
+      ],
+      "k": 0,
+      "ans": "Ibu pergi ke Surabaya.",
+      "img": null
+    },
+    {
+      "id": "p_11",
+      "mapel": "Bahasa Indonesia",
+      "q": "Sinonim kata \"pandai\" adalah ...",
+      "o": [
+        "cerdas",
+        "malas",
+        "lambat",
+        "bodoh"
+      ],
+      "k": 0,
+      "ans": "cerdas",
+      "img": null
+    },
+    {
+      "id": "p_12",
+      "mapel": "Bahasa Indonesia",
+      "q": "Ide pokok paragraf biasanya terdapat pada kalimat ...",
+      "o": [
+        "utama",
+        "penjelas",
+        "contoh",
+        "judul"
+      ],
+      "k": 0,
+      "ans": "utama",
+      "img": null
+    },
+    {
+      "id": "p_13",
+      "mapel": "Matematika",
+      "q": "Hasil dari $12 \\\\times 8$ adalah ...",
+      "o": [
+        "96",
+        "86",
+        "108",
+        "88"
+      ],
+      "k": 0,
+      "ans": "96",
+      "img": null
+    },
+    {
+      "id": "p_14",
+      "mapel": "Matematika",
+      "q": "Hasil dari $\\\\frac{1}{2}+\\\\frac{1}{4}$ adalah ...",
+      "o": [
+        "$\\\\frac{3}{4}$",
+        "$\\\\frac{2}{6}$",
+        "$\\\\frac{1}{6}$",
+        "$1$"
+      ],
+      "k": 0,
+      "ans": "$\\\\frac{3}{4}$",
+      "img": null
+    },
+    {
+      "id": "p_15",
+      "mapel": "Matematika",
+      "q": "Nilai $x$ jika $2x+6=14$ adalah ...",
+      "o": [
+        "4",
+        "5",
+        "3",
+        "8"
+      ],
+      "k": 0,
+      "ans": "4",
+      "img": null
+    },
+    {
+      "id": "p_16",
+      "mapel": "Matematika",
+      "q": "Luas persegi dengan sisi 7 cm adalah ... cm$^2$",
+      "o": [
+        "49",
+        "28",
+        "14",
+        "56"
+      ],
+      "k": 0,
+      "ans": "49",
+      "img": null
+    },
+    {
+      "id": "p_17",
+      "mapel": "IPA",
+      "q": "Planet terdekat dengan Matahari adalah ...",
+      "o": [
+        "Merkurius",
+        "Venus",
+        "Bumi",
+        "Mars"
+      ],
+      "k": 0,
+      "ans": "Merkurius",
+      "img": null
+    },
+    {
+      "id": "p_18",
+      "mapel": "IPA",
+      "q": "Rumus kimia air adalah ...",
+      "o": [
+        "$H_2O$",
+        "$CO_2$",
+        "$O_2$",
+        "$NaCl$"
+      ],
+      "k": 0,
+      "ans": "$H_2O$",
+      "img": null
+    },
+    {
+      "id": "p_19",
+      "mapel": "IPA",
+      "q": "Gas yang dihasilkan tumbuhan saat fotosintesis adalah ...",
+      "o": [
+        "Oksigen",
+        "Karbon dioksida",
+        "Nitrogen",
+        "Hidrogen"
+      ],
+      "k": 0,
+      "ans": "Oksigen",
+      "img": null
+    },
+    {
+      "id": "p_20",
+      "mapel": "IPA",
+      "q": "Satuan gaya dalam SI adalah ...",
+      "o": [
+        "Newton",
+        "Joule",
+        "Watt",
+        "Pascal"
+      ],
+      "k": 0,
+      "ans": "Newton",
+      "img": null
+    },
+    {
+      "id": "p_21",
+      "mapel": "IPS",
+      "q": "Ibu kota Provinsi Jawa Timur adalah ...",
+      "o": [
+        "Surabaya",
+        "Malang",
+        "Madiun",
+        "Kediri"
+      ],
+      "k": 0,
+      "ans": "Surabaya",
+      "img": null
+    },
+    {
+      "id": "p_22",
+      "mapel": "IPS",
+      "q": "Proklamasi kemerdekaan Indonesia dibacakan pada tahun ...",
+      "o": [
+        "1945",
+        "1944",
+        "1946",
+        "1949"
+      ],
+      "k": 0,
+      "ans": "1945",
+      "img": null
+    },
+    {
+      "id": "p_23",
+      "mapel": "IPS",
+      "q": "Benua terluas di dunia adalah ...",
+      "o": [
+        "Asia",
+        "Afrika",
+        "Eropa",
+        "Amerika"
+      ],
+      "k": 0,
+      "ans": "Asia",
+      "img": null
+    },
+    {
+      "id": "p_24",
+      "mapel": "IPS",
+      "q": "Mata uang Jepang adalah ...",
+      "o": [
+        "Yen",
+        "Won",
+        "Yuan",
+        "Ringgit"
+      ],
+      "k": 0,
+      "ans": "Yen",
+      "img": null
+    },
+    {
+      "id": "p_25",
+      "mapel": "Bahasa Inggris",
+      "q": "The opposite of \"big\" is ...",
+      "o": [
+        "small",
+        "tall",
+        "long",
+        "wide"
+      ],
+      "k": 0,
+      "ans": "small",
+      "img": null
+    },
+    {
+      "id": "p_26",
+      "mapel": "Bahasa Inggris",
+      "q": "She ... a book now.",
+      "o": [
+        "is reading",
+        "reads",
+        "read",
+        "readed"
+      ],
+      "k": 0,
+      "ans": "is reading",
+      "img": null
+    },
+    {
+      "id": "p_27",
+      "mapel": "Bahasa Inggris",
+      "q": "\"Kucing\" in English is ...",
+      "o": [
+        "cat",
+        "dog",
+        "bird",
+        "fish"
+      ],
+      "k": 0,
+      "ans": "cat",
+      "img": null
+    },
+    {
+      "id": "p_28",
+      "mapel": "Bahasa Inggris",
+      "q": "The plural of \"child\" is ...",
+      "o": [
+        "children",
+        "childs",
+        "childes",
+        "childrens"
+      ],
+      "k": 0,
+      "ans": "children",
+      "img": null
+    },
+    {
+      "id": "p_29",
+      "mapel": "PJOK",
+      "q": "Olahraga yang memakai raket dan kok adalah ...",
+      "o": [
+        "Bulu tangkis",
+        "Bola voli",
+        "Basket",
+        "Sepak bola"
+      ],
+      "k": 0,
+      "ans": "Bulu tangkis",
+      "img": null
+    },
+    {
+      "id": "p_30",
+      "mapel": "PJOK",
+      "q": "Jumlah pemain inti sepak bola dalam satu tim adalah ...",
+      "o": [
+        "11",
+        "9",
+        "7",
+        "5"
+      ],
+      "k": 0,
+      "ans": "11",
+      "img": null
+    },
+    {
+      "id": "p_31",
+      "mapel": "PJOK",
+      "q": "Pemanasan sebelum olahraga bertujuan untuk ...",
+      "o": [
+        "mencegah cedera",
+        "menambah lelah",
+        "mengurangi tinggi",
+        "bersantai"
+      ],
+      "k": 0,
+      "ans": "mencegah cedera",
+      "img": null
+    },
+    {
+      "id": "p_32",
+      "mapel": "PJOK",
+      "q": "Lari jarak pendek disebut juga ...",
+      "o": [
+        "Sprint",
+        "Maraton",
+        "Estafet",
+        "Lompat"
+      ],
+      "k": 0,
+      "ans": "Sprint",
+      "img": null
+    },
+    {
+      "id": "p_33",
+      "mapel": "Informatika",
+      "q": "Perangkat keras untuk memasukkan data adalah ...",
+      "o": [
+        "Keyboard",
+        "Monitor",
+        "Printer",
+        "Speaker"
+      ],
+      "k": 0,
+      "ans": "Keyboard",
+      "img": null
+    },
+    {
+      "id": "p_34",
+      "mapel": "Informatika",
+      "q": "Kepanjangan CPU adalah ...",
+      "o": [
+        "Central Processing Unit",
+        "Computer Personal Unit",
+        "Central Program Utility",
+        "Control Process Unit"
+      ],
+      "k": 0,
+      "ans": "Central Processing Unit",
+      "img": null
+    },
+    {
+      "id": "p_35",
+      "mapel": "Informatika",
+      "q": "Bilangan biner dari angka 2 adalah ...",
+      "o": [
+        "10",
+        "11",
+        "01",
+        "100"
+      ],
+      "k": 0,
+      "ans": "10",
+      "img": null
+    },
+    {
+      "id": "p_36",
+      "mapel": "Informatika",
+      "q": "Contoh peramban (browser) adalah ...",
+      "o": [
+        "Chrome",
+        "Excel",
+        "Paint",
+        "Notepad"
+      ],
+      "k": 0,
+      "ans": "Chrome",
+      "img": null
+    },
+    {
+      "id": "p_37",
+      "mapel": "Seni Budaya",
+      "q": "Alat musik bambu dari Jawa Barat adalah ...",
+      "o": [
+        "Angklung",
+        "Sasando",
+        "Tifa",
+        "Kolintang"
+      ],
+      "k": 0,
+      "ans": "Angklung",
+      "img": null
+    },
+    {
+      "id": "p_38",
+      "mapel": "Seni Budaya",
+      "q": "Tari Kecak berasal dari daerah ...",
+      "o": [
+        "Bali",
+        "Aceh",
+        "Papua",
+        "Sumatera Barat"
+      ],
+      "k": 0,
+      "ans": "Bali",
+      "img": null
+    },
+    {
+      "id": "p_39",
+      "mapel": "Seni Budaya",
+      "q": "Warna primer: merah, kuning, dan ...",
+      "o": [
+        "biru",
+        "hijau",
+        "ungu",
+        "oranye"
+      ],
+      "k": 0,
+      "ans": "biru",
+      "img": null
+    },
+    {
+      "id": "p_40",
+      "mapel": "Seni Budaya",
+      "q": "Batik dibuat dengan teknik ...",
+      "o": [
+        "malam (lilin)",
+        "cetak digital",
+        "rajut",
+        "sulam"
+      ],
+      "k": 0,
+      "ans": "malam (lilin)",
+      "img": null
+    },
+    {
+      "id": "p_41",
+      "mapel": "Prakarya / B. Daerah",
+      "q": "Bahan dasar kerajinan tenun adalah ...",
+      "o": [
+        "benang",
+        "kaca",
+        "besi",
+        "karet"
+      ],
+      "k": 0,
+      "ans": "benang",
+      "img": null
+    },
+    {
+      "id": "p_42",
+      "mapel": "Prakarya / B. Daerah",
+      "q": "Alat untuk memotong kertas adalah ...",
+      "o": [
+        "gunting",
+        "palu",
+        "obeng",
+        "kuas"
+      ],
+      "k": 0,
+      "ans": "gunting",
+      "img": null
+    },
+    {
+      "id": "p_43",
+      "mapel": "Prakarya / B. Daerah",
+      "q": "Mengolah limbah plastik menjadi barang berguna disebut ...",
+      "o": [
+        "daur ulang",
+        "membuang",
+        "membakar",
+        "menimbun"
+      ],
+      "k": 0,
+      "ans": "daur ulang",
+      "img": null
+    },
+    {
+      "id": "p_44",
+      "mapel": "Prakarya / B. Daerah",
+      "q": "Bahasa Jawa \"matur nuwun\" artinya ...",
+      "o": [
+        "terima kasih",
+        "selamat pagi",
+        "maaf",
+        "permisi"
+      ],
+      "k": 0,
+      "ans": "terima kasih",
+      "img": null
+    }
+  ],
+  "semifinal": [
+    {
+      "id": "sm_bs_1",
+      "tipe": "BS",
+      "q": "Matahari terbit dari arah timur.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_2",
+      "tipe": "BS",
+      "q": "Air mendidih pada suhu 100\u00b0C pada tekanan 1 atm.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_3",
+      "tipe": "BS",
+      "q": "Paus termasuk golongan ikan.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 1,
+      "ans": "Salah",
+      "img": null
+    },
+    {
+      "id": "sm_bs_4",
+      "tipe": "BS",
+      "q": "Sila pertama Pancasila berbunyi \"Ketuhanan Yang Maha Esa\".",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_5",
+      "tipe": "BS",
+      "q": "Benua terkecil di dunia adalah Eropa.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 1,
+      "ans": "Salah",
+      "img": null
+    },
+    {
+      "id": "sm_bs_6",
+      "tipe": "BS",
+      "q": "Hasil dari $7 \\times 8$ adalah 54.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 1,
+      "ans": "Salah",
+      "img": null
+    },
+    {
+      "id": "sm_bs_7",
+      "tipe": "BS",
+      "q": "Dalam bahasa Inggris, \"buku\" disebut book.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_8",
+      "tipe": "BS",
+      "q": "Candi Borobudur terletak di Provinsi Jawa Timur.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 1,
+      "ans": "Salah",
+      "img": null
+    },
+    {
+      "id": "sm_bs_9",
+      "tipe": "BS",
+      "q": "Bulan mengelilingi Bumi.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_10",
+      "tipe": "BS",
+      "q": "Gas yang paling banyak terdapat di atmosfer Bumi adalah oksigen.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 1,
+      "ans": "Salah",
+      "img": null
+    },
+    {
+      "id": "sm_bs_11",
+      "tipe": "BS",
+      "q": "Sumpah Pemuda diikrarkan pada tahun 1928.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_12",
+      "tipe": "BS",
+      "q": "Besi adalah isolator listrik yang baik.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 1,
+      "ans": "Salah",
+      "img": null
+    },
+    {
+      "id": "sm_bs_13",
+      "tipe": "BS",
+      "q": "$\\sqrt{81}=9$.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_14",
+      "tipe": "BS",
+      "q": "Kata \"indah\" termasuk kata kerja.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 1,
+      "ans": "Salah",
+      "img": null
+    },
+    {
+      "id": "sm_bs_15",
+      "tipe": "BS",
+      "q": "Dalam permainan bola voli, satu tim bermain dengan 5 pemain di lapangan.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 1,
+      "ans": "Salah",
+      "img": null
+    },
+    {
+      "id": "sm_bs_16",
+      "tipe": "BS",
+      "q": "Jantung manusia memiliki empat ruang.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_17",
+      "tipe": "BS",
+      "q": "Garis khatulistiwa membagi Bumi menjadi belahan utara dan selatan.",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_bs_18",
+      "tipe": "BS",
+      "q": "Komputer tidak dapat bekerja tanpa perangkat lunak (software).",
+      "o": [
+        "Benar",
+        "Salah"
+      ],
+      "k": 0,
+      "ans": "Benar",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_1",
+      "tipe": "PG1",
+      "q": "Ibu kota Provinsi Jawa Timur adalah ...",
+      "o": [
+        "Surabaya",
+        "Malang",
+        "Madiun",
+        "Kediri"
+      ],
+      "k": 0,
+      "ans": "Surabaya",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_2",
+      "tipe": "PG1",
+      "q": "Proklamasi kemerdekaan Indonesia dibacakan pada tahun ...",
+      "o": [
+        "1945",
+        "1944",
+        "1946",
+        "1949"
+      ],
+      "k": 0,
+      "ans": "1945",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_3",
+      "tipe": "PG1",
+      "q": "Rumus kimia garam dapur adalah ...",
+      "o": [
+        "$NaCl$",
+        "$KCl$",
+        "$CaCO_3$",
+        "$H_2O$"
+      ],
+      "k": 0,
+      "ans": "$NaCl$",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_4",
+      "tipe": "PG1",
+      "q": "Planet terbesar di tata surya adalah ...",
+      "o": [
+        "Jupiter",
+        "Saturnus",
+        "Bumi",
+        "Neptunus"
+      ],
+      "k": 0,
+      "ans": "Jupiter",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_5",
+      "tipe": "PG1",
+      "q": "Hasil dari $15 \\times 12$ adalah ...",
+      "o": [
+        "180",
+        "170",
+        "190",
+        "160"
+      ],
+      "k": 0,
+      "ans": "180",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_6",
+      "tipe": "PG1",
+      "q": "Antonim kata \"rajin\" adalah ...",
+      "o": [
+        "malas",
+        "giat",
+        "tekun",
+        "ulet"
+      ],
+      "k": 0,
+      "ans": "malas",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_7",
+      "tipe": "PG1",
+      "q": "Bahasa Inggris dari \"jendela\" adalah ...",
+      "o": [
+        "window",
+        "door",
+        "roof",
+        "floor"
+      ],
+      "k": 0,
+      "ans": "window",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_8",
+      "tipe": "PG1",
+      "q": "Alat musik angklung berasal dari daerah ...",
+      "o": [
+        "Jawa Barat",
+        "Bali",
+        "Papua",
+        "Sumatera Utara"
+      ],
+      "k": 0,
+      "ans": "Jawa Barat",
+      "img": null
+    },
+    {
+      "id": "sm_pg1_9",
+      "tipe": "PG1",
+      "q": "Lembaga negara yang berfungsi membuat undang-undang adalah ...",
+      "o": [
+        "DPR",
+        "MA",
+        "BPK",
+        "KY"
+      ],
+      "k": 0,
+      "ans": "DPR",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_1",
+      "tipe": "PG2",
+      "q": "Nilai $x$ dari persamaan $3x-5=16$ adalah ...",
+      "o": [
+        "7",
+        "6",
+        "8",
+        "9"
+      ],
+      "k": 0,
+      "ans": "7",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_2",
+      "tipe": "PG2",
+      "q": "Organel sel yang berfungsi menghasilkan energi adalah ...",
+      "o": [
+        "Mitokondria",
+        "Ribosom",
+        "Lisosom",
+        "Nukleus"
+      ],
+      "k": 0,
+      "ans": "Mitokondria",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_3",
+      "tipe": "PG2",
+      "q": "Siang dan malam terjadi karena ...",
+      "o": [
+        "rotasi Bumi",
+        "revolusi Bumi",
+        "rotasi Bulan",
+        "gerhana Matahari"
+      ],
+      "k": 0,
+      "ans": "rotasi Bumi",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_4",
+      "tipe": "PG2",
+      "q": "Peristiwa Rengasdengklok terjadi pada tanggal ...",
+      "o": [
+        "16 Agustus 1945",
+        "17 Agustus 1945",
+        "15 Agustus 1945",
+        "18 Agustus 1945"
+      ],
+      "k": 0,
+      "ans": "16 Agustus 1945",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_5",
+      "tipe": "PG2",
+      "q": "Luas lingkaran berjari-jari 7 cm ($\\pi=\\frac{22}{7}$) adalah ... cm$^2$",
+      "o": [
+        "154",
+        "44",
+        "308",
+        "49"
+      ],
+      "k": 0,
+      "ans": "154",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_6",
+      "tipe": "PG2",
+      "q": "Kalimat \"She goes to school every day.\" menggunakan tense ...",
+      "o": [
+        "simple present",
+        "present continuous",
+        "simple past",
+        "simple future"
+      ],
+      "k": 0,
+      "ans": "simple present",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_7",
+      "tipe": "PG2",
+      "q": "Bilangan biner $101_2$ sama dengan bilangan desimal ...",
+      "o": [
+        "5",
+        "3",
+        "6",
+        "7"
+      ],
+      "k": 0,
+      "ans": "5",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_8",
+      "tipe": "PG2",
+      "q": "Majas yang membandingkan dua hal dengan kata \"bagai\", \"seperti\", atau \"laksana\" disebut ...",
+      "o": [
+        "simile",
+        "metafora",
+        "hiperbola",
+        "personifikasi"
+      ],
+      "k": 0,
+      "ans": "simile",
+      "img": null
+    },
+    {
+      "id": "sm_pg2_9",
+      "tipe": "PG2",
+      "q": "Hukum I Newton menjelaskan tentang ...",
+      "o": [
+        "kelembaman (inersia)",
+        "aksi-reaksi",
+        "percepatan",
+        "gravitasi"
+      ],
+      "k": 0,
+      "ans": "kelembaman (inersia)",
+      "img": null
+    },
+    {
+      "id": "sm_es_1",
+      "tipe": "ES",
+      "q": "Sebutkan bunyi sila ke-4 Pancasila.",
+      "o": [],
+      "k": 0,
+      "ans": "Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan.",
+      "img": null
+    },
+    {
+      "id": "sm_es_2",
+      "tipe": "ES",
+      "q": "Sebutkan bahan dan hasil fotosintesis.",
+      "o": [],
+      "k": 0,
+      "ans": "Bahan: karbon dioksida, air, dan cahaya matahari. Hasil: glukosa dan oksigen.",
+      "img": null
+    },
+    {
+      "id": "sm_es_3",
+      "tipe": "ES",
+      "q": "Hitunglah $\\frac{3}{4}+\\frac{5}{6}$.",
+      "o": [],
+      "k": 0,
+      "ans": "$\\frac{19}{12}$ atau $1\\frac{7}{12}$",
+      "img": null
+    },
+    {
+      "id": "sm_es_4",
+      "tipe": "ES",
+      "q": "Sebutkan tiga contoh sumber energi terbarukan.",
+      "o": [],
+      "k": 0,
+      "ans": "Contoh: matahari, angin, air, panas bumi, biomassa (sebut 3).",
+      "img": null
+    },
+    {
+      "id": "sm_es_5",
+      "tipe": "ES",
+      "q": "Terjemahkan ke bahasa Inggris: \"Saya sedang membaca buku di perpustakaan.\"",
+      "o": [],
+      "k": 0,
+      "ans": "I am reading a book in the library.",
+      "img": null
+    },
+    {
+      "id": "sm_es_6",
+      "tipe": "ES",
+      "q": "Sebutkan tiga contoh perangkat input komputer.",
+      "o": [],
+      "k": 0,
+      "ans": "Contoh: keyboard, mouse, scanner, mikrofon, webcam (sebut 3).",
+      "img": null
+    },
+    {
+      "id": "sm_es_7",
+      "tipe": "ES",
+      "q": "Apa pengertian gotong royong? Berikan satu contohnya.",
+      "o": [],
+      "k": 0,
+      "ans": "Bekerja sama secara sukarela untuk kepentingan bersama. Contoh: kerja bakti membersihkan lingkungan.",
+      "img": null
+    },
+    {
+      "id": "sm_es_8",
+      "tipe": "ES",
+      "q": "Sebutkan tiga teknik dasar permainan bola basket.",
+      "o": [],
+      "k": 0,
+      "ans": "Dribbling (menggiring), passing (mengoper), shooting (menembak), (juga: pivot, rebound).",
+      "img": null
+    },
+    {
+      "id": "sm_es_9",
+      "tipe": "ES",
+      "q": "Sebutkan ibu kota Jepang, Korea Selatan, dan Thailand.",
+      "o": [],
+      "k": 0,
+      "ans": "Tokyo, Seoul, Bangkok.",
+      "img": null
+    },
+    {
+      "id": "sm_cad_1",
+      "tipe": "CAD",
+      "q": "Hasil dari $25 \\times 4$ adalah ...",
+      "o": [],
+      "k": 0,
+      "ans": "100",
+      "img": null
+    },
+    {
+      "id": "sm_cad_2",
+      "tipe": "CAD",
+      "q": "Planet tempat tinggal manusia adalah ...",
+      "o": [],
+      "k": 0,
+      "ans": "Bumi",
+      "img": null
+    },
+    {
+      "id": "sm_cad_3",
+      "tipe": "CAD",
+      "q": "Mata uang negara Jepang adalah ...",
+      "o": [],
+      "k": 0,
+      "ans": "Yen",
+      "img": null
+    }
+  ],
+  "final": [
+    {
+      "id": "fn_1",
+      "tier": "Tier 1 (50 Poin)",
+      "val": 50,
+      "pen": 25,
+      "q": "Apa kepanjangan dari CPU?",
+      "ans": "Central Processing Unit",
+      "img": null
+    },
+    {
+      "id": "fn_2",
+      "tier": "Tier 1 (50 Poin)",
+      "val": 50,
+      "pen": 25,
+      "q": "Mana yang BUKAN perangkat input: keyboard, mouse, atau monitor?",
+      "ans": "Monitor",
+      "img": null
+    },
+    {
+      "id": "fn_3",
+      "tier": "Tier 1 (50 Poin)",
+      "val": 50,
+      "pen": 25,
+      "q": "Sistem bilangan yang hanya memakai angka 0 dan 1 disebut?",
+      "ans": "Biner",
+      "img": null
+    },
+    {
+      "id": "fn_4",
+      "tier": "Tier 1 (50 Poin)",
+      "val": 50,
+      "pen": 25,
+      "q": "Ekstensi file dokumen Microsoft Word adalah?",
+      "ans": ".docx",
+      "img": null
+    },
+    {
+      "id": "fn_5",
+      "tier": "Tier 1 (50 Poin)",
+      "val": 50,
+      "pen": 25,
+      "q": "Aplikasi untuk menjelajah internet seperti Chrome dan Firefox disebut?",
+      "ans": "Browser",
+      "img": null
+    },
+    {
+      "id": "fn_6",
+      "tier": "Tier 2 (75 Poin)",
+      "val": 75,
+      "pen": 35,
+      "q": "Ubah bilangan biner 1010 ke desimal!",
+      "ans": "10",
+      "img": null
+    },
+    {
+      "id": "fn_7",
+      "tier": "Tier 2 (75 Poin)",
+      "val": 75,
+      "pen": 35,
+      "q": "Apa fungsi utama firewall?",
+      "ans": "Menyaring lalu lintas jaringan dan mencegah akses tidak sah",
+      "img": null
+    },
+    {
+      "id": "fn_8",
+      "tier": "Tier 2 (75 Poin)",
+      "val": 75,
+      "pen": 35,
+      "q": "Urutan langkah logis untuk menyelesaikan suatu masalah disebut?",
+      "ans": "Algoritma",
+      "img": null
+    },
+    {
+      "id": "fn_9",
+      "tier": "Tier 2 (75 Poin)",
+      "val": 75,
+      "pen": 35,
+      "q": "Rumus spreadsheet untuk menjumlahkan sel A1 sampai A5?",
+      "ans": "=SUM(A1:A5)",
+      "img": null
+    },
+    {
+      "id": "fn_10",
+      "tier": "Tier 2 (75 Poin)",
+      "val": 75,
+      "pen": 35,
+      "q": "URL adalah singkatan dari?",
+      "ans": "Uniform Resource Locator",
+      "img": null
+    },
+    {
+      "id": "fn_11",
+      "tier": "Tier 3 (100 Poin)",
+      "val": 100,
+      "pen": 50,
+      "q": "Memecah masalah besar menjadi bagian-bagian kecil disebut?",
+      "ans": "Dekomposisi",
+      "img": null
+    },
+    {
+      "id": "fn_12",
+      "tier": "Tier 3 (100 Poin)",
+      "val": 100,
+      "pen": 50,
+      "q": "Berapa hasil 2 pangkat 8 (jumlah kombinasi 8 bit)?",
+      "ans": "256",
+      "img": null
+    },
+    {
+      "id": "fn_13",
+      "tier": "Tier 3 (100 Poin)",
+      "val": 100,
+      "pen": 50,
+      "q": "Cabang kecerdasan artifisial yang belajar dari data untuk membuat prediksi?",
+      "ans": "Machine Learning (pembelajaran mesin)",
+      "img": null
+    },
+    {
+      "id": "fn_14",
+      "tier": "Tier 3 (100 Poin)",
+      "val": 100,
+      "pen": 50,
+      "q": "Penipuan lewat pesan atau situs palsu untuk mencuri data disebut?",
+      "ans": "Phishing",
+      "img": null
+    },
+    {
+      "id": "fn_15",
+      "tier": "Tier 3 (100 Poin)",
+      "val": 100,
+      "pen": 50,
+      "q": "Ubah bilangan desimal 13 ke biner!",
+      "ans": "1101",
+      "img": null
+    },
+    {
+      "id": "fn_16",
+      "tier": "Tiebreak (100 Poin)",
+      "val": 100,
+      "pen": 0,
+      "q": "SOAL TAMBAHAN: Satu byte terdiri dari berapa bit?",
+      "ans": "8 bit",
+      "img": null
+    }
+  ]
+}
