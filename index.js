@@ -112,9 +112,11 @@ export default async function handler(req, res) {
   if (pathname === "/api/seed") return seedHandler(req, res);
 
   // ─── PAGE REWRITES ───
-  if (pathname === "/penyisihan") pathname = "/penyisihan-cerdas-cermat.html";
-  else if (pathname === "/semifinal") pathname = "/semifinal-cerdas-cermat.html";
-  else if (pathname === "/final") {
+  if (pathname === "/penyisihan" || pathname === "/penyisihan-cerdas-cermat") {
+    pathname = "/penyisihan-cerdas-cermat.html";
+  } else if (pathname === "/semifinal" || pathname === "/semifinal-cerdas-cermat") {
+    pathname = "/semifinal-cerdas-cermat.html";
+  } else if (pathname === "/final" || pathname === "/final-cerdas-cermat") {
     pathname = existsSync(join(ROOT, "final-cerdas-cermat.html"))
       ? "/final-cerdas-cermat.html"
       : "/Cerdas Cermat Final fix.html";

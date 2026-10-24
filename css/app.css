@@ -771,6 +771,8 @@ main#app-root {
   padding: 24px;
   background: rgba(4, 7, 20, 0.95);
   backdrop-filter: blur(20px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .modal-overlay.active {
   display: flex;

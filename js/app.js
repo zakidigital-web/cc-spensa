@@ -11,6 +11,12 @@
 
   const App = {
     async init() {
+      // Guard against infinite recursive embedding if loaded in an iframe
+      if (window.top !== window.self) {
+        console.warn("Portal hub cannot be embedded within an iframe, aborting.");
+        return;
+      }
+
       const cfg = await window.PortalStorage.getConfig();
       const savedTheme = localStorage.getItem('portal_theme') || cfg.theme || 'dark';
       this.applyTheme(savedTheme);
@@ -162,9 +168,19 @@
       this.applyTheme(currentTheme);
 
       if (viewName === 'laporan') {
-        if (window.ReportEngine) window.ReportEngine.renderReportHTML('report-preview-container');
+        if (window.ReportEngine) {
+          try {
+            window.ReportEngine.renderReportHTML('report-preview-container');
+          } catch (e) {
+            console.error("Error rendering report:", e);
+          }
+        }
       } else if (viewName === 'bank') {
-        this.renderBankList();
+        try {
+          this.renderBankList();
+        } catch (e) {
+          console.error("Error rendering bank list:", e);
+        }
       }
     },
 
@@ -280,6 +296,7 @@
       if (btnOpen) btnOpen.addEventListener('click', openModal);
       if (btnClose) btnClose.addEventListener('click', closeModal);
       if (btnOk) btnOk.addEventListener('click', closeModal);
+      if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
       // Global keyboard listener for ? and Escape
       window.addEventListener('keydown', e => {
@@ -519,6 +536,7 @@
       const closeModal = () => modal && modal.classList.remove('active');
       if (btnClose) btnClose.addEventListener('click', closeModal);
       if (btnCloseX) btnCloseX.addEventListener('click', closeModal);
+      if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
       if (btnSave && modal) {
         btnSave.addEventListener('click', async () => {

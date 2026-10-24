@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "cleanUrls": true,
+  "cleanUrls": false,
   "trailingSlash": false,
   "outputDirectory": ".",
   "functions": {
@@ -49,7 +49,10 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/penyisihan", "destination": "/penyisihan-cerdas-cermat.html" },
+    { "source": "/penyisihan-cerdas-cermat", "destination": "/penyisihan-cerdas-cermat.html" },
     { "source": "/semifinal", "destination": "/semifinal-cerdas-cermat.html" },
-    { "source": "/final", "destination": "/final-cerdas-cermat.html" }
+    { "source": "/semifinal-cerdas-cermat", "destination": "/semifinal-cerdas-cermat.html" },
+    { "source": "/final", "destination": "/final-cerdas-cermat.html" },
+    { "source": "/final-cerdas-cermat", "destination": "/final-cerdas-cermat.html" }
   ]
 }
