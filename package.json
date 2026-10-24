@@ -2,9 +2,10 @@
   "name": "portal-cerdas-cermat-ifp",
   "version": "1.0.0",
   "type": "module",
+  "main": "index.js",
   "description": "Portal Terpadu Cerdas Cermat IFP - Penyisihan, Semifinal, Grand Final dengan Mesin Word & Laporan Resmi",
   "scripts": {
-    "start": "bun server.js",
+    "start": "node index.js",
     "dev": "bun server.js",
     "seed": "bun seed.js",
     "db:migrate": "bun db/migrate.js",
@@ -28,3 +29,4 @@
     "postgres": "^3.4.9"
   }
 }
+

@@ -7,12 +7,16 @@ export function sendResponse(res, statusCode, data) {
   if (res && typeof res.setHeader === 'function') {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (typeof res.status === 'function') {
       try {
-        return res.status(statusCode).json ? res.status(statusCode).json(data) : res.end(payload);
+        if (typeof res.json === 'function') {
+          return res.status(statusCode).json(data);
+        }
+        res.status(statusCode);
+        return res.end(payload);
       } catch (e) {
         res.statusCode = statusCode;
         return res.end(payload);
@@ -28,7 +32,7 @@ export function sendResponse(res, statusCode, data) {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     }
   });
@@ -53,5 +57,20 @@ export async function parseBody(req) {
     }
     return req.body;
   }
+  // Node.js stream parsing if req is an IncomingMessage without body-parser
+  if (typeof req[Symbol.asyncIterator] === 'function' || typeof req.on === 'function') {
+    try {
+      const chunks = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      const raw = Buffer.concat(chunks).toString('utf8');
+      if (!raw || !raw.trim()) return {};
+      return JSON.parse(raw);
+    } catch (e) {
+      return {};
+    }
+  }
   return {};
 }
+

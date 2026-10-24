@@ -1,4 +1,5 @@
 import postgres from 'postgres';
+import net from 'node:net';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -16,15 +17,37 @@ let _sql = null;
 
 export function getSql() {
   if (!_sql) {
-    _sql = postgres(connectionString, {
-      ssl: 'require',
-      max: 5,
-      idle_timeout: 15,
-      connect_timeout: 10
-    });
+    try {
+      const parsed = new URL(connectionString);
+      const host = parsed.hostname;
+      const port = Number(parsed.port) || 5432;
+
+      const options = {
+        ssl: { servername: host, rejectUnauthorized: false },
+        max: 5,
+        idle_timeout: 15,
+        connect_timeout: 10
+      };
+
+      // In Node.js environments where IPv6 route may be unreachable, enforce IPv4 connection
+      if (typeof Bun === 'undefined') {
+        options.socket = () => net.connect({ host, port, family: 4 });
+      }
+
+      _sql = postgres(connectionString, options);
+    } catch (err) {
+      console.warn("Neon client initialization with custom socket failed, falling back:", err);
+      _sql = postgres(connectionString, {
+        ssl: 'require',
+        max: 5,
+        idle_timeout: 15,
+        connect_timeout: 10
+      });
+    }
   }
   return _sql;
 }
 
 export const sql = getSql();
 export default sql;
+
