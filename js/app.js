@@ -52,7 +52,20 @@
         }
       });
 
-      this.switchView('hub');
+      // Handle hash routing if loaded with #stage
+      const initialHash = (window.location.hash || '').replace('#', '').trim();
+      if (initialHash && ['penyisihan', 'semifinal', 'final', 'bank', 'laporan', 'hub'].includes(initialHash)) {
+        this.switchView(initialHash);
+      } else {
+        this.switchView('hub');
+      }
+
+      window.addEventListener('hashchange', () => {
+        const hash = (window.location.hash || '').replace('#', '').trim();
+        if (hash && ['penyisihan', 'semifinal', 'final', 'bank', 'laporan', 'hub'].includes(hash)) {
+          if (currentView !== hash) this.switchView(hash);
+        }
+      });
     },
 
     updateHeaderInfo(cfg) {
@@ -63,11 +76,30 @@
     },
 
     applyTheme(theme) {
+      theme = (theme === 'light') ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', theme);
+      document.body.setAttribute('data-theme', theme);
       localStorage.setItem('portal_theme', theme);
+
+      // Header Button Label & Icon
       const icon = document.getElementById('theme-icon');
-      if (icon) {
-        icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      const label = document.getElementById('theme-label');
+      if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      if (label) label.textContent = theme === 'dark' ? 'Gelap' : 'Cerah';
+
+      // Settings Modal Theme Cards Sync
+      const darkCard = document.getElementById('theme-opt-dark');
+      const lightCard = document.getElementById('theme-opt-light');
+      const darkRadio = document.querySelector('input[name="modal-portal-theme"][value="dark"]');
+      const lightRadio = document.querySelector('input[name="modal-portal-theme"][value="light"]');
+
+      if (darkCard && lightCard) {
+        darkCard.classList.toggle('active', theme === 'dark');
+        lightCard.classList.toggle('active', theme === 'light');
+      }
+      if (darkRadio && lightRadio) {
+        if (theme === 'dark') darkRadio.checked = true;
+        else lightRadio.checked = true;
       }
 
       // Notify and sync theme with all embedded stage iframes
@@ -76,8 +108,12 @@
         if (frame && frame.contentWindow) {
           try {
             frame.contentWindow.postMessage({ type: 'SET_THEME', theme: theme }, '*');
+            frame.contentWindow.postMessage({ type: 'PORTAL_THEME_CHANGE', theme: theme }, '*');
             if (frame.contentDocument && frame.contentDocument.documentElement) {
               frame.contentDocument.documentElement.setAttribute('data-theme', theme);
+              if (frame.contentDocument.body) {
+                frame.contentDocument.body.setAttribute('data-theme', theme);
+              }
             }
           } catch (e) {}
         }
@@ -113,7 +149,13 @@
 
       // Zero-scroll native presentation arena when viewing stage iframes
       const isStage = ['penyisihan', 'semifinal', 'final'].includes(viewName);
+      document.documentElement.classList.toggle('stage-active', isStage);
       document.body.classList.toggle('stage-active', isStage);
+
+      // Update URL hash for deep-linking
+      if (window.location.hash.replace('#', '') !== viewName) {
+        history.replaceState(null, '', `#${viewName}`);
+      }
 
       // Sync theme on iframe switch
       const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -364,7 +406,37 @@
       const modal = document.getElementById('settings-modal');
       const btnOpen = document.getElementById('btn-open-settings');
       const btnClose = document.getElementById('btn-close-settings');
+      const btnCloseX = document.getElementById('btn-close-settings-x');
       const btnSave = document.getElementById('btn-save-settings');
+
+      const darkCard = document.getElementById('theme-opt-dark');
+      const lightCard = document.getElementById('theme-opt-light');
+      const darkRadio = document.querySelector('input[name="modal-portal-theme"][value="dark"]');
+      const lightRadio = document.querySelector('input[name="modal-portal-theme"][value="light"]');
+
+      const setModalThemeUI = (theme) => {
+        if (darkCard && lightCard) {
+          darkCard.classList.toggle('active', theme === 'dark');
+          lightCard.classList.toggle('active', theme === 'light');
+        }
+        if (darkRadio && lightRadio) {
+          if (theme === 'dark') darkRadio.checked = true;
+          else lightRadio.checked = true;
+        }
+      };
+
+      if (darkCard) {
+        darkCard.addEventListener('click', () => {
+          setModalThemeUI('dark');
+          this.applyTheme('dark');
+        });
+      }
+      if (lightCard) {
+        lightCard.addEventListener('click', () => {
+          setModalThemeUI('light');
+          this.applyTheme('light');
+        });
+      }
 
       if (btnOpen && modal) {
         btnOpen.addEventListener('click', () => {
@@ -374,16 +446,25 @@
           document.getElementById('set-jury-name').value = cfg.juryChiefName;
           document.getElementById('set-chairman-name').value = cfg.chairmanName;
           document.getElementById('set-principal-name').value = cfg.principalName;
+
+          const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          setModalThemeUI(currentTheme);
+
           modal.classList.add('active');
         });
       }
 
-      if (btnClose && modal) {
-        btnClose.addEventListener('click', () => modal.classList.remove('active'));
-      }
+      const closeModal = () => modal && modal.classList.remove('active');
+      if (btnClose) btnClose.addEventListener('click', closeModal);
+      if (btnCloseX) btnCloseX.addEventListener('click', closeModal);
 
       if (btnSave && modal) {
         btnSave.addEventListener('click', async () => {
+          const checkedRadio = document.querySelector('input[name="modal-portal-theme"]:checked');
+          const selectedTheme = checkedRadio ? checkedRadio.value : (cfg.theme || 'dark');
+          this.applyTheme(selectedTheme);
+          cfg.theme = selectedTheme;
+
           cfg.title = document.getElementById('set-event-title').value.trim() || cfg.title;
           cfg.schoolName = document.getElementById('set-school-name').value.trim() || cfg.schoolName;
           cfg.eventDate = document.getElementById('set-event-date').value.trim() || cfg.eventDate;
@@ -393,8 +474,8 @@
 
           await window.PortalStorage.saveConfig(cfg);
           this.updateHeaderInfo(cfg);
-          modal.classList.remove('active');
-          alert('Pengaturan umum berhasil disimpan!');
+          closeModal();
+          alert('Pengaturan tema dan identitas berhasil disimpan!');
         });
       }
     }

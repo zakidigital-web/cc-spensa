@@ -119,43 +119,48 @@ header#app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 28px;
+  padding: 8px 24px;
+  min-height: 58px;
+  max-height: 64px;
+  box-sizing: border-box;
   background: rgba(6, 10, 29, 0.78);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--card-border);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  flex-wrap: nowrap;
 }
 [data-theme="light"] header#app-header {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .brand-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
+  flex: none;
 }
 .brand-badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
   background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   color: #fff;
-  font-size: 22px;
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
+  font-size: 20px;
+  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.4);
 }
 .brand-title h1 {
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 .brand-title p {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--gold);
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -166,11 +171,18 @@ header#app-header {
 nav.app-nav {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--card-border);
-  padding: 4px;
-  border-radius: 16px;
+  padding: 3px 4px;
+  border-radius: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+nav.app-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 [data-theme="light"] nav.app-nav {
   background: rgba(0, 0, 0, 0.04);
@@ -179,10 +191,10 @@ nav.app-nav {
 .nav-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 6px 14px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
   color: var(--text-mut);
   font-size: 13.5px;
@@ -207,7 +219,8 @@ nav.app-nav {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex: none;
 }
 
 /* ════════════ BUTTONS & CONTROLS ════════════ */
@@ -980,21 +993,41 @@ main#app-root {
 
 
 /* ════════════ EMBEDDED STAGE FRAMES (ZERO SCROLLBAR NATIVE SUITE) ════════════ */
+html.stage-active,
 body.stage-active {
   overflow: hidden !important;
   height: 100vh !important;
+  max-height: 100vh !important;
   width: 100vw !important;
+  max-width: 100vw !important;
+  position: fixed !important;
+  inset: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+body.stage-active {
+  display: flex !important;
+  flex-direction: column !important;
+}
+body.stage-active header#app-header {
+  flex: 0 0 auto !important;
 }
 body.stage-active main#app-root {
+  flex: 1 1 0px !important;
   max-width: 100vw !important;
+  width: 100vw !important;
   padding: 0 !important;
   margin: 0 !important;
-  height: calc(100vh - 72px) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
   overflow: hidden !important;
 }
 body.stage-active .view-section.active {
   height: 100% !important;
   width: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
@@ -1004,11 +1037,15 @@ body.stage-active .frame-wrapper {
   padding: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
   overflow: hidden !important;
 }
 body.stage-active .stage-frame {
   width: 100% !important;
   height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
   border: 0 !important;
   display: block !important;
   overflow: hidden !important;
@@ -1018,7 +1055,7 @@ body.stage-active .stage-frame {
 .frame-wrapper {
   margin: 0;
   overflow: hidden;
-  height: calc(100vh - 72px);
+  height: 100%;
 }
 .stage-frame {
   width: 100%;
@@ -1027,6 +1064,25 @@ body.stage-active .stage-frame {
   display: block;
   overflow: hidden;
   background: var(--bg-base);
+}
+
+/* Luxury Theme Selector in Settings */
+.theme-choice-card {
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+.theme-choice-card:hover {
+  border-color: var(--blue) !important;
+  transform: translateY(-2px);
+}
+.theme-choice-card.active {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 2px var(--gold-glow), 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+}
+[data-theme="light"] .theme-choice-card.active {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25), 0 6px 18px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* ════════════ LUXURY KBD & SHORTCUT STYLES ════════════ */
@@ -1054,10 +1110,25 @@ kbd {
 :fullscreen body, :-webkit-full-screen body, :-moz-full-screen body {
   background-attachment: scroll;
 }
+:fullscreen html.stage-active,
+:-webkit-full-screen html.stage-active,
+:-moz-full-screen html.stage-active,
+:fullscreen body.stage-active,
+:-webkit-full-screen body.stage-active,
+:-moz-full-screen body.stage-active {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  width: 100vw !important;
+  overflow: hidden !important;
+  position: fixed !important;
+  inset: 0 !important;
+}
 :fullscreen body.stage-active main#app-root,
 :-webkit-full-screen body.stage-active main#app-root,
 :-moz-full-screen body.stage-active main#app-root {
   height: 100vh !important;
+  max-height: 100vh !important;
+  flex: 1 1 100% !important;
 }
 :fullscreen body.stage-active header#app-header,
 :-webkit-full-screen body.stage-active header#app-header,
@@ -1068,6 +1139,7 @@ kbd {
 :-webkit-full-screen .frame-wrapper,
 :-moz-full-screen .frame-wrapper {
   height: 100vh !important;
+  max-height: 100vh !important;
 }
 
 /* ════════════ FLOATING IFP QUICK DOCK ════════════ */

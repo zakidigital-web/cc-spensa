@@ -38,8 +38,9 @@
       <button class="btn btn-ghost btn-icon" id="btn-open-shortcuts" title="Panduan Pintasan Keyboard (?)">
         <span>⌨️</span>
       </button>
-      <button class="btn btn-ghost btn-icon" id="btn-toggle-theme" title="Ganti Tema Terang/Gelap">
+      <button class="btn btn-ghost btn-sm" id="btn-toggle-theme" title="Ganti Tema Cerah / Gelap" style="padding:6px 12px;">
         <span id="theme-icon">🌙</span>
+        <span id="theme-label" style="font-size:12.5px;font-weight:700;margin-left:2px;">Gelap</span>
       </button>
       <button class="btn btn-primary" id="btn-open-settings">
         ⚙️ Pengaturan
@@ -185,11 +186,44 @@
       </div>
 
       <!-- Quick Template Downloads Strip -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;font-size:12.5px;color:var(--text-mut);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;font-size:12.5px;color:var(--text-mut);">
         <span>📄 <strong>Download Cepat Template Word:</strong></span>
         <a href="templates/Template_Soal_Penyisihan.docx" download class="badge" style="background:rgba(59,130,246,0.15);color:var(--blue);text-decoration:none;cursor:pointer;padding:5px 12px;border-radius:12px;border:1px solid rgba(59,130,246,0.3);">⬇ Template Penyisihan (.docx)</a>
         <a href="templates/Template_Soal_Semifinal.docx" download class="badge" style="background:rgba(16,185,129,0.15);color:var(--ok);text-decoration:none;cursor:pointer;padding:5px 12px;border-radius:12px;border:1px solid rgba(16,185,129,0.3);">⬇ Template Semifinal (.docx)</a>
         <a href="templates/Template_Soal_Grand_Final.docx" download class="badge" style="background:rgba(245,158,11,0.15);color:var(--gold);text-decoration:none;cursor:pointer;padding:5px 12px;border-radius:12px;border:1px solid rgba(245,158,11,0.3);">⬇ Template Grand Final (.docx)</a>
+      </div>
+
+      <!-- Comprehensive Model Guide Strip -->
+      <div class="glass-card" style="padding:14px 18px;margin-bottom:18px;border-radius:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+          <h4 style="font-size:14px;font-weight:800;color:var(--gold);margin:0;">💡 Panduan Model Soal Pada Setiap Babak:</h4>
+          <span style="font-size:11.5px;color:var(--text-mut);">Mendukung rumus LaTeX ($...$), Equation, teks bacaan, dan gambar</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;font-size:12.5px;line-height:1.5;">
+          <div style="background:rgba(255,255,255,0.03);padding:10px 12px;border-radius:12px;border:1px solid var(--card-border);">
+            <strong style="color:var(--blue);display:block;margin-bottom:4px;">⚡ Babak Penyisihan (8 Kolom)</strong>
+            <div>• <strong>Model 1:</strong> Teori &amp; Konsep Dasar (PPKn, Agama, Sejarah)</div>
+            <div>• <strong>Model 2:</strong> Rumus Pecahan &amp; Aljabar ($\frac{1}{2}$, $\sqrt{x}$, $x^2$)</div>
+            <div>• <strong>Model 3:</strong> Analisis Paragraf &amp; Teks Bacaan Sastra</div>
+            <div>• <strong>Model 4:</strong> Soal Bergambar (Diagram, Peta, Organ Sel)</div>
+            <div>• <strong>Model 5:</strong> Bahasa Asing / Grammar / Idiom / Logika</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);padding:10px 12px;border-radius:12px;border:1px solid var(--card-border);">
+            <strong style="color:var(--ok);display:block;margin-bottom:4px;">🎲 Babak Semifinal (9 Kolom)</strong>
+            <div>• <strong>BS:</strong> Babak 1 Benar/Salah (+100 poin, salah -50)</div>
+            <div>• <strong>PG150:</strong> Babak 2 Pilihan Ganda Sedang (+150 poin)</div>
+            <div>• <strong>PG200:</strong> Babak 3 Pilihan Ganda Sukar (+200 poin)</div>
+            <div>• <strong>ES:</strong> Babak 4 Esai Rebutan (Kunci uraian juri)</div>
+            <div>• <strong>CAD:</strong> Soal Cadangan Siaga (Tie-break / darurat)</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);padding:10px 12px;border-radius:12px;border:1px solid var(--card-border);">
+            <strong style="color:var(--gold);display:block;margin-bottom:4px;">🔥 Babak Grand Final (4 Kolom)</strong>
+            <div>• <strong>Tier 1:</strong> Kotak 1-5 Refleks Cepat (50 Poin | salah -25)</div>
+            <div>• <strong>Tier 2:</strong> Kotak 6-10 Logika Menengah (75 Poin | salah -35)</div>
+            <div>• <strong>Tier 3:</strong> Kotak 11-15 Konseptual (100 Poin | salah -50)</div>
+            <div>• <strong>Kotak 16:</strong> Soal Tambahan Tie-Breaker Penentu Juara</div>
+          </div>
+        </div>
       </div>
 
       <!-- Dropzone for Word .docx -->
@@ -245,8 +279,41 @@
   <!-- ════════════ SETTINGS MODAL ════════════ -->
   <div id="settings-modal" class="modal-overlay">
     <div class="glass-panel" style="width:min(640px, 100%);">
-      <h2 style="font-size:22px;font-weight:800;margin-bottom:16px;">⚙️ Pengaturan Identitas Kegiatan</h2>
-      <div style="display:grid;gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:22px;font-weight:800;margin:0;">⚙️ Pengaturan Identitas &amp; Tampilan Layar</h2>
+        <button class="btn btn-ghost btn-sm" id="btn-close-settings-x" style="padding:4px 10px;font-size:14px;">✕</button>
+      </div>
+
+      <div style="display:grid;gap:14px;">
+        <!-- Pilihan Tema Terang / Gelap -->
+        <div style="background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:14px;padding:12px 14px;">
+          <label style="font-size:13px;font-weight:700;color:var(--text-main);display:block;margin-bottom:8px;">
+            🎨 Tema Tampilan Layar (Cerah / Gelap)
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <label class="theme-choice-card" id="theme-opt-dark" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:2px solid var(--card-border);background:rgba(6,10,29,0.7);cursor:pointer;transition:all 0.2s ease;">
+              <input type="radio" name="modal-portal-theme" value="dark" style="width:auto;margin:0;cursor:pointer;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:22px;">🌙</span>
+                <div>
+                  <div style="font-size:13.5px;font-weight:800;color:#f8fafc;">Mode Gelap</div>
+                  <div style="font-size:11px;color:#94a3b8;">Midnight Luxury (IFP Malam / Indoor)</div>
+                </div>
+              </div>
+            </label>
+            <label class="theme-choice-card" id="theme-opt-light" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:2px solid var(--card-border);background:rgba(241,245,249,0.7);cursor:pointer;transition:all 0.2s ease;">
+              <input type="radio" name="modal-portal-theme" value="light" style="width:auto;margin:0;cursor:pointer;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:22px;">☀️</span>
+                <div>
+                  <div style="font-size:13.5px;font-weight:800;color:#0f172a;">Mode Cerah</div>
+                  <div style="font-size:11px;color:#475569;">Daylight Clean (Ruangan Terang / Cetak)</div>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <div>
           <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Judul Kejuaraan</label>
           <input type="text" id="set-event-title" class="input-field">

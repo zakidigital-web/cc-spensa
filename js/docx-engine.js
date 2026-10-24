@@ -366,167 +366,170 @@
       }
 
       let title = "TEMPLATE SOAL BABAK PENYISIHAN";
+      let subtitle = "Kejuaraan Cerdas Cermat Multidisiplin Berbasis Smart Screen IFP";
+      let petunjuk = [
+        "Format tabel 8 kolom: No, Mata Pelajaran, Pertanyaan & Gambar, Pilihan A, B, C, D, dan Kunci Jawaban.",
+        "Mendukung rumus matematika LaTeX (misal: $\\frac{1}{2}$, $\\sqrt{144}$, $x^2$), teks analisis, idiom bahasa, dan gambar.",
+        "Gambar pendukung dapat di-paste/insert langsung ke dalam sel kolom 'Pertanyaan & Gambar'.",
+        "Kunci Jawaban WAJIB diisi dengan satu huruf kapital: A, B, C, atau D."
+      ];
+      let models = [
+        "Model 1: Soal Teori & Konsep Dasar (PPKn, Agama, Sejarah)",
+        "Model 2: Soal Rumus Matematika & Eksak (Pecahan, Aljabar, Akar, Geometri)",
+        "Model 3: Soal Analisis Paragraf / Teks Bacaan (Bahasa Indonesia & Sastra)",
+        "Model 4: Soal Bergambar / Diagram / Peta / Organ (IPA & IPS)",
+        "Model 5: Soal Bahasa Asing / Grammar / Idiom (Bahasa Inggris)",
+        "Model 6: Soal Logika & Hubungan Sebab-Akibat"
+      ];
       const rows = [];
 
       if (stage === 'penyisihan') {
         rows.push(new TableRow({
           children: [
-            createHeaderCell("No", 6),
-            createHeaderCell("Mata Pelajaran (11 Mapel)", 20),
-            createHeaderCell("Pertanyaan & Gambar", 34),
+            createHeaderCell("No", 5),
+            createHeaderCell("Mata Pelajaran", 18),
+            createHeaderCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 37),
             createHeaderCell("Pilihan A", 10),
             createHeaderCell("Pilihan B", 10),
             createHeaderCell("Pilihan C", 10),
             createHeaderCell("Pilihan D", 10),
-            createHeaderCell("Kunci", 10)
+            createHeaderCell("Kunci", 6)
           ]
         }));
-        rows.push(new TableRow({
-          children: [
-            createCell("1", 6, AlignmentType.CENTER),
-            createCell("Informatika", 20),
-            createCell("Kepanjangan dari CPU adalah ...", 34),
-            createCell("Central Processing Unit", 10),
-            createCell("Computer Personal Unit", 10),
-            createCell("Central Program Utility", 10),
-            createCell("Control Processing Unit", 10),
-            createCell("A", 10, AlignmentType.CENTER)
-          ]
-        }));
-        rows.push(new TableRow({
-          children: [
-            createCell("2", 6, AlignmentType.CENTER),
-            createCell("Matematika", 20),
-            createCell("Hasil dari persamaan $2x + 6 = 14$ adalah ...", 34),
-            createCell("4", 10),
-            createCell("5", 10),
-            createCell("3", 10),
-            createCell("8", 10),
-            createCell("A", 10, AlignmentType.CENTER)
-          ]
-        }));
+        const pData = [
+          ["1", "PPKn", "Lambang sila ke-3 dalam perisai Garuda Pancasila (Persatuan Indonesia) adalah ...", "Pohon Beringin", "Bintang Emas", "Rantai Baja", "Padi dan Kapas", "A"],
+          ["2", "Pendidikan Agama", "Rukun Islam yang kedua dan wajib dilaksanakan lima waktu sehari semalam adalah ...", "Salat", "Syahadat", "Puasa Ramadan", "Zakat Mal", "A"],
+          ["3", "IPS", "Organisasi kerja sama regional bangsa-bangsa Asia Tenggara (ASEAN) didirikan pada 8 Agustus 1967 di ...", "Bangkok, Thailand", "Jakarta, Indonesia", "Manila, Filipina", "Singapura", "A"],
+          ["4", "Matematika", "Hasil dari operasi penjumlahan pecahan $\\frac{1}{2} + \\frac{1}{4}$ adalah ...", "$\\frac{3}{4}$", "$\\frac{2}{6}$", "$\\frac{1}{6}$", "$1$", "A"],
+          ["5", "Matematika", "Jika $3x - 5 = 16$, maka nilai $x$ yang memenuhi persamaan tersebut adalah ...", "7", "5", "6", "9", "A"],
+          ["6", "Matematika", "Hasil perhitungan dari $\\sqrt{144} + 2^3 - 5$ adalah ...", "15", "18", "12", "14", "A"],
+          ["7", "Matematika", "Luas sebuah lingkaran dengan jari-jari $r = 7\\text{ cm}$ ($\\pi = \\frac{22}{7}$) adalah ...", "154 cm²", "44 cm²", "308 cm²", "88 cm²", "A"],
+          ["8", "Bahasa Indonesia", "Bacalah teks berikut: 'Hutan bakau memiliki peran krusial dalam menahan gempuran ombak laut serta mencegah abrasi di sepanjang garis pantai.' Gagasan pokok paragraf di atas adalah ...", "Fungsi hutan bakau bagi pantai", "Penyebab abrasi di pesisir", "Keanekaragaman hayati bakau", "Ciri-ciri fisik tanaman bakau", "A"],
+          ["9", "IPA", "[Gambar: Struktur Organel Sel] Organel sel bermembran ganda yang bertindak sebagai pembangkit energi utama (ATP) melalui respirasi seluler adalah ...", "Mitokondria", "Ribosom", "Kloroplas", "Lisosom", "A"],
+          ["10", "Bahasa Inggris", "The antonym of the word 'generous' (suka memberi / dermawan) is ...", "Stingy", "Helpful", "Honest", "Polite", "A"],
+          ["11", "Informatika", "Perangkat keras (hardware) komputer yang bertindak sebagai 'otak' pemroses instruksi data adalah ...", "CPU", "Monitor", "RAM", "Harddisk", "A"]
+        ];
+        pData.forEach(r => {
+          rows.push(new TableRow({
+            children: [
+              createCell(r[0], 5, AlignmentType.CENTER),
+              createCell(r[1], 18),
+              createCell(r[2], 37),
+              createCell(r[3], 10),
+              createCell(r[4], 10),
+              createCell(r[5], 10),
+              createCell(r[6], 10),
+              createCell(r[7], 6, AlignmentType.CENTER)
+            ]
+          }));
+        });
       } else if (stage === 'semifinal') {
         title = "TEMPLATE SOAL BABAK SEMIFINAL";
+        subtitle = "Kompetisi Papan Kotak Skor Multiround & Perebutan Nilai IFP";
+        petunjuk = [
+          "Format tabel 9 kolom: No, Jenis Soal, Pertanyaan & Gambar, Pilihan A, B, C, D, Kunci Pilihan, dan Kunci Esai Juri.",
+          "Kode Jenis Soal WAJIB diisi: BS (Benar/Salah), PG150 (Pilihan Ganda I), PG200 (Pilihan Ganda II), ES (Esai Rebutan), atau CAD (Cadangan).",
+          "Untuk tipe BS: Kolom Kunci diisi 'B' (Benar) atau 'S' (Salah).",
+          "Untuk tipe PG150 & PG200: Isi pilihan A, B, C, D dan kolom Kunci diisi A, B, C, atau D.",
+          "Untuk tipe ES & CAD: Tuliskan jawaban lengkap pada kolom 'Kunci Jawaban Esai (Juri)'."
+        ];
+        models = [
+          "Model BS: Benar / Salah (Babak 1, +100 poin, salah -50, durasi 20 detik)",
+          "Model PG150: Pilihan Ganda Sedang (Babak 2, +150 poin, salah -75, durasi 30 detik)",
+          "Model PG200: Pilihan Ganda Sukar / Hitungan (Babak 3, +200 poin, salah -100, durasi 45 detik)",
+          "Model ES: Esai Rebutan (Babak 4, verifikasi jawaban juri, durasi 90 detik)",
+          "Model CAD: Cadangan Siaga (Saat tie-break atau anulir soal)"
+        ];
         rows.push(new TableRow({
           children: [
             createHeaderCell("No", 5),
-            createHeaderCell("Jenis Soal", 12),
-            createHeaderCell("Pertanyaan & Gambar (Bisa Rumus $...$)", 33),
+            createHeaderCell("Jenis Soal", 11),
+            createHeaderCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 34),
             createHeaderCell("Pilihan A", 9),
             createHeaderCell("Pilihan B", 9),
             createHeaderCell("Pilihan C", 9),
             createHeaderCell("Pilihan D", 9),
-            createHeaderCell("Kunci", 6),
+            createHeaderCell("Kunci", 5),
             createHeaderCell("Kunci Jawaban Esai (Juri)", 18)
           ]
         }));
-        rows.push(new TableRow({
-          children: [
-            createCell("1", 5, AlignmentType.CENTER),
-            createCell("BS", 12, AlignmentType.CENTER),
-            createCell("Matahari terbit dari arah timur dan tenggelam di barat.", 33),
-            createCell("Benar", 9),
-            createCell("Salah", 9),
-            createCell("-", 9),
-            createCell("-", 9),
-            createCell("B", 6, AlignmentType.CENTER),
-            createCell("-", 18)
-          ]
-        }));
-        rows.push(new TableRow({
-          children: [
-            createCell("2", 5, AlignmentType.CENTER),
-            createCell("PG150", 12, AlignmentType.CENTER),
-            createCell("Ibu kota Provinsi Jawa Timur adalah ...", 33),
-            createCell("Surabaya", 9),
-            createCell("Malang", 9),
-            createCell("Madiun", 9),
-            createCell("Kediri", 9),
-            createCell("A", 6, AlignmentType.CENTER),
-            createCell("-", 18)
-          ]
-        }));
-        rows.push(new TableRow({
-          children: [
-            createCell("3", 5, AlignmentType.CENTER),
-            createCell("PG200", 12, AlignmentType.CENTER),
-            createCell("Hasil dari operasi pecahan $\\frac{3}{4} + \\frac{1}{2}$ adalah ...", 33),
-            createCell("$\\frac{5}{4}$", 9),
-            createCell("$\\frac{4}{6}$", 9),
-            createCell("$\\frac{3}{8}$", 9),
-            createCell("$1$", 9),
-            createCell("A", 6, AlignmentType.CENTER),
-            createCell("-", 18)
-          ]
-        }));
-        rows.push(new TableRow({
-          children: [
-            createCell("4", 5, AlignmentType.CENTER),
-            createCell("ES", 12, AlignmentType.CENTER),
-            createCell("Sebutkan bunyi sila ke-4 dalam rumusan dasar negara Pancasila!", 33),
-            createCell("-", 9),
-            createCell("-", 9),
-            createCell("-", 9),
-            createCell("-", 9),
-            createCell("-", 6, AlignmentType.CENTER),
-            createCell("Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan.", 18)
-          ]
-        }));
-        rows.push(new TableRow({
-          children: [
-            createCell("5", 5, AlignmentType.CENTER),
-            createCell("CAD", 12, AlignmentType.CENTER),
-            createCell("Hasil dari perhitungan $25 \\times 4$ adalah ...", 33),
-            createCell("-", 9),
-            createCell("-", 9),
-            createCell("-", 9),
-            createCell("-", 9),
-            createCell("-", 6, AlignmentType.CENTER),
-            createCell("100", 18)
-          ]
-        }));
+        const sData = [
+          ["1", "BS", "Matahari terbit dari arah timur dan tenggelam di sebelah barat.", "Benar", "Salah", "-", "-", "B", ""],
+          ["2", "BS", "Paus dan lumba-lumba tergolong hewan mamalia yang bernapas dengan paru-paru.", "Benar", "Salah", "-", "-", "B", ""],
+          ["3", "BS", "Hasil perhitungan dari $15 \\times 4$ adalah 55.", "Benar", "Salah", "-", "-", "S", ""],
+          ["4", "PG150", "Ibu kota dari Provinsi Kalimantan Timur saat ini adalah ...", "Samarinda", "Balikpapan", "Bontang", "Tarakan", "A", ""],
+          ["5", "PG150", "Planet terdekat dari Matahari dalam sistem tata surya kita adalah ...", "Merkurius", "Venus", "Mars", "Bumi", "A", ""],
+          ["6", "PG200", "Sebuah tabung memiliki jari-jari $r = 7\\text{ cm}$ dan tinggi $t = 10\\text{ cm}$. Berapakah volumenya? ($\\pi = \\frac{22}{7}$)", "1.540 cm³", "770 cm³", "3.080 cm³", "154 cm³", "A", ""],
+          ["7", "PG200", "Hasil operasi hitung aljabar dari $(2x + 3)(x - 4)$ adalah ...", "$2x^2 - 5x - 12$", "$2x^2 + 5x - 12$", "$2x^2 - 11x - 12$", "$2x^2 - 5x + 12$", "A", ""],
+          ["8", "ES", "Sebutkan rumusan lengkap teks sila kelima Pancasila!", "-", "-", "-", "-", "-", "Keadilan sosial bagi seluruh rakyat Indonesia."],
+          ["9", "ES", "Apakah nama zat cair yang membawa oksigen dan nutrisi ke seluruh sel tubuh manusia?", "-", "-", "-", "-", "-", "Darah (atau Hemoglobin / Sel Darah Merah)."],
+          ["10", "CAD", "SOAL CADANGAN: Siapakah pencipta lagu kebangsaan Indonesia Raya?", "-", "-", "-", "-", "-", "Wage Rudolf Supratman (W.R. Supratman)."]
+        ];
+        sData.forEach(r => {
+          rows.push(new TableRow({
+            children: [
+              createCell(r[0], 5, AlignmentType.CENTER),
+              createCell(r[1], 11, AlignmentType.CENTER),
+              createCell(r[2], 34),
+              createCell(r[3], 9),
+              createCell(r[4], 9),
+              createCell(r[5], 9),
+              createCell(r[6], 9),
+              createCell(r[7], 5, AlignmentType.CENTER),
+              createCell(r[8], 18)
+            ]
+          }));
+        });
       } else {
         title = "TEMPLATE SOAL BABAK GRAND FINAL";
+        subtitle = "Matriks 15 Kotak Rebutan & Tie-Breaker Cerdas Cermat IFP";
+        petunjuk = [
+          "Babak Grand Final memiliki struktur matriks 15 Kotak (5 kolom x 3 baris) + 1 Kotak Soal Tambahan.",
+          "Format tabel 4 kolom: No, Kategori & Poin Kotak, Pertanyaan Rebutan, dan Kunci Jawaban Dewan Juri.",
+          "Pembagian Poin Panggung: Tier 1 (50 Poin), Tier 2 (75 Poin), Tier 3 (100 Poin), dan Kotak 16 Soal Tambahan (100 Poin)."
+        ];
+        models = [
+          "Model Tier 1 (Kotak 1-5): Fakta Singkat & Refleks Cepat (50 Poin)",
+          "Model Tier 2 (Kotak 6-10): Hitungan Logika & Hubungan Menengah (75 Poin)",
+          "Model Tier 3 (Kotak 11-15): Konseptual & Analisis Tingkat Tinggi (100 Poin)",
+          "Model Tie-Breaker (Kotak 16): Soal Tambahan Penentuan Kemenangan (100 Poin)"
+        ];
         rows.push(new TableRow({
           children: [
             createHeaderCell("No", 8),
-            createHeaderCell("Tier & Poin (Tier 1/2/3/Cadangan)", 24),
-            createHeaderCell("Teks Pertanyaan Rebutan & Kotak", 44),
-            createHeaderCell("Kunci Jawaban Singkat & Jelas", 24)
+            createHeaderCell("Kategori & Poin Kotak", 24),
+            createHeaderCell("Pertanyaan Rebutan Panggung", 44),
+            createHeaderCell("Kunci Jawaban Dewan Juri", 24)
           ]
         }));
-        rows.push(new TableRow({
-          children: [
-            createCell("1", 8, AlignmentType.CENTER),
-            createCell("Tier 1 (50 Poin)", 24),
-            createCell("Apa kepanjangan dari CPU?", 44),
-            createCell("Central Processing Unit", 24)
-          ]
-        }));
-        rows.push(new TableRow({
-          children: [
-            createCell("6", 8, AlignmentType.CENTER),
-            createCell("Tier 2 (75 Poin)", 24),
-            createCell("Ubah bilangan biner 1010 ke dalam bentuk desimal!", 44),
-            createCell("10", 24)
-          ]
-        }));
-        rows.push(new TableRow({
-          children: [
-            createCell("11", 8, AlignmentType.CENTER),
-            createCell("Tier 3 (100 Poin)", 24),
-            createCell("Ubah bilangan desimal 13 ke representasi biner!", 44),
-            createCell("1101", 24)
-          ]
-        }));
-        rows.push(new TableRow({
-          children: [
-            createCell("16", 8, AlignmentType.CENTER),
-            createCell("Soal Tambahan (100 Poin)", 24),
-            createCell("SOAL TAMBAHAN: Satu byte terdiri dari berapa bit?", 44),
-            createCell("8 bit", 24)
-          ]
-        }));
+        const fData = [
+          ["1", "Tier 1 (50 Poin)", "Apa kepanjangan dari singkatan CPU dalam dunia komputer?", "Central Processing Unit"],
+          ["2", "Tier 1 (50 Poin)", "Manakah yang BUKAN perangkat masukan (input): keyboard, mouse, atau proyektor?", "Proyektor (Perangkat Keluaran / Output)"],
+          ["3", "Tier 1 (50 Poin)", "Sistem bilangan berbasis dua yang hanya menggunakan simbol 0 dan 1 disebut?", "Biner (Binary)"],
+          ["4", "Tier 1 (50 Poin)", "Apakah ekstensi file standar dokumen dokumen pengolah kata modern Microsoft Word?", ".docx"],
+          ["5", "Tier 1 (50 Poin)", "Perangkat lunak untuk menjelajah halaman internet seperti Google Chrome atau Edge disebut?", "Browser / Web Browser (Peramban Web)"],
+          ["6", "Tier 2 (75 Poin)", "Konversikan bilangan biner 1010 ke dalam bentuk bilangan desimal!", "10 (Sepuluh)"],
+          ["7", "Tier 2 (75 Poin)", "Apakah fungsi utama sistem firewall pada jaringan komputer?", "Menyaring lalu lintas data & mencegah akses tidak sah"],
+          ["8", "Tier 2 (75 Poin)", "Urutan langkah-langkah logis dan terstruktur untuk menyelesaikan suatu masalah disebut?", "Algoritma"],
+          ["9", "Tier 2 (75 Poin)", "Fungsi spreadsheet Microsoft Excel untuk menghitung nilai rata-rata dari rentang sel adalah?", "=AVERAGE(...)"],
+          ["10", "Tier 2 (75 Poin)", "Apakah kepanjangan resmi dari singkatan URL pada alamat website?", "Uniform Resource Locator"],
+          ["11", "Tier 3 (100 Poin)", "Teknik computational thinking dengan memecah masalah kompleks menjadi bagian-bagian lebih kecil disebut?", "Dekomposisi (Decomposition)"],
+          ["12", "Tier 3 (100 Poin)", "Berapakah hasil dari $2^8$ (jumlah variasi kombinasi pada satu byte memori)?", "256"],
+          ["13", "Tier 3 (100 Poin)", "Cabang ilmu kecerdasan buatan (AI) yang mempelajari algoritma komputer untuk belajar dari data disebut?", "Machine Learning (Pembelajaran Mesin)"],
+          ["14", "Tier 3 (100 Poin)", "Bentuk kejahatan siber yang mencoba mencuri informasi rahasia dengan memalsukan email/situs disebut?", "Phishing"],
+          ["15", "Tier 3 (100 Poin)", "Konversikan bilangan desimal 13 ke dalam representasi biner!", "1101 (Delapan + Empat + Nol + Satu)"],
+          ["16", "Soal Tambahan (100 Poin)", "SOAL PENENTUAN JUARA (TIE-BREAKER): Satu byte data terdiri dari berapa bit?", "8 bit"]
+        ];
+        fData.forEach(r => {
+          rows.push(new TableRow({
+            children: [
+              createCell(r[0], 8, AlignmentType.CENTER),
+              createCell(r[1], 24),
+              createCell(r[2], 44),
+              createCell(r[3], 24)
+            ]
+          }));
+        });
       }
 
       const doc = new Document({
@@ -534,13 +537,33 @@
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
-              spacing: { after: 120 },
-              children: [new TextRun({ text: title, bold: true, color: "1E3A8A", size: 26, font: "Calibri" })]
+              spacing: { after: 80 },
+              children: [new TextRun({ text: title, bold: true, color: "1E3A8A", size: 28, font: "Calibri" })]
             }),
             new Paragraph({
-              spacing: { after: 180 },
-              children: [new TextRun({ text: "Petunjuk: Masukkan soal pada baris di bawah. Anda dapat menyisipkan rumus matematika ($...$) dan gambar langsung.", italics: true, color: "64748B", size: 18, font: "Calibri" })]
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 140 },
+              children: [new TextRun({ text: subtitle, italics: true, color: "475569", size: 20, font: "Calibri" })]
             }),
+            new Paragraph({
+              spacing: { after: 60 },
+              children: [new TextRun({ text: "📋 PANDUAN PENGISIAN & KETENTUAN FORMAT:", bold: true, color: "D97706", size: 20, font: "Calibri" })]
+            }),
+            ...petunjuk.map(p => new Paragraph({
+              spacing: { after: 40 },
+              bullet: { level: 0 },
+              children: [new TextRun({ text: p, size: 18, font: "Calibri", color: "334155" })]
+            })),
+            new Paragraph({
+              spacing: { before: 100, after: 60 },
+              children: [new TextRun({ text: "💡 DAFTAR MODEL SOAL YANG DIDUKUNG:", bold: true, color: "1E3A8A", size: 20, font: "Calibri" })]
+            }),
+            ...models.map(m => new Paragraph({
+              spacing: { after: 40 },
+              bullet: { level: 0 },
+              children: [new TextRun({ text: m, size: 18, font: "Calibri", color: "1E293B" })]
+            })),
+            new Paragraph({ spacing: { after: 140 }, children: [] }),
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
               rows: rows

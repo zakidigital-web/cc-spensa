@@ -17,7 +17,7 @@ function hCell(text, widthPercent) {
   return new TableCell({
     width: { size: widthPercent, type: WidthType.PERCENTAGE },
     borders: cellBorders,
-    shading: { fill: "1E3A8A" }, // Deep Navy
+    shading: { fill: "1E3A8A" }, // Deep Navy Luxury
     margins: { top: 120, bottom: 120, left: 140, right: 140 },
     children: [
       new Paragraph({
@@ -28,7 +28,7 @@ function hCell(text, widthPercent) {
   });
 }
 
-function bCell(text, widthPercent, align = AlignmentType.LEFT, bold = false) {
+function bCell(text, widthPercent, align = AlignmentType.LEFT, bold = false, italic = false) {
   return new TableCell({
     width: { size: widthPercent, type: WidthType.PERCENTAGE },
     borders: cellBorders,
@@ -36,94 +36,143 @@ function bCell(text, widthPercent, align = AlignmentType.LEFT, bold = false) {
     children: [
       new Paragraph({
         alignment: align,
-        children: [new TextRun({ text, font: "Calibri", size: 19, bold })]
+        children: [new TextRun({ text, font: "Calibri", size: 19, bold, italics: italic })]
       })
     ]
   });
 }
 
-function makeHeaderSection(title, subtitle, stageNotes) {
+function makeHeaderSection(title, subtitle, stageNotes, modelDescriptions = []) {
+  const noteParagraphs = stageNotes.map(note => new Paragraph({
+    spacing: { after: 60 },
+    bullet: { level: 0 },
+    children: [
+      new TextRun({ text: note, size: 19, font: "Calibri", color: "334155" })
+    ]
+  }));
+
+  const modelParagraphs = modelDescriptions.length > 0 ? [
+    new Paragraph({
+      spacing: { before: 120, after: 80 },
+      children: [
+        new TextRun({ text: "💡 DAFTAR MODEL & VARIASI SOAL PADA TEMPLATE INI:", bold: true, size: 21, font: "Calibri", color: "1E3A8A" })
+      ]
+    }),
+    ...modelDescriptions.map(desc => new Paragraph({
+      spacing: { after: 60 },
+      bullet: { level: 0 },
+      children: [
+        new TextRun({ text: desc, size: 19, font: "Calibri", color: "1E293B" })
+      ]
+    }))
+  ] : [];
+
   return [
     new Paragraph({
       alignment: AlignmentType.CENTER,
       heading: HeadingLevel.HEADING_1,
-      spacing: { after: 120 },
+      spacing: { after: 100 },
       children: [
-        new TextRun({ text: title, bold: true, size: 32, font: "Calibri", color: "1E3A8A" })
+        new TextRun({ text: title, bold: true, size: 30, font: "Calibri", color: "1E3A8A" })
       ]
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
+      spacing: { after: 180 },
       children: [
-        new TextRun({ text: subtitle, italics: true, size: 22, font: "Calibri", color: "475569" })
+        new TextRun({ text: subtitle, italics: true, size: 21, font: "Calibri", color: "475569" })
       ]
     }),
     new Paragraph({
       spacing: { after: 80 },
       children: [
-        new TextRun({ text: "📋 PETUNJUK PENGISIAN & KETENTUAN FORMAT:", bold: true, size: 21, font: "Calibri", color: "D97706" })
+        new TextRun({ text: "📋 PANDUAN PENGISIAN & KETENTUAN FORMAT:", bold: true, size: 21, font: "Calibri", color: "D97706" })
       ]
     }),
-    ...stageNotes.map(note => new Paragraph({
-      spacing: { after: 60 },
-      bullet: { level: 0 },
-      children: [
-        new TextRun({ text: note, size: 19, font: "Calibri", color: "334155" })
-      ]
-    })),
+    ...noteParagraphs,
+    ...modelParagraphs,
     new Paragraph({ spacing: { after: 180 }, children: [] })
   ];
 }
 
 // ══════════════════════════════════════════════════════════════
-// 1. TEMPLATE BABAK PENYISIHAN
+// 1. TEMPLATE BABAK PENYISIHAN (SEMUA MODEL SOAL PILIHAN GANDA)
 // ══════════════════════════════════════════════════════════════
 async function buildPenyisihanTemplate() {
   const notes = [
-    "Format tabel terdiri dari 8 kolom: No, Mata Pelajaran, Teks Soal / Persamaan, Pilihan A, B, C, D, dan Kunci.",
-    "Rumus / Persamaan Matematika dapat dituliskan menggunakan Equation Word atau format LaTeX (misal: $\\frac{1}{2}+\\frac{1}{4}$ atau $\\sqrt{144}=12$).",
-    "Gambar pendukung dapat di-paste / insert langsung ke dalam sel kolom 'Pertanyaan & Gambar'.",
-    "Kunci jawaban diisi dengan huruf kapital: A, B, C, atau D.",
-    "Mata pelajaran dapat disesuaikan (Pendidikan Agama, PPKn, Bahasa Indonesia, Matematika, IPA, IPS, Bahasa Inggris, dll)."
+    "Format tabel 8 kolom: No, Mata Pelajaran, Pertanyaan & Gambar, Pilihan A, B, C, D, dan Kunci Jawaban.",
+    "Mendukung rumus matematika LaTeX (misal: $\\frac{1}{2}$, $\\sqrt{144}$, $x^2$), teks analisis, idiom bahasa, dan gambar.",
+    "Gambar pendukung dapat di-paste/insert langsung ke dalam sel kolom 'Pertanyaan & Gambar'.",
+    "Kunci Jawaban WAJIB diisi dengan satu huruf kapital: A, B, C, atau D.",
+    "Sistem otomatis mengimpor soal ke seluruh kelas (Jenjang 7, 8, dan 9) serta dapat diacak oleh panitia."
+  ];
+
+  const models = [
+    "Model 1: Soal Teori & Konsep Dasar (PPKn, Agama, Sejarah, Sains)",
+    "Model 2: Soal Rumus Matematika (Pecahan, Akar, Eksponen, Aljabar $x$)",
+    "Model 3: Soal Analisis Paragraf / Teks Bacaan (Bahasa Indonesia & Sastra)",
+    "Model 4: Soal Bergambar / Diagram / Peta / Struktur Organ (IPA & IPS)",
+    "Model 5: Soal Bahasa Asing / Grammar / Idiom / Terjemahan (Bahasa Inggris)",
+    "Model 6: Soal Logika & Hubungan Sebab-Akibat (Penalaran Kritis)",
+    "Model 7: Soal Teknologi & Komputasi (Informatika & Cyber)",
+    "Model 8: Soal Seni & Budaya Tradisional (Kesenian & Budaya Nusantara)"
   ];
 
   const headerRows = [
     new TableRow({
       children: [
-        hCell("No", 6),
+        hCell("No", 5),
         hCell("Mata Pelajaran", 18),
-        hCell("Pertanyaan & Gambar (Bisa Rumus $...$)", 36),
+        hCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 37),
         hCell("Pilihan A", 10),
         hCell("Pilihan B", 10),
         hCell("Pilihan C", 10),
         hCell("Pilihan D", 10),
-        hCell("Kunci", 8)
+        hCell("Kunci", 6)
       ]
     })
   ];
 
   const sampleData = [
-    ["1", "Matematika", "Hasil penjumlahan pecahan $\\frac{1}{2} + \\frac{1}{4}$ adalah ...", "$\\frac{3}{4}$", "$\\frac{2}{6}$", "$\\frac{1}{6}$", "$1$", "A"],
-    ["2", "Matematika", "Jika $2x + 6 = 14$, maka nilai dari $x$ adalah ...", "4", "5", "3", "8", "A"],
-    ["3", "IPA", "Organel sel yang berfungsi sebagai tempat respirasi sel dan penghasil energi utama adalah ...", "Mitokondria", "Ribosom", "Kloroplas", "Lisosom", "A"],
-    ["4", "Bahasa Indonesia", "Ide pokok atau gagasan yang menjadi dasar pengembangan sebuah paragraf disebut ...", "Gagasan utama", "Kalimat penjelas", "Kesimpulan", "Ringkasan", "A"],
-    ["5", "PPKn", "Lambang sila ke-3 Pancasila (Persatuan Indonesia) adalah ...", "Pohon Beringin", "Bintang", "Rantai Emas", "Padi dan Kapas", "A"],
-    ["6", "IPS", "Organisasi negara-negara Asia Tenggara (ASEAN) didirikan pada tanggal 8 Agustus 1967 di kota ...", "Bangkok", "Jakarta", "Manila", "Singapura", "A"],
-    ["7", "Bahasa Inggris", "The antonym of the word \"generous\" is ...", "Stingy", "Kind", "Helpful", "Polite", "A"],
-    ["8", "Informatika", "Perangkat keras komputer yang berfungsi memproses instruksi dan mengeksekusi program adalah ...", "CPU", "Monitor", "Keyboard", "Printer", "A"]
+    // Model 1: Teori & Konsep Dasar
+    ["1", "PPKn", "Lambang sila ke-3 dalam perisai Garuda Pancasila (Persatuan Indonesia) adalah ...", "Pohon Beringin", "Bintang Emas", "Rantai Baja", "Padi dan Kapas", "A"],
+    ["2", "Pendidikan Agama", "Rukun Islam yang kedua dan wajib dilaksanakan lima waktu sehari semalam adalah ...", "Salat", "Syahadat", "Puasa Ramadan", "Zakat Mal", "A"],
+    ["3", "IPS", "Organisasi kerja sama regional bangsa-bangsa di Asia Tenggara (ASEAN) didirikan pada 8 Agustus 1967 di ...", "Bangkok, Thailand", "Jakarta, Indonesia", "Manila, Filipina", "Singapura", "A"],
+
+    // Model 2: Rumus Matematika & Eksak (Pecahan, Aljabar, Akar, Geometri)
+    ["4", "Matematika", "Hasil dari operasi penjumlahan pecahan $\\frac{1}{2} + \\frac{1}{4}$ adalah ...", "$\\frac{3}{4}$", "$\\frac{2}{6}$", "$\\frac{1}{6}$", "$1$", "A"],
+    ["5", "Matematika", "Jika $3x - 5 = 16$, maka nilai $x$ yang memenuhi persamaan tersebut adalah ...", "7", "5", "6", "9", "A"],
+    ["6", "Matematika", "Hasil perhitungan dari $\\sqrt{144} + 2^3 - 5$ adalah ...", "15", "18", "12", "14", "A"],
+    ["7", "Matematika", "Luas sebuah lingkaran dengan jari-jari $r = 7\\text{ cm}$ ($\\pi = \\frac{22}{7}$) adalah ...", "154 cm²", "44 cm²", "308 cm²", "88 cm²", "A"],
+
+    // Model 3: Analisis Teks / Paragraf Bacaan
+    ["8", "Bahasa Indonesia", "Bacalah teks berikut: 'Hutan bakau memiliki peran krusial dalam menahan gempuran ombak laut serta mencegah abrasi di sepanjang garis pantai.' Gagasan pokok paragraf di atas adalah ...", "Fungsi hutan bakau bagi pantai", "Penyebab abrasi di pesisir", "Keanekaragaman hayati bakau", "Ciri-ciri fisik tanaman bakau", "A"],
+    ["9", "Bahasa Indonesia", "Kata hubung (konjungsi) yang menyatakan hubungan sebab-akibat dalam kalimat majemuk adalah ...", "Karena", "Atau", "Meskipun", "Tetapi", "A"],
+
+    // Model 4: Soal Gambar / Diagram / Peta
+    ["10", "IPA", "[Gambar: Struktur Organel Sel] Organel sel bermembran ganda yang bertindak sebagai pembangkit energi utama (ATP) melalui respirasi seluler adalah ...", "Mitokondria", "Ribosom", "Kloroplas", "Lisosom", "A"],
+    ["11", "IPA", "Zat pigmen hijau pada daun tumbuhan yang berfungsi menangkap energi cahaya matahari untuk fotosintesis adalah ...", "Klorofil", "Karotenoid", "Antosianin", "Xantofil", "A"],
+
+    // Model 5: Bahasa Asing & Grammar
+    ["12", "Bahasa Inggris", "Complete the sentence with correct verb: 'Every morning, the students ... together before entering the classroom.'", "gather", "gathers", "gathering", "gathered", "A"],
+    ["13", "Bahasa Inggris", "The antonym of the word 'generous' (suka memberi / dermawan) is ...", "Stingy", "Helpful", "Honest", "Polite", "A"],
+
+    // Model 6: Logika & Hubungan Sebab-Akibat
+    ["14", "PJOK & Kesehatan", "Kondisi kekurangan cairan tubuh secara berlebih akibat aktivitas fisik berat tanpa hidrasi cukup disebut ...", "Dehidrasi", "Hipotermia", "Anemia", "Hipertensi", "A"],
+    ["15", "Informatika", "Perangkat keras (hardware) komputer yang bertindak sebagai 'otak' pemroses seluruh instruksi data adalah ...", "CPU", "Monitor", "RAM", "Harddisk", "A"],
+    ["16", "Seni Budaya", "Alat musik tradisional Sasando yang dimainkan dengan cara dipetik berasal dari daerah ...", "Nusa Tenggara Timur", "Jawa Barat", "Sumatera Barat", "Kalimantan Barat", "A"]
   ];
 
   const bodyRows = sampleData.map(row => new TableRow({
     children: [
-      bCell(row[0], 6, AlignmentType.CENTER),
+      bCell(row[0], 5, AlignmentType.CENTER),
       bCell(row[1], 18, AlignmentType.LEFT, true),
-      bCell(row[2], 36),
+      bCell(row[2], 37),
       bCell(row[3], 10),
       bCell(row[4], 10),
       bCell(row[5], 10),
       bCell(row[6], 10),
-      bCell(row[7], 8, AlignmentType.CENTER, true)
+      bCell(row[7], 6, AlignmentType.CENTER, true)
     ]
   }));
 
@@ -134,7 +183,8 @@ async function buildPenyisihanTemplate() {
         ...makeHeaderSection(
           "TEMPLATE BANK SOAL BABAK PENYISIHAN",
           "Kejuaraan Cerdas Cermat Multidisiplin Berbasis Smart Screen IFP",
-          notes
+          notes,
+          models
         ),
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
@@ -150,57 +200,89 @@ async function buildPenyisihanTemplate() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// 2. TEMPLATE BABAK SEMIFINAL
+// 2. TEMPLATE BABAK SEMIFINAL (SEMUA MODEL SOAL 5 BABAK)
 // ══════════════════════════════════════════════════════════════
 async function buildSemifinalTemplate() {
   const notes = [
-    "Format tabel 9 kolom: No, Jenis Soal, Pertanyaan & Gambar, Pilihan A, Pilihan B, Pilihan C, Pilihan D, Kunci (A/B/C/D atau B/S), dan Kunci Esai.",
-    "Jenis Soal wajib diisi dengan kode: BS (Benar/Salah), PG150 (Pilihan Ganda I), PG200 (Pilihan Ganda II), ES (Esai/Uraian), atau CAD (Cadangan).",
-    "Untuk tipe BS: Pilihan A & B otomatis Benar/Salah, kolom Kunci diisi 'B' (Benar) atau 'S' (Salah).",
-    "Untuk tipe PG150 & PG200: Isi Pilihan A, B, C, D, dan kolom Kunci dengan A, B, C, atau D.",
-    "Untuk tipe ES & CAD: Tuliskan kunci jawaban lengkap pada kolom 'Kunci Jawaban Esai' untuk panduan dewan juri."
+    "Format tabel 9 kolom: No, Jenis Soal, Pertanyaan & Gambar, Pilihan A, B, C, D, Kunci Pilihan, dan Kunci Esai Juri.",
+    "Kolom 'Jenis Soal' WAJIB diisi dengan kode standar:",
+    "  • BS    : Soal Benar / Salah (Babak 1, +100 poin, salah -50, durasi 20 detik)",
+    "  • PG150 : Pilihan Ganda Sedang (Babak 2, +150 poin, salah -75, durasi 30 detik)",
+    "  • PG200 : Pilihan Ganda Sukar / Hitungan (Babak 3, +200 poin, salah -100, durasi 45 detik)",
+    "  • ES    : Soal Esai Rebutan (Babak 4, +100 s.d. +300 poin, juri memverifikasi uraian, durasi 90 detik)",
+    "  • CAD   : Soal Cadangan (Digunakan sewaktu-waktu saat tie-break atau anulir soal)",
+    "Untuk tipe BS: Kolom Kunci diisi 'B' (Benar) atau 'S' (Salah). Pilihan A & B otomatis Benar/Salah.",
+    "Untuk tipe PG150 & PG200: Isi opsi A, B, C, D dan kolom Kunci diisi A, B, C, atau D.",
+    "Untuk tipe ES & CAD: Tuliskan jawaban lengkap pada kolom 'Kunci Jawaban Esai (Juri)' sebagai pegangan dewan juri."
+  ];
+
+  const models = [
+    "Model BS-1: Benar/Salah Sains & Fakta Alamiah (Contoh: Paus termasuk mamalia)",
+    "Model BS-2: Benar/Salah Hitungan Matematika Cepat (Contoh: 12 x 8 = 96)",
+    "Model BS-3: Benar/Salah Sejarah & Kenegaraan (Contoh: Proklamasi 17 Agustus 1945)",
+    "Model PG150: Pilihan Ganda Sedang Berbobot 150 Poin (Opsi A, B, C, D)",
+    "Model PG200: Pilihan Ganda Sukar Berbobot 200 Poin (Hitungan Rumus / Logika Kompleks)",
+    "Model ES-1: Soal Uraian / Isian Singkat Rebutan (Kunci padat jelas untuk Dewan Juri)",
+    "Model ES-2: Soal Uraian Sebutkan / Klasifikasi (Dilengkapi rubrik poin jawaban juri)",
+    "Model CAD: Soal Cadangan Siaga Rebutan (Sebagai bantalan darurat panggung)"
   ];
 
   const headerRows = [
     new TableRow({
       children: [
         hCell("No", 5),
-        hCell("Jenis Soal", 12),
-        hCell("Pertanyaan & Gambar (Rumus $...$)", 33),
+        hCell("Jenis Soal", 11),
+        hCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 34),
         hCell("Pilihan A", 9),
         hCell("Pilihan B", 9),
         hCell("Pilihan C", 9),
         hCell("Pilihan D", 9),
-        hCell("Kunci", 6),
+        hCell("Kunci", 5),
         hCell("Kunci Jawaban Esai (Juri)", 18)
       ]
     })
   ];
 
   const sampleData = [
-    ["1", "BS", "Matahari terbit dari arah timur dan tenggelam di barat.", "Benar", "Salah", "-", "-", "B", ""],
-    ["2", "BS", "Paus termasuk ke dalam golongan hewan mamalia.", "Benar", "Salah", "-", "-", "B", ""],
-    ["3", "BS", "Hasil perhitungan perkalian dari $7 \\times 8$ adalah 54.", "Benar", "Salah", "-", "-", "S", ""],
-    ["4", "PG150", "Ibu kota Provinsi Jawa Timur adalah ...", "Surabaya", "Malang", "Madiun", "Kediri", "A", ""],
-    ["5", "PG150", "Planet terbesar dalam sistem tata surya kita adalah ...", "Jupiter", "Saturnus", "Uranus", "Neptunus", "A", ""],
-    ["6", "PG200", "Hasil dari operasi pecahan $\\frac{3}{4} + \\frac{1}{2}$ adalah ...", "$\\frac{5}{4}$", "$\\frac{4}{6}$", "$\\frac{3}{8}$", "$1$", "A", ""],
-    ["7", "PG200", "Sebuah lingkaran memiliki diameter 14 cm. Luas lingkaran tersebut adalah ... ($\\pi = \\frac{22}{7}$)", "154 cm²", "44 cm²", "308 cm²", "88 cm²", "A", ""],
-    ["8", "ES", "Sebutkan bunyi sila ke-4 dalam rumusan dasar negara Pancasila!", "-", "-", "-", "-", "-", "Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan."],
-    ["9", "ES", "Sebutkan bahan dan hasil akhir dari proses fotosintesis tumbuhan!", "-", "-", "-", "-", "-", "Bahan: Karbon dioksida (CO2), air (H2O), cahaya matahari. Hasil: Glukosa dan oksigen (O2)."],
-    ["10", "CAD", "Hasil dari perhitungan $25 \\times 4$ adalah ...", "-", "-", "-", "-", "-", "100"]
+    // Model BS: Benar / Salah (Babak 1)
+    ["1", "BS", "Matahari terbit dari arah timur dan tenggelam di sebelah barat.", "Benar", "Salah", "-", "-", "B", ""],
+    ["2", "BS", "Paus dan lumba-lumba tergolong hewan mamalia yang bernapas dengan paru-paru.", "Benar", "Salah", "-", "-", "B", ""],
+    ["3", "BS", "Hasil perhitungan dari $15 \\times 4$ adalah 55.", "Benar", "Salah", "-", "-", "S", ""],
+    ["4", "BS", "Candi Prambanan merupakan candi peninggalan kebudayaan bercorak Buddha terbesar di dunia.", "Benar", "Salah", "-", "-", "S", ""],
+    ["5", "BS", "Kandungan gas terbanyak yang menyusun atmosfer bumi adalah gas Nitrogen.", "Benar", "Salah", "-", "-", "B", ""],
+
+    // Model PG150: Pilihan Ganda I (Babak 2)
+    ["6", "PG150", "Ibu kota dari Provinsi Kalimantan Timur saat ini adalah ...", "Samarinda", "Balikpapan", "Bontang", "Tarakan", "A", ""],
+    ["7", "PG150", "Planet terdekat dari Matahari dalam sistem tata surya kita adalah ...", "Merkurius", "Venus", "Mars", "Bumi", "A", ""],
+    ["8", "PG150", "Tokoh proklamator yang menandatangani naskah teks Proklamasi Kemerdekaan RI adalah ...", "Soekarno dan Hatta", "Soepomo dan Yamin", "Sutan Sjahrir", "Ahmad Soebardjo", "A", ""],
+
+    // Model PG200: Pilihan Ganda II (Babak 3 - Sukar / Hitungan)
+    ["9", "PG200", "Sebuah tabung memiliki jari-jari $r = 7\\text{ cm}$ dan tinggi $t = 10\\text{ cm}$. Berapakah volumenya? ($\\pi = \\frac{22}{7}$)", "1.540 cm³", "770 cm³", "3.080 cm³", "154 cm³", "A", ""],
+    ["10", "PG200", "Hasil operasi hitung aljabar dari $(2x + 3)(x - 4)$ adalah ...", "$2x^2 - 5x - 12$", "$2x^2 + 5x - 12$", "$2x^2 - 11x - 12$", "$2x^2 - 5x + 12$", "A", ""],
+    ["11", "PG200", "Sebuah benda bermassa 4 kg bergerak dengan percepatan $5\\text{ m/s}^2$. Besar gaya yang bekerja adalah ... ($F = m \\cdot a$)", "20 Newton", "9 Newton", "1 Newton", "40 Newton", "A", ""],
+
+    // Model ES: Soal Esai Rebutan (Babak 4)
+    ["12", "ES", "Sebutkan rumusan lengkap teks sila kelima Pancasila!", "-", "-", "-", "-", "-", "Keadilan sosial bagi seluruh rakyat Indonesia."],
+    ["13", "ES", "Apakah nama zat cair penghubung yang membawa oksigen dan nutrisi ke seluruh sel tubuh manusia?", "-", "-", "-", "-", "-", "Darah (atau Sel Darah Merah / Hemoglobin)."],
+    ["14", "ES", "Sebutkan 3 komponen utama sistem komputer!", "-", "-", "-", "-", "-", "1. Perangkat Keras (Hardware), 2. Perangkat Lunak (Software), 3. Pengguna (Brainware)."],
+    ["15", "ES", "Berapakah hasil dari operasi akar kubik $\\sqrt[3]{1.000} + 5^2$?", "-", "-", "-", "-", "-", "35 (karena 10 + 25 = 35)."],
+
+    // Model CAD: Soal Cadangan Siaga
+    ["16", "CAD", "SOAL CADANGAN: Siapakah pencipta lagu kebangsaan Indonesia Raya?", "-", "-", "-", "-", "-", "Wage Rudolf Supratman (W.R. Supratman)."],
+    ["17", "CAD", "SOAL CADANGAN: Berapakah hasil dari $25 \\times 4 + 50$?", "-", "-", "-", "-", "-", "150."]
   ];
 
   const bodyRows = sampleData.map(row => new TableRow({
     children: [
       bCell(row[0], 5, AlignmentType.CENTER),
-      bCell(row[1], 12, AlignmentType.CENTER, true),
-      bCell(row[2], 33),
+      bCell(row[1], 11, AlignmentType.CENTER, true),
+      bCell(row[2], 34),
       bCell(row[3], 9),
       bCell(row[4], 9),
       bCell(row[5], 9),
       bCell(row[6], 9),
-      bCell(row[7], 6, AlignmentType.CENTER, true),
-      bCell(row[8], 18)
+      bCell(row[7], 5, AlignmentType.CENTER, true),
+      bCell(row[8], 18, AlignmentType.LEFT, false, true)
     ]
   }));
 
@@ -210,8 +292,9 @@ async function buildSemifinalTemplate() {
       children: [
         ...makeHeaderSection(
           "TEMPLATE BANK SOAL BABAK SEMIFINAL",
-          "Kompetisi Pemilihan Kotak & Perebutan Skor Multiround IFP",
-          notes
+          "Kompetisi Papan Kotak Skor Multiround & Perebutan Nilai IFP",
+          notes,
+          models
         ),
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
@@ -227,46 +310,62 @@ async function buildSemifinalTemplate() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// 3. TEMPLATE BABAK GRAND FINAL
+// 3. TEMPLATE BABAK GRAND FINAL (SEMUA MODEL KOTAK MATRIKS 3x5 + TIE BREAK)
 // ══════════════════════════════════════════════════════════════
 async function buildFinalTemplate() {
   const notes = [
-    "Babak Grand Final memiliki total 15 kotak pertanyaan (matriks 5 kolom × 3 baris) + 1 soal cadangan / tie-breaker.",
-    "Tier 1 (Kotak 1 s.d. 5): Soal berbobot 50 poin (salah -25).",
-    "Tier 2 (Kotak 6 s.d. 10): Soal berbobot 75 poin (salah -35).",
-    "Tier 3 (Kotak 11 s.d. 15): Soal berbobot 100 poin (salah -50).",
-    "Kotak 16 (Soal Tambahan): Digunakan saat terjadi skor imbang (tie-breaker) berbobot 100 poin.",
-    "Kunci jawaban diisi secara padat dan jelas agar juri dapat langsung mengambil keputusan benar/salah secara cepat."
+    "Babak Grand Final menggunakan struktur matriks 15 Kotak (5 kolom x 3 baris) ditambah 1 Kotak Soal Tambahan.",
+    "Format tabel 4 kolom: No, Kategori & Poin Kotak, Pertanyaan Rebutan, dan Kunci Jawaban Dewan Juri.",
+    "Pembagian Kategori Poin Panggung:",
+    "  • Kotak 1 s.d. 5   : Tier 1 (50 Poin | Benar +50 | Salah -25) — Fakta Singkat & Refleks Cepat",
+    "  • Kotak 6 s.d. 10  : Tier 2 (75 Poin | Benar +75 | Salah -35) — Hitungan Logika & Hubungan Menengah",
+    "  • Kotak 11 s.d. 15 : Tier 3 (100 Poin | Benar +100 | Salah -50) — Konseptual & Analisis Tingkat Tinggi",
+    "  • Kotak 16         : Soal Tambahan Tie-Breaker (100 Poin) — Penentu Juara saat skor akhir berimbang",
+    "Kunci Jawaban dituliskan secara ringkas, tegas, dan definitif sehingga Juri dapat langsung memutus Benar/Salah."
+  ];
+
+  const models = [
+    "Model Tier 1 (Kotak 1-5): Pertanyaan Definisi Singkat, Akronim, Identifikasi Langsung (Kecepatan Bel)",
+    "Model Tier 2 (Kotak 6-10): Pertanyaan Numerik, Rumus, Konversi Satuan, Sebab-Akibat Menengah",
+    "Model Tier 3 (Kotak 11-15): Pertanyaan Sintesis, Prinsip Sains, Pemecahan Masalah, Analisis Kritis",
+    "Model Tie-Breaker (Kotak 16): Pertanyaan Penentu Kemenangan Rebutan (Definitif tanpa multitafsir)"
   ];
 
   const headerRows = [
     new TableRow({
       children: [
         hCell("No", 8),
-        hCell("Kategori & Poin", 24),
-        hCell("Teks Pertanyaan Rebutan & Kotak", 44),
-        hCell("Kunci Jawaban Singkat & Jelas", 24)
+        hCell("Kategori & Poin Kotak", 24),
+        hCell("Pertanyaan Rebutan Panggung", 44),
+        hCell("Kunci Jawaban Dewan Juri", 24)
       ]
     })
   ];
 
   const sampleData = [
-    ["1", "Tier 1 (50 Poin)", "Apa kepanjangan dari CPU?", "Central Processing Unit"],
-    ["2", "Tier 1 (50 Poin)", "Mana yang BUKAN perangkat input: keyboard, mouse, atau monitor?", "Monitor"],
-    ["3", "Tier 1 (50 Poin)", "Sistem bilangan yang hanya memakai angka 0 dan 1 disebut?", "Biner"],
-    ["4", "Tier 1 (50 Poin)", "Ekstensi standar file dokumen pengolah kata Microsoft Word adalah?", ".docx"],
-    ["5", "Tier 1 (50 Poin)", "Aplikasi untuk menjelajah halaman situs internet seperti Chrome dan Firefox disebut?", "Browser (Peramban)"],
-    ["6", "Tier 2 (75 Poin)", "Ubah bilangan biner 1010 ke dalam bentuk desimal!", "10"],
-    ["7", "Tier 2 (75 Poin)", "Apa fungsi utama dari sistem firewall pada jaringan komputer?", "Menyaring lalu lintas data & mencegah akses tidak sah"],
-    ["8", "Tier 2 (75 Poin)", "Urutan langkah-langkah logis untuk menyelesaikan suatu masalah secara sistematis disebut?", "Algoritma"],
-    ["9", "Tier 2 (75 Poin)", "Rumus spreadsheet untuk menghitung jumlah total dari sel A1 sampai A5 adalah?", "=SUM(A1:A5)"],
-    ["10", "Tier 2 (75 Poin)", "URL merupakan singkatan dari kepanjangan apa?", "Uniform Resource Locator"],
-    ["11", "Tier 3 (100 Poin)", "Teknik memecah masalah besar dan kompleks menjadi bagian-bagian yang lebih kecil disebut?", "Dekomposisi"],
-    ["12", "Tier 3 (100 Poin)", "Berapakah hasil dari 2 pangkat 8 (jumlah kombinasi 8 bit atau 1 byte)?", "256"],
-    ["13", "Tier 3 (100 Poin)", "Cabang kecerdasan artifisial (AI) yang belajar dari pola data untuk membuat prediksi adalah?", "Machine Learning"],
-    ["14", "Tier 3 (100 Poin)", "Kejahatan siber yang mencoba mencuri data sensitif melalui pesan atau situs palsu disebut?", "Phishing"],
-    ["15", "Tier 3 (100 Poin)", "Konversikan bilangan desimal 13 ke dalam representasi bilangan biner!", "1101"],
-    ["16", "Soal Tambahan (100 Poin)", "SOAL TAMBAHAN: Satu byte terdiri dari berapa bit?", "8 bit"]
+    // Tier 1: Kotak 1 - 5 (50 Poin)
+    ["1", "Tier 1 (50 Poin)", "Apa kepanjangan dari singkatan CPU dalam dunia komputer?", "Central Processing Unit"],
+    ["2", "Tier 1 (50 Poin)", "Manakah yang BUKAN perangkat masukan (input): keyboard, mouse, atau proyektor?", "Proyektor (Perangkat Keluaran / Output)"],
+    ["3", "Tier 1 (50 Poin)", "Sistem bilangan berbasis dua yang hanya menggunakan simbol 0 dan 1 disebut?", "Biner (Binary)"],
+    ["4", "Tier 1 (50 Poin)", "Apakah ekstensi file standar dokumen dokumen pengolah kata modern Microsoft Word?", ".docx"],
+    ["5", "Tier 1 (50 Poin)", "Perangkat lunak untuk menjelajah halaman internet seperti Google Chrome atau Edge disebut?", "Browser / Web Browser (Peramban Web)"],
+
+    // Tier 2: Kotak 6 - 10 (75 Poin)
+    ["6", "Tier 2 (75 Poin)", "Konversikan bilangan biner 1010 ke dalam bentuk bilangan desimal!", "10 (Sepuluh)"],
+    ["7", "Tier 2 (75 Poin)", "Apakah fungsi utama sistem firewall pada jaringan komputer?", "Menyaring lalu lintas data & mencegah akses tidak sah"],
+    ["8", "Tier 2 (75 Poin)", "Urutan langkah-langkah logis dan terstruktur untuk menyelesaikan suatu masalah disebut?", "Algoritma"],
+    ["9", "Tier 2 (75 Poin)", "Fungsi spreadsheet Microsoft Excel untuk menghitung nilai rata-rata dari rentang sel adalah?", "=AVERAGE(...)"],
+    ["10", "Tier 2 (75 Poin)", "Apakah kepanjangan resmi dari singkatan URL pada alamat website?", "Uniform Resource Locator"],
+
+    // Tier 3: Kotak 11 - 15 (100 Poin)
+    ["11", "Tier 3 (100 Poin)", "Teknik computational thinking dengan memecah masalah kompleks menjadi bagian-bagian lebih kecil disebut?", "Dekomposisi (Decomposition)"],
+    ["12", "Tier 3 (100 Poin)", "Berapakah hasil dari $2^8$ (jumlah variasi kombinasi pada satu byte memori)?", "256"],
+    ["13", "Tier 3 (100 Poin)", "Cabang ilmu kecerdasan buatan (AI) yang mempelajari algoritma komputer untuk belajar dari data disebut?", "Machine Learning (Pembelajaran Mesin)"],
+    ["14", "Tier 3 (100 Poin)", "Bentuk kejahatan siber yang mencoba mencuri informasi rahasia dengan memalsukan email/situs disebut?", "Phishing"],
+    ["15", "Tier 3 (100 Poin)", "Konversikan bilangan desimal 13 ke dalam representasi biner!", "1101 (Delapan + Empat + Nol + Satu)"],
+
+    // Soal Tambahan: Kotak 16 (100 Poin)
+    ["16", "Soal Tambahan (100 Poin)", "SOAL PENENTUAN JUARA (TIE-BREAKER): Satu byte data terdiri dari berapa bit?", "8 bit"]
   ];
 
   const bodyRows = sampleData.map(row => new TableRow({
@@ -285,7 +384,8 @@ async function buildFinalTemplate() {
         ...makeHeaderSection(
           "TEMPLATE BANK SOAL BABAK GRAND FINAL",
           "Matriks 15 Kotak Rebutan & Tie-Breaker Cerdas Cermat IFP",
-          notes
+          notes,
+          models
         ),
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
@@ -304,7 +404,7 @@ async function main() {
   await buildPenyisihanTemplate();
   await buildSemifinalTemplate();
   await buildFinalTemplate();
-  console.log("🎉 SEMUA TEMPLATE WORD BERHASIL DIBUAT DENGAN LENGKAP!");
+  console.log("🎉 SEMUA TEMPLATE WORD DENGAN SELURUH MODEL SOAL BERHASIL DI-GENERATE LENGKAP!");
 }
 
 main().catch(err => {
