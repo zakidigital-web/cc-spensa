@@ -449,7 +449,7 @@ function csvTemplate(){
   download('template-soal.csv',t,'text/csv')}
 /* ===== EVENTS ===== */
 const acts={
-  fs(){try{const d=(window.top!==window.self&&window.top.document)?window.top.document:document;if(d.fullscreenElement)d.exitFullscreen().catch(()=>{});else d.documentElement.requestFullscreen().catch(()=>{})}catch(x){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen();}catch(y){}}},
+  fs(){try{if(window.top!==window.self){window.top.postMessage({type:'TOGGLE_FULLSCREEN'},'*')}const d=(window.top!==window.self&&window.top.document)?window.top.document:document;if(d.fullscreenElement)d.exitFullscreen().catch(()=>{});else d.documentElement.requestFullscreen().catch(()=>{})}catch(x){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen();}catch(y){}}},
   jen(d){readSetup();cfg.jenjang=+d.j;cfg.gel=0;saveCfg();render()},
   gel(d){readSetup();cfg.gel=+d.gi;saveCfg();render()},
   start(){startGame()},

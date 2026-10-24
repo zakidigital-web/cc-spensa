@@ -536,7 +536,7 @@ function csvTemplate(){
 /* ===== EVENTS ===== */
 const acts={
   start(){startNew()},
-  fs(){try{const d=(window.top!==window.self&&window.top.document)?window.top.document:document;if(d.fullscreenElement)d.exitFullscreen().catch(()=>{});else d.documentElement.requestFullscreen().catch(()=>{})}catch(x){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen();}catch(y){}}},
+  fs(){try{if(window.top!==window.self){window.top.postMessage({type:'TOGGLE_FULLSCREEN'},'*')}const d=(window.top!==window.self&&window.top.document)?window.top.document:document;if(d.fullscreenElement)d.exitFullscreen().catch(()=>{});else d.documentElement.requestFullscreen().catch(()=>{})}catch(x){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen();}catch(y){}}},
   nminus(){readSetup();cfg.nTim=Math.max(2,cfg.nTim-1);ensureTim();saveCfg();render()},
   nplus(){readSetup();cfg.nTim=Math.min(12,cfg.nTim+1);ensureTim();saveCfg();render()},
   tobank(){readSetup();go('bank')},tosetup(){go('setup')},

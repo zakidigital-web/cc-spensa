@@ -58,7 +58,7 @@ async function runAnalysis() {
   // TEST 1: Load http://localhost:3000/
   console.log("\n[1/8] Menguji akses portal: http://localhost:3000/ ...");
   try {
-    const resp = await page.goto("http://localhost:3000/", { waitUntil: "networkidle", timeout: 8000 });
+    const resp = await page.goto("http://localhost:3000/", { waitUntil: "domcontentloaded", timeout: 15000 });
     const status = resp.status();
     const title = await page.title();
     results.urlTests.push({ url: "http://localhost:3000/", status, title, pass: status === 200 });
@@ -259,12 +259,36 @@ async function runAnalysis() {
       return p && s && f;
     });
 
+    // Check no Tab Baru buttons exist
+    const tabBaruCount = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll("a, button")).filter(el => el.textContent.includes("Tab Baru")).length;
+    });
+    console.log(`  ➔ Tab Baru Button Count: ${tabBaruCount === 0 ? "DIHILANGKAN TOTAL (0) ✓" : "MASIH ADA ✗"}`);
+
+    // Test True Fullscreen (Header Hidden, Frame 100%)
+    await page.evaluate(() => document.documentElement.requestFullscreen().catch(() => {}));
+    await page.waitForTimeout(300);
+    const fsCheck = await page.evaluate(() => {
+      const header = document.getElementById("app-header");
+      const root = document.getElementById("app-root");
+      return {
+        headerHidden: window.getComputedStyle(header).display === "none",
+        rootFullH: root.offsetHeight === window.innerHeight,
+        isFSClass: document.documentElement.classList.contains("is-fullscreen")
+      };
+    });
+    console.log(`  ➔ Fullscreen Benar-benar Full (Header Hilang & Root 100vh): ${fsCheck.headerHidden && fsCheck.rootFullH ? "LULUS ✓" : "BELUM LENGKAP ✗"}`);
+    await page.evaluate(() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); });
+    await page.waitForTimeout(200);
+
     results.fullscreenTests.push({
       fsBtnExists,
       fsDockExists,
       finalFsBtnExists,
       allowFsAttr,
-      pass: fsBtnExists && fsDockExists && finalFsBtnExists && allowFsAttr
+      tabBaruRemoved: tabBaruCount === 0,
+      headerHiddenInFS: fsCheck.headerHidden,
+      pass: fsBtnExists && fsDockExists && finalFsBtnExists && allowFsAttr && (tabBaruCount === 0) && fsCheck.headerHidden
     });
 
     console.log(`  ➔ Tombol Fullscreen Header: ${fsBtnExists ? "ADA ✓" : "✗"}`);

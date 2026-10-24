@@ -294,7 +294,7 @@ document.addEventListener('click',e=>{
   else if(b.id==='bAns'){cur.ans=!cur.ans;upd()}
   else if(b.id==='bCancel')undo();
   else if(b.id==='bTie')open(15,true);
-  else if(b.id==='bFs'){try{const doc=(window.top!==window.self&&window.top.document)?window.top.document:document;if(!doc.fullscreenElement)doc.documentElement.requestFullscreen().catch(()=>{});else doc.exitFullscreen().catch(()=>{})}catch(x){if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen().catch(()=>{})}}
+  else if(b.id==='bFs'){try{if(window.top!==window.self){window.top.postMessage({type:'TOGGLE_FULLSCREEN'},'*')}const doc=(window.top!==window.self&&window.top.document)?window.top.document:document;if(!doc.fullscreenElement)doc.documentElement.requestFullscreen().catch(()=>{});else doc.exitFullscreen().catch(()=>{})}catch(x){if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else doc.exitFullscreen().catch(()=>{})}}
   else if(b.id==='bUndo')undo();
   else if(b.id==='bSet')showSetup();
   else if(b.id==='bSample')$('#sQ').value=SAMPLE;

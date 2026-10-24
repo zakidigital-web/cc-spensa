@@ -168,6 +168,23 @@
       }
     },
 
+    toggleFullscreen() {
+      const doc = document;
+      if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
+        if (doc.documentElement.requestFullscreen) {
+          doc.documentElement.requestFullscreen().catch(() => {});
+        } else if (doc.documentElement.webkitRequestFullscreen) {
+          doc.documentElement.webkitRequestFullscreen();
+        }
+      } else {
+        if (doc.exitFullscreen) {
+          doc.exitFullscreen().catch(() => {});
+        } else if (doc.webkitExitFullscreen) {
+          doc.webkitExitFullscreen();
+        }
+      }
+    },
+
     bindNavigation() {
       document.querySelectorAll('[data-view]').forEach(el => {
         el.addEventListener('click', () => {
@@ -182,19 +199,13 @@
 
       const fsBtn = document.getElementById('btn-toggle-fullscreen');
       if (fsBtn) {
-        fsBtn.addEventListener('click', () => {
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(() => {});
-          } else {
-            document.exitFullscreen().catch(() => {});
-          }
-        });
+        fsBtn.addEventListener('click', () => this.toggleFullscreen());
       }
 
       const fsExitDock = document.getElementById('btn-fs-exit-dock');
       if (fsExitDock) {
         fsExitDock.addEventListener('click', () => {
-          if (document.fullscreenElement) {
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
             document.exitFullscreen().catch(() => {});
           }
         });
@@ -206,6 +217,39 @@
           this.switchView('hub');
         });
       }
+
+      // Universal Fullscreen Event Handlers
+      const updateFullscreenClasses = () => {
+        const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        document.documentElement.classList.toggle('is-fullscreen', isFS);
+        document.body.classList.toggle('is-fullscreen', isFS);
+
+        ['frame-penyisihan', 'frame-semifinal', 'frame-final'].forEach(id => {
+          const frame = document.getElementById(id);
+          if (frame && frame.contentWindow) {
+            try {
+              frame.contentWindow.postMessage({ type: 'FULLSCREEN_CHANGE', isFullscreen: isFS }, '*');
+            } catch (e) {}
+          }
+        });
+      };
+
+      document.addEventListener('fullscreenchange', updateFullscreenClasses);
+      document.addEventListener('webkitfullscreenchange', updateFullscreenClasses);
+
+      // Listen to postMessage from stage iframes (e.g. Layar Penuh button inside iframe)
+      window.addEventListener('message', e => {
+        if (!e.data) return;
+        if (e.data.type === 'TOGGLE_FULLSCREEN') {
+          this.toggleFullscreen();
+        } else if (e.data.type === 'EXIT_FULLSCREEN') {
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          }
+        } else if (e.data.type === 'SWITCH_VIEW' && e.data.view) {
+          this.switchView(e.data.view);
+        }
+      });
     },
 
     // ─── KEYBOARD SHORTCUTS MODAL ─────────────────────────
@@ -232,6 +276,9 @@
           closeModal();
           const setModal = document.getElementById('settings-modal');
           if (setModal) setModal.classList.remove('active');
+        } else if (e.key === 'F11' || ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) {
+          e.preventDefault();
+          this.toggleFullscreen();
         }
       });
     },

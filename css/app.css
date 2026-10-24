@@ -1107,39 +1107,76 @@ kbd {
 }
 
 /* ════════════ FULLSCREEN IFP ARENA OPTIMIZATION ════════════ */
-:fullscreen body, :-webkit-full-screen body, :-moz-full-screen body {
+:fullscreen body {
   background-attachment: scroll;
 }
-:fullscreen html.stage-active,
-:-webkit-full-screen html.stage-active,
-:-moz-full-screen html.stage-active,
-:fullscreen body.stage-active,
-:-webkit-full-screen body.stage-active,
-:-moz-full-screen body.stage-active {
+:-webkit-full-screen body {
+  background-attachment: scroll;
+}
+html.is-fullscreen body {
+  background-attachment: scroll;
+}
+
+:fullscreen html,
+:-webkit-full-screen html,
+html.is-fullscreen,
+:fullscreen body,
+:-webkit-full-screen body,
+html.is-fullscreen body {
   height: 100vh !important;
   max-height: 100vh !important;
   width: 100vw !important;
+  max-width: 100vw !important;
   overflow: hidden !important;
   position: fixed !important;
   inset: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
-:fullscreen body.stage-active main#app-root,
-:-webkit-full-screen body.stage-active main#app-root,
-:-moz-full-screen body.stage-active main#app-root {
+
+:fullscreen header#app-header,
+:-webkit-full-screen header#app-header,
+html.is-fullscreen header#app-header {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+:fullscreen main#app-root,
+:-webkit-full-screen main#app-root,
+html.is-fullscreen main#app-root {
   height: 100vh !important;
   max-height: 100vh !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
   flex: 1 1 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
-:fullscreen body.stage-active header#app-header,
-:-webkit-full-screen body.stage-active header#app-header,
-:-moz-full-screen body.stage-active header#app-header {
-  display: none !important;
-}
+
+:fullscreen .view-section.active,
+:-webkit-full-screen .view-section.active,
+html.is-fullscreen .view-section.active,
 :fullscreen .frame-wrapper,
 :-webkit-full-screen .frame-wrapper,
-:-moz-full-screen .frame-wrapper {
+html.is-fullscreen .frame-wrapper,
+:fullscreen .stage-frame,
+:-webkit-full-screen .stage-frame,
+html.is-fullscreen .stage-frame {
   height: 100vh !important;
   max-height: 100vh !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
 }
 
 /* ════════════ FLOATING IFP QUICK DOCK ════════════ */
@@ -1148,16 +1185,29 @@ kbd {
 }
 :fullscreen .ifp-fullscreen-controls,
 :-webkit-full-screen .ifp-fullscreen-controls,
-:-moz-full-screen .ifp-fullscreen-controls {
+html.is-fullscreen .ifp-fullscreen-controls {
   position: fixed;
   top: 10px;
   right: 14px;
   z-index: 9999999;
   display: flex;
   gap: 8px;
-  background: rgba(10, 16, 44, 0.82);
+  background: rgba(10, 16, 44, 0.85);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  padding: 6px 12px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  opacity: 0.28;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+:fullscreen .ifp-fullscreen-controls:hover,
+:-webkit-full-screen .ifp-fullscreen-controls:hover,
+html.is-fullscreen .ifp-fullscreen-controls:hover {
+  opacity: 1;
+  transform: translateY(2px);
+}
   padding: 5px 10px;
   border-radius: 30px;
   border: 1px solid rgba(255, 255, 255, 0.18);
