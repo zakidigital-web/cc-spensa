@@ -17,7 +17,7 @@
   --dark:#241040;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;font-family:'Fredoka','Trebuchet MS','Segoe UI',Arial,sans-serif;color:var(--ink);overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none;
+html,body{margin:0;height:100%;font-family:'Plus Jakarta Sans',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none;
   background:radial-gradient(120% 80% at 50% -15%,#4a2d93 0%,var(--stage) 55%,#120a26 100%) fixed}
 #app{height:100%}
 button{font:inherit;font-weight:600;cursor:pointer;border:0;border-radius:14px;padding:10px 20px;background:var(--stage3);color:var(--ink);box-shadow:0 4px 0 #1a0f38;transition:transform .08s,box-shadow .08s}
@@ -304,10 +304,13 @@ function startNew(){
 function runDraw(){clearInterval(drawIv);drawIv=setInterval(()=>{if(!G||G.drawN>=G.teams.length){clearInterval(drawIv);return}G.drawN++;beep(380+G.drawN*70,.14);if(view==='draw')render();saveG()},800)}
 function vDraw(){
   const n=G.teams.length,done=G.drawN>=n,undi=G.c.awal==='undi';
-  return `<div class="scroll center"><h1>${undi?'Undian urutan giliran':'Urutan giliran'}</h1><p class="sub">${undi?'Urutan untuk ronde pertama':'Sesuai nomor tim'}${G.c.ronde==='geser'?'. Tiap ronde urutan bergeser satu posisi.':'. Urutan sama di setiap ronde.'}</p>
+  return `<div class="scroll center draw-wrap">
+  <span class="stage-tag" style="margin-bottom:8px">BABAK SEMIFINAL</span>
+  <h1>${undi?'Undian Urutan Giliran':'Urutan Giliran'}</h1>
+  <p class="sub">${undi?'Urutan tim untuk ronde pertama ditentukan secara acak.':'Urutan tim disesuaikan nomor urut.'}${G.c.ronde==='geser'?' Tiap ronde bergeser 1 posisi agar adil.':''}</p>
   <div class="drawgrid">${G.base.map((ti,i)=>{const s=i<G.drawN;return `<div class="dt ${s?'show':''}" style="--c:${TC[ti%12]}"><span class="dn">${s?i+1:'?'}</span><span class="dnm">${s?esc(G.teams[ti].n):'…'}</span></div>`}).join('')}</div>
-  <div class="row" style="justify-content:center">${done?`<button class="pri" style="font-size:26px;padding:16px 44px" data-act="begin">Mulai permainan</button>${undi?'<button class="ghost" style="font-size:20px" data-act="redraw">Undi ulang</button>':''}`:`<button class="ghost" style="font-size:20px" data-act="skipdraw">Lewati animasi</button>`}
-   <button class="ghost" style="font-size:20px" data-act="abort">Batal</button></div></div>`}
+  <div class="row" style="justify-content:center;gap:14px;margin-top:12px">${done?`<button class="pri" style="font-size:22px;padding:14px 40px" data-act="begin">Mulai Permainan</button>${undi?'<button class="ghost" style="font-size:18px" data-act="redraw">Undi Ulang</button>':''}`:`<button class="ghost" style="font-size:18px" data-act="skipdraw">Lewati Animasi</button>`}
+   <button class="ghost" style="font-size:18px" data-act="abort">Batal</button></div></div>`}
 function mkSeq(n,total,base,mode){const seq=[];let r=0;
   while(seq.length<total){const ord=mode==='tetap'?base.slice():base.map((_,i)=>base[(i+r)%n]);
     for(const t of ord){if(seq.length<total)seq.push(t)}r++}
@@ -323,15 +326,18 @@ function vGame(){
   const n=G.teams.length,ti=curTeam(),T=G.teams[ti],R=ranks();
   const left=G.boxes.filter(b=>b.res==null).length,rds=Math.ceil(G.boxes.length/n),rd=Math.min(Math.floor(G.turn/n)+1,rds);
   const bx=i=>{const b=G.boxes[i],c=TY[b.k],d=TYD[b.k];
-    if(b.res!=null)return `<div class="bx done"><span class="no">${b.no}</span><span class="tg" style="background:${TC[b.by%12]}">${esc(G.teams[b.by].n)}</span><span class="rs ${b.res==='ok'?'ok':b.res==='half'?'half':'no2'}">${b.res==='ok'?'+'+b.gain:b.res==='half'?'½ +'+b.gain:'0'}</span></div>`;
+    if(b.res!=null)return `<div class="bx done" style="--c:${TC[b.by%12]}"><span class="no">${b.no}</span><span class="tg" style="background:${TC[b.by%12]}">${esc(G.teams[b.by].n)}</span><span class="rs ${b.res==='ok'?'ok':b.res==='half'?'half':'no2'}">${b.res==='ok'?'+'+b.gain:b.res==='half'?'½ +'+b.gain:'0'}</span></div>`;
     return `<button class="bx" data-act="box" data-i="${i}" style="--c:${c};--cd:${d}" aria-label="Kotak ${b.no}, ${b.val} poin"><span class="no">${b.no}</span><span class="vl">${b.val}</span></button>`};
-  return `<div id="game"><div id="top2"><div class="brand">Semifinal<b>Cerdas Cermat</b></div>
-   <div class="plate" style="--c:${TC[ti%12]}"><small>Giliran, pilih sebuah kotak</small><span>${esc(T.n)}</span></div>
-   <div class="info"><div>Ronde <b>${rd}</b> dari ${rds}<br>Sisa kotak <b>${left}</b></div><button class="ghost" data-act="panel" aria-label="Panel juri">Juri</button></div></div>
-   <div class="legend">${G.c.jenis.map(j=>`<span><i style="background:${TY[j.k]}"></i>${esc(j.n)} · ${j.val}</span>`).join('')}</div>
-   <div class="board" style="grid-template-columns:repeat(${n},1fr);grid-template-rows:repeat(${G.rows.length},1fr)">${G.rows.map(r=>r.map(i=>i<0?'<div></div>':bx(i)).join('')).join('')}</div>
-   <div class="tiles" style="grid-template-columns:repeat(${n},1fr)">${G.teams.map((t,i)=>{const fl=G.flash&&G.flash.ti===i&&G.flash.g>0&&Date.now()-G.flash.t<2400;
-     return `<div class="tile ${i===ti?'cur':''}" style="--c:${TC[i%12]}"><span class="rk">${R[i]===1?'★ ':''}${R[i]}</span><div class="tn2">${esc(t.n)}</div><div class="ts">${t.sk}</div>${fl?`<span class="gain">+${G.flash.g}</span>`:''}</div>`}).join('')}</div></div>`}
+  return `<div id="game"><div id="top2">
+    <div class="brand"><span class="stage-tag">BABAK SEMIFINAL</span><b>Cerdas Cermat</b></div>
+    <div class="plate" style="--c:${TC[ti%12]}"><span class="plate-badge">GILIRAN</span><span class="plate-name">${esc(T.n)}</span></div>
+    <div class="info"><div class="meta-pills"><span class="meta-pill">Ronde <b>${rd}</b>/${rds}</span><span class="meta-pill">Sisa <b>${left}</b> Kotak</span></div><button class="ghost jury-btn" data-act="panel" aria-label="Panel juri">⚖️ Juri</button></div>
+  </div>
+  <div class="legend">${G.c.jenis.map(j=>`<span class="legend-chip"><i style="background:${TY[j.k]}"></i><b>${esc(j.n)}</b> <span class="legend-val">${j.val} pt</span></span>`).join('')}</div>
+  <div class="board" style="grid-template-columns:repeat(${n},1fr);grid-template-rows:repeat(${G.rows.length},1fr)">${G.rows.map(r=>r.map(i=>i<0?'<div></div>':bx(i)).join('')).join('')}</div>
+  <div class="tiles" style="grid-template-columns:repeat(${n},1fr)">${G.teams.map((t,i)=>{const fl=G.flash&&G.flash.ti===i&&G.flash.g>0&&Date.now()-G.flash.t<2400;
+    const isLead=R[i]===1;
+    return `<div class="tile ${i===ti?'cur':''} ${isLead?'leader':''}" style="--c:${TC[i%12]}"><span class="rk ${isLead?'gold-rk':''}">${isLead?'👑 #1':'#'+R[i]}</span><div class="tn2">${esc(t.n)}</div><div class="ts">${t.sk}</div>${fl?`<span class="gain">+${G.flash.g}</span>`:''}</div>`}).join('')}</div></div>`}
 /* timer */
 function runTick(){clearInterval(tick);lastT=Date.now();tick=setInterval(onTick,200)}
 function onTick(){
@@ -385,9 +391,9 @@ function renderQ(){
     if(b.k==='ES')jb+=`<button class="half" data-act="qhalf">Setengah</button>`;
     jb+=`<button class="dng" data-act="qno">Salah</button><button class="ghost" data-act="qcancel">Batalkan soal</button>`}
   el.style.setProperty('--c',TY[b.k]);el.style.setProperty('--t',TC[ti%12]);
-  el.innerHTML=`<div class="qh"><div class="qteam">${esc(T.n)}</div><div class="qmeta"><span class="cpill">${TYN[b.k]}</span><span>Kotak ${b.no}</span><span class="pts">${b.val} poin</span></div></div>
+  el.innerHTML=`<div class="qh"><div class="qteam">${esc(T.n)}</div><div class="qmeta"><span class="cpill">${TYN[b.k]}</span><span class="qmeta-item">Kotak <b>${b.no}</b></span><span class="pts">★ ${b.val} POIN</span></div></div>
    <div class="qmain"><div class="qside">${side}</div>
-   <div class="qcontent"><div class="qcard">${b.k==='BS'?'<div class="qhint">Benar atau salah?</div>':''}${b.img?`<img class="qimg" src="${b.img}">`:''}<div class="qtext">${fmt(b.q)}</div></div>${opts}${key}</div></div>
+   <div class="qcontent"><div class="qcard">${b.k==='BS'?'<div class="qhint">PERNYATAAN BENAR ATAU SALAH</div>':''}${b.img?`<img class="qimg" src="${b.img}">`:''}<div class="qtext">${fmt(b.q)}</div></div>${opts}${key}</div></div>
    <div class="qj">${jb}</div>`;
   if(!j)updT()}
 /* penilaian */
@@ -413,16 +419,16 @@ function skipTurn(){const ti=G.seq[G.turn];G.seq.splice(G.turn,1);G.seq.push(ti)
 function hidePanel(){const m=$('#pm');if(m)m.remove()}
 function openPanel(){
   const d=document.createElement('div');d.className='modal';d.id='pm';
-  d.innerHTML=`<div class="mbox" style="max-width:560px"><h2>Panel juri</h2>
-  <div class="row" style="flex-direction:column;align-items:stretch;gap:12px">
-   <button data-act="undo">Batalkan penilaian terakhir</button>
-   <button data-act="skipturn">Lewati giliran tim ini (diundur ke akhir)</button>
-   <div style="background:#150b2c;border-radius:16px;padding:14px"><label>Koreksi skor manual</label><div class="row" style="flex-wrap:nowrap"><select id="ks_t">${G.teams.map((t,i)=>`<option value="${i}">${esc(t.n)}</option>`).join('')}</select><input id="ks_v" type="number" placeholder="± poin" style="width:140px"><button data-act="ksapply">Terapkan</button></div></div>
-   <button data-act="togsuara">Efek suara: ${cfg.suara?'hidup':'mati'}</button>
-   <button data-act="fs">Layar penuh</button>
-   <button class="dng" data-act="endnow">Akhiri sekarang dan tampilkan hasil</button>
-   <button class="ghost" data-act="abort">Batalkan permainan dan kembali ke setup</button>
-   <button class="pri" data-act="pclose">Tutup</button></div></div>`;
+  d.innerHTML=`<div class="mbox" style="max-width:580px"><h2>⚖️ Panel Juri &amp; Kontrol Babak</h2>
+  <div class="row" style="flex-direction:column;align-items:stretch;gap:12px;margin-top:16px">
+   <button class="ghost" data-act="undo">↩ Batalkan Penilaian Terakhir</button>
+   <button class="ghost" data-act="skipturn">⏩ Lewati Giliran Tim Ini (Diundur)</button>
+   <div class="jury-score-box"><label>Koreksi Skor Manual</label><div class="row" style="flex-wrap:nowrap;gap:8px"><select id="ks_t">${G.teams.map((t,i)=>`<option value="${i}">${esc(t.n)}</option>`).join('')}</select><input id="ks_v" type="number" placeholder="± poin" style="width:130px"><button class="pri" data-act="ksapply">Terapkan</button></div></div>
+   <button class="ghost" data-act="togsuara">Efek Suara: ${cfg.suara?'Hidup 🔊':'Mati 🔇'}</button>
+   <button class="ghost" data-act="fs">Layar Penuh</button>
+   <button class="dng" data-act="endnow">Akhiri Sekarang &amp; Tampilkan Hasil</button>
+   <button class="ghost" data-act="abort">Batalkan Permainan &amp; Kembali ke Setup</button>
+   <button class="pri" data-act="pclose">Tutup Panel</button></div></div>`;
   document.body.appendChild(d)}
 /* ===== HASIL ===== */
 const cmp=(a,b)=>(G.teams[b].sk-G.teams[a].sk)||(G.teams[b].tb-G.teams[a].tb)||(a-b);
@@ -485,8 +491,8 @@ function qForm(s){
   d.innerHTML=`<div class="mbox"><h2>${window._isNew?'Tambah':'Ubah'} soal</h2>
   <label>Jenis soal</label><select id="q_t">${['BS','PG1','PG2','ES','CAD'].map(k=>`<option value="${k}" ${s.tipe===k?'selected':''}>${k} — ${TYN[k]}${k==='PG1'?' (kotak PG pertama)':k==='PG2'?' (kotak PG kedua)':''}</option>`).join('')}</select>
   <label style="margin-top:10px">Teks soal / pernyataan (rumus: $...$)</label><textarea id="q_q" rows="3">${esc(s.q)}</textarea>
-  <div id="sec_bs"><label style="margin-top:10px">Kunci</label><label style="color:#fff"><input type="radio" name="q_bk" value="0" ${s.key===0?'checked':''} style="width:auto"> BENAR</label><label style="color:#fff"><input type="radio" name="q_bk" value="1" ${s.key===1?'checked':''} style="width:auto"> SALAH</label></div>
-  <div id="sec_pg">${[0,1,2,3].map(i=>`<div class="row" style="margin-top:8px;flex-wrap:nowrap"><label style="margin:0;width:100px;color:#fff"><input type="radio" name="q_k" value="${i}" ${s.key===i?'checked':''} style="width:auto"> ${'ABCD'[i]} (benar)</label><input id="q_o${i}" value="${esc(s.o[i])}"></div>`).join('')}</div>
+  <div id="sec_bs"><label style="margin-top:10px">Kunci</label><label class="radio-label"><input type="radio" name="q_bk" value="0" ${s.key===0?'checked':''} style="width:auto"> BENAR</label><label class="radio-label"><input type="radio" name="q_bk" value="1" ${s.key===1?'checked':''} style="width:auto"> SALAH</label></div>
+  <div id="sec_pg">${[0,1,2,3].map(i=>`<div class="row" style="margin-top:8px;flex-wrap:nowrap"><label class="radio-label" style="margin:0;width:100px"><input type="radio" name="q_k" value="${i}" ${s.key===i?'checked':''} style="width:auto"> ${'ABCD'[i]} (benar)</label><input id="q_o${i}" value="${esc(s.o[i])}"></div>`).join('')}</div>
   <div id="sec_es"><label style="margin-top:10px">Kunci jawaban (dilihat juri)</label><textarea id="q_a" rows="2">${esc(s.ans)}</textarea></div>
   <label style="margin-top:10px">Gambar (opsional)</label><div class="row"><input type="file" id="q_f" accept="image/*" style="width:auto"><button class="ghost" data-act="qimgdel">Hapus gambar</button></div>
   <div class="pv" id="q_pv"></div>
