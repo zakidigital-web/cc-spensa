@@ -506,7 +506,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .scroll::-webkit-scrollbar,
 
 /* Math KaTeX fixes */
 .qt .katex-display, .opt .katex-display { margin: 0.25em 0 !important; overflow-x: auto !important; overflow-y: hidden !important; max-width: 100% !important; }
-.qt .katex, .opt .katex { max-width: 100% !important; font-size: 1.02em !important; }
+.qt .katex, .opt .katex { max-width: 100% !important; font-size: 1.02em !important; white-space: nowrap !important; }
+.katex .msupsub { text-align: left !important; }
 [data-theme="light"] .opt {
   background: #ffffff !important;
   border: 2px solid #cbd5e1 !important;

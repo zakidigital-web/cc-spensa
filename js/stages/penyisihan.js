@@ -10,9 +10,55 @@
   let activeTab = 'arena'; // 'arena' | 'setup' | 'board'
   const MAPEL_LIST = ['Pendidikan Agama', 'PPKn', 'Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'PJOK', 'Informatika', 'Seni Budaya', 'Prakarya / B. Daerah'];
 
+  function normalizeMath(text) {
+    if (!text) return '';
+    if (typeof window !== 'undefined' && typeof window.normalizeMath === 'function') {
+      return window.normalizeMath(text);
+    }
+    let str = String(text);
+    str = str.replace(/<sup[^>]*>([\s\S]*?)<\/sup>/gi, '^{$1}').replace(/<sub[^>]*>([\s\S]*?)<\/sub>/gi, '_{$1}');
+    const supMap = { '²': '^2', '³': '^3', '¹': '^1', '⁰': '^0', '⁴': '^4', '⁵': '^5', '⁶': '^6', '⁷': '^7', '⁸': '^8', '⁹': '^9' };
+    str = str.replace(/[²³¹⁰⁴⁵⁶⁷⁸⁹]/g, m => supMap[m] || m).replace(/π/g, '\\pi ');
+    str = str.replace(/(\b\d+(?:[.,]\d+)?)\s*([a-zA-Z]+)\s*\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g, (m, n, b, p) => `$${n}\\text{ ${b}}^{${p}}$`);
+    str = str.replace(/([a-zA-Z]+)\s*\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g, (m, b, p) => /^(cm|m|km|mm|dm|kg|g|s)$/i.test(b) ? `$\\text{${b}}^{${p}}$` : `$${b}^{${p}}$`);
+    str = str.replace(/\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g, '^{$1}');
+    const blocks = [];
+    const addMath = (eq, disp) => {
+      eq = eq.trim().replace(/(^|[^\\])%/g, '$1\\%');
+      eq = eq.replace(/\b(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi, '\\text{$1}^{$2}');
+      if (/^\^[0-9a-zA-Z]/.test(eq)) eq = '{}' + eq;
+      const ph = `___MATH_${blocks.length}___`;
+      blocks.push(disp ? `$$${eq}$$` : `$${eq}$`);
+      return ph;
+    };
+    str = str.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (m, d, i) => addMath(d || i, !!d));
+    str = str.replace(/(\b\d+(?:[.,]\d+)?)\s*(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi, (m, n, u, p) => addMath(`${n}\\text{ ${u}}^{${p}}`));
+    str = str.replace(/\b(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi, (m, u, p) => addMath(`\\text{${u}}^{${p}}`));
+    str = str.replace(/\(([a-zA-Z0-9\s+\-*/]+)\)\^\{?([0-9a-zA-Z+-]+)\}?/g, (m, i, p) => addMath(`(${i})^{${p}}`));
+    const term = "(?:\\d*[a-zA-Z]+(?:\\^[0-9]+)?|\\d+|[a-zA-Z]\\([a-zA-Z]\\)|\\\\pi(?:\\s*r(?:\\^[0-9]+)?)?)";
+    const poly = "(?:[-+]?\\s*" + term + "(?:\\s*[+\\-*/]\\s*" + term + ")*)";
+    const reEq = new RegExp("(?:(?<=\\s|^|[([\"']))(" + poly + "\\s*=\\s*" + poly + ")(?=\\s|$|[,;:?!.)\\]\"'])", "g");
+    str = str.replace(reEq, m => {
+      if (m.includes('___MATH_')) return m;
+      const tr = m.trim();
+      return (tr.includes('^') || /^[a-zA-Z]\([a-zA-Z]\)/.test(tr)) ? addMath(tr) : m;
+    });
+    const rePolyOnly = new RegExp("(?:(?<=\\s|^|[([\"']))((?:[-+]?\\s*" + term + "(?:\\s*[+\\-*/]\\s*" + term + ")+))(?=\\s|$|[,;:?!.)\\]\"'])", "g");
+    str = str.replace(rePolyOnly, m => {
+      if (m.includes('___MATH_')) return m;
+      const tr = m.trim();
+      return tr.includes('^') ? addMath(tr) : m;
+    });
+    str = str.replace(/(?:\\pi\s*r\^\{?[0-9]+\}?|\\pi\s*r\^2|\\frac\{[^}]+\}\{[^}]+\}|\\sqrt\{[^}]+\})/g, m => addMath(m));
+    str = str.replace(/\b([a-zA-Z](?:_[0-9]+|[0-9]+)?\s*=\s*[-+]?\d+(?:[.,]\d+)?)\b/g, m => addMath(m));
+    str = str.replace(/\b([a-zA-Z0-9]+)\^\{?([0-9a-zA-Z+-]+)\}?\b/g, (m, b, p) => b.includes('___MATH_') ? m : addMath(`${b}^{${p}}`));
+    return str.replace(/___MATH_(\d+)___/g, (_, idx) => blocks[+idx]);
+  }
+  if (typeof window !== 'undefined') window.normalizeMath = normalizeMath;
+
   function fmtMath(text) {
     if (!text) return '';
-    text = String(text);
+    text = normalizeMath(String(text));
     if (!window.katex) return text;
     return text.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (m, d, i) => {
       try {

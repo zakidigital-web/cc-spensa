@@ -11,6 +11,9 @@
 
   function fmtMath(text) {
     if (!text) return '';
+    if (typeof window !== 'undefined' && typeof window.normalizeMath === 'function') {
+      text = window.normalizeMath(text);
+    }
     text = String(text);
     if (!window.katex) return text;
     return text.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (m, d, i) => {

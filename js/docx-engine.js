@@ -110,9 +110,52 @@
     return mathMap;
   }
 
+  function normalizeMath(text) {
+    if (!text) return '';
+    let str = String(text);
+    str = str.replace(/<sup[^>]*>([\s\S]*?)<\/sup>/gi, '^{$1}').replace(/<sub[^>]*>([\s\S]*?)<\/sub>/gi, '_{$1}');
+    const supMap = { '²': '^2', '³': '^3', '¹': '^1', '⁰': '^0', '⁴': '^4', '⁵': '^5', '⁶': '^6', '⁷': '^7', '⁸': '^8', '⁹': '^9' };
+    str = str.replace(/[²³¹⁰⁴⁵⁶⁷⁸⁹]/g, m => supMap[m] || m).replace(/π/g, '\\pi ');
+    str = str.replace(/(\b\d+(?:[.,]\d+)?)\s*([a-zA-Z]+)\s*\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g, (m, n, b, p) => `$${n}\\text{ ${b}}^{${p}}$`);
+    str = str.replace(/([a-zA-Z]+)\s*\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g, (m, b, p) => /^(cm|m|km|mm|dm|kg|g|s)$/i.test(b) ? `$\\text{${b}}^{${p}}$` : `$${b}^{${p}}$`);
+    str = str.replace(/\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g, '^{$1}');
+    const blocks = [];
+    const addMath = (eq, disp) => {
+      eq = eq.trim().replace(/(^|[^\\])%/g, '$1\\%');
+      eq = eq.replace(/\b(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi, '\\text{$1}^{$2}');
+      if (/^\^[0-9a-zA-Z]/.test(eq)) eq = '{}' + eq;
+      const ph = `___MATH_${blocks.length}___`;
+      blocks.push(disp ? `$$${eq}$$` : `$${eq}$`);
+      return ph;
+    };
+    str = str.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (m, d, i) => addMath(d || i, !!d));
+    str = str.replace(/(\b\d+(?:[.,]\d+)?)\s*(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi, (m, n, u, p) => addMath(`${n}\\text{ ${u}}^{${p}}`));
+    str = str.replace(/\b(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi, (m, u, p) => addMath(`\\text{${u}}^{${p}}`));
+    str = str.replace(/\(([a-zA-Z0-9\s+\-*/]+)\)\^\{?([0-9a-zA-Z+-]+)\}?/g, (m, i, p) => addMath(`(${i})^{${p}}`));
+    const term = "(?:\\d*[a-zA-Z]+(?:\\^[0-9]+)?|\\d+|[a-zA-Z]\\([a-zA-Z]\\)|\\\\pi(?:\\s*r(?:\\^[0-9]+)?)?)";
+    const poly = "(?:[-+]?\\s*" + term + "(?:\\s*[+\\-*/]\\s*" + term + ")*)";
+    const reEq = new RegExp("(?:(?<=\\s|^|[([\"']))(" + poly + "\\s*=\\s*" + poly + ")(?=\\s|$|[,;:?!.)\\]\"'])", "g");
+    str = str.replace(reEq, m => {
+      if (m.includes('___MATH_')) return m;
+      const tr = m.trim();
+      return (tr.includes('^') || /^[a-zA-Z]\([a-zA-Z]\)/.test(tr)) ? addMath(tr) : m;
+    });
+    const rePolyOnly = new RegExp("(?:(?<=\\s|^|[([\"']))((?:[-+]?\\s*" + term + "(?:\\s*[+\\-*/]\\s*" + term + ")+))(?=\\s|$|[,;:?!.)\\]\"'])", "g");
+    str = str.replace(rePolyOnly, m => {
+      if (m.includes('___MATH_')) return m;
+      const tr = m.trim();
+      return tr.includes('^') ? addMath(tr) : m;
+    });
+    str = str.replace(/(?:\\pi\s*r\^\{?[0-9]+\}?|\\pi\s*r\^2|\\frac\{[^}]+\}\{[^}]+\}|\\sqrt\{[^}]+\})/g, m => addMath(m));
+    str = str.replace(/\b([a-zA-Z](?:_[0-9]+|[0-9]+)?\s*=\s*[-+]?\d+(?:[.,]\d+)?)\b/g, m => addMath(m));
+    str = str.replace(/\b([a-zA-Z0-9]+)\^\{?([0-9a-zA-Z+-]+)\}?\b/g, (m, b, p) => b.includes('___MATH_') ? m : addMath(`${b}^{${p}}`));
+    return str.replace(/___MATH_(\d+)___/g, (_, idx) => blocks[+idx]);
+  }
+  if (typeof window !== 'undefined') window.normalizeMath = normalizeMath;
+
   function formatMathText(t) {
     if (!t) return '';
-    t = String(t);
+    t = normalizeMath(String(t));
     const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     if (!window.katex) return esc(t);
 
@@ -493,6 +536,21 @@
     async importQuestionsFromDocx(file, targetStage = 'penyisihan', targetJenjang = 7) {
       if (!window.mammoth) throw new Error('Library Mammoth.js belum siap!');
 
+      function extractCellText(cell) {
+        if (!cell) return '';
+        const clone = cell.cloneNode(true);
+        clone.querySelectorAll('img').forEach(img => img.remove());
+        clone.querySelectorAll('sup').forEach(el => {
+          const txt = el.textContent.trim();
+          el.textContent = `^{${txt}}`;
+        });
+        clone.querySelectorAll('sub').forEach(el => {
+          const txt = el.textContent.trim();
+          el.textContent = `_{${txt}}`;
+        });
+        return (clone.textContent || '').trim();
+      }
+
       const j = parseInt(targetJenjang, 10) || 7;
       const arrayBuffer = await file.arrayBuffer();
       const mathEquations = await extractEquationsFromDocx(arrayBuffer);
@@ -539,14 +597,14 @@
               const qCell = cells[2];
               const imgEl = qCell ? qCell.querySelector('img') : null;
               const imgSrc = imgEl ? imgEl.src : null;
-              const qText = qCell ? qCell.textContent.trim() : '';
+              const qText = qCell ? extractCellText(qCell) : '';
 
-              const optA = cells[3] ? cells[3].textContent.trim() : '';
-              const optB = cells[4] ? cells[4].textContent.trim() : '';
-              const optC = cells[5] ? cells[5].textContent.trim() : '';
-              const optD = cells[6] ? cells[6].textContent.trim() : '';
+              const optA = cells[3] ? extractCellText(cells[3]) : '';
+              const optB = cells[4] ? extractCellText(cells[4]) : '';
+              const optC = cells[5] ? extractCellText(cells[5]) : '';
+              const optD = cells[6] ? extractCellText(cells[6]) : '';
               const keyRaw = cells[7] ? cells[7].textContent.trim().toUpperCase() : '';
-              const esRaw = cells[8] ? cells[8].textContent.trim() : (cells[7] ? cells[7].textContent.trim() : '');
+              const esRaw = cells[8] ? extractCellText(cells[8]) : (cells[7] ? extractCellText(cells[7]) : '');
 
               if (tipe === 'BS') {
                 const isSalah = /^(S|SALAH|FALSE|1)/i.test(keyRaw || optA);
@@ -597,22 +655,22 @@
               if (cells.length >= 8) {
                 category = cells[1].textContent.trim();
                 qCell = cells[2];
-                optA = cells[3] ? cells[3].textContent.trim() : '';
-                optB = cells[4] ? cells[4].textContent.trim() : '';
-                optC = cells[5] ? cells[5].textContent.trim() : '';
-                optD = cells[6] ? cells[6].textContent.trim() : '';
+                optA = cells[3] ? extractCellText(cells[3]) : '';
+                optB = cells[4] ? extractCellText(cells[4]) : '';
+                optC = cells[5] ? extractCellText(cells[5]) : '';
+                optD = cells[6] ? extractCellText(cells[6]) : '';
                 keyRaw = cells[7] ? cells[7].textContent.trim().toUpperCase() : 'A';
               } else {
                 qCell = cells[1];
-                optA = cells[2] ? cells[2].textContent.trim() : '';
-                optB = cells[3] ? cells[3].textContent.trim() : '';
-                optC = cells[4] ? cells[4].textContent.trim() : '';
-                optD = cells[5] ? cells[5].textContent.trim() : '';
+                optA = cells[2] ? extractCellText(cells[2]) : '';
+                optB = cells[3] ? extractCellText(cells[3]) : '';
+                optC = cells[4] ? extractCellText(cells[4]) : '';
+                optD = cells[5] ? extractCellText(cells[5]) : '';
                 keyRaw = cells[6] ? cells[6].textContent.trim().toUpperCase() : 'A';
               }
               const imgEl = qCell ? qCell.querySelector('img') : null;
               const imgSrc = imgEl ? imgEl.src : null;
-              const qText = qCell ? qCell.textContent.trim() : '';
+              const qText = qCell ? extractCellText(qCell) : '';
               const options = [optA, optB, optC, optD];
               let keyIdx = 0;
               if (keyRaw === 'B' || keyRaw === '1') keyIdx = 1;
@@ -710,7 +768,7 @@
             if (isRowBs && qCell) {
               const imgEl = qCell.querySelector('img');
               const imgSrc = imgEl ? imgEl.src : null;
-              const qText = qCell.textContent.trim();
+              const qText = extractCellText(qCell);
               if (qText) {
                 const isSalah = /^(S|SALAH|F|FALSE|1)/i.test(keyRaw.trim());
                 if (targetStage === 'semifinal' || targetStage === 'benar_salah') {
@@ -745,7 +803,7 @@
             if (qCell) {
               const imgEl = qCell.querySelector('img');
               const imgSrc = imgEl ? imgEl.src : null;
-              const qText = qCell.textContent.trim();
+              const qText = extractCellText(qCell);
               if (!qText) continue;
 
               if (targetStage === 'semifinal') {

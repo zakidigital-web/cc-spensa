@@ -84,7 +84,8 @@ td input{padding:5px 8px}
 .qa.tier-sm .opts{gap:clamp(4px,0.6vh,7px)}
 .qa.tier-sm .qimg{max-height:clamp(65px,11vh,120px)}
 .qt .katex-display,.opt .katex-display{margin:.25em 0;overflow-x:auto;overflow-y:hidden;max-width:100%}
-.qt .katex,.opt .katex{max-width:100%;font-size:1.02em}
+.qt .katex,.opt .katex{max-width:100%;font-size:1.02em;white-space:nowrap}
+.katex .msupsub{text-align:left}
 .kunci{margin-top:clamp(6px,0.8vh,10px);width:100%;font-size:clamp(14px,1.1vw,20px);padding:clamp(8px,1vh,14px);flex-shrink:0}
 .wait{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1vh;padding:2vw}
 .wait .big{font-size:clamp(22px,2.4vw,48px);font-weight:800;color:var(--c)}
@@ -126,11 +127,44 @@ try {
 /* ===== util ===== */
 const $=s=>document.querySelector(s);
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function fmt(t){t=String(t||'');let out='',last=0,m;const re=/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
+function normalizeMath(text){
+  if(!text)return '';let str=String(text);
+  str=str.replace(/<sup[^>]*>([\s\S]*?)<\/sup>/gi,'^{$1}').replace(/<sub[^>]*>([\s\S]*?)<\/sub>/gi,'_{$1}');
+  const supMap={'²':'^2','³':'^3','¹':'^1','⁰':'^0','⁴':'^4','⁵':'^5','⁶':'^6','⁷':'^7','⁸':'^8','⁹':'^9'};
+  str=str.replace(/[²³¹⁰⁴⁵⁶⁷⁸⁹]/g,m=>supMap[m]||m).replace(/π/g,'\\pi ');
+  str=str.replace(/(\b\d+(?:[.,]\d+)?)\s*([a-zA-Z]+)\s*\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g,(m,n,b,p)=>`$${n}\\text{ ${b}}^{${p}}$`);
+  str=str.replace(/([a-zA-Z]+)\s*\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g,(m,b,p)=>/^(cm|m|km|mm|dm|kg|g|s)$/i.test(b)?`$\\text{${b}}^{${p}}$`:`$${b}^{${p}}$`);
+  str=str.replace(/\$\^\{?([0-9a-zA-Z+-]+)\}?\$/g,'^{$1}');
+  const blocks=[];
+  const addMath=(eq,disp)=>{
+    eq=eq.trim().replace(/(^|[^\\])%/g,'$1\\%');
+    eq=eq.replace(/\b(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi,'\\text{$1}^{$2}');
+    if(/^\^[0-9a-zA-Z]/.test(eq))eq='{}'+eq;
+    const ph=`___MATH_${blocks.length}___`;
+    blocks.push(disp?`$$${eq}$$`:`$${eq}$`);
+    return ph;
+  };
+  str=str.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g,(m,d,i)=>addMath(d||i,!!d));
+  str=str.replace(/(\b\d+(?:[.,]\d+)?)\s*(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi,(m,n,u,p)=>addMath(`${n}\\text{ ${u}}^{${p}}`));
+  str=str.replace(/\b(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi,(m,u,p)=>addMath(`\\text{${u}}^{${p}}`));
+  str=str.replace(/\(([a-zA-Z0-9\s+\-*/]+)\)\^\{?([0-9a-zA-Z+-]+)\}?/g,(m,i,p)=>addMath(`(${i})^{${p}}`));
+  const term="(?:\\d*[a-zA-Z]+(?:\\^[0-9]+)?|\\d+|[a-zA-Z]\\([a-zA-Z]\\)|\\\\pi(?:\\s*r(?:\\^[0-9]+)?)?)";
+  const poly="(?:[-+]?\\s*"+term+"(?:\\s*[+\\-*/]\\s*"+term+")*)";
+  const reEq=new RegExp("(?:(?<=\\s|^|[([\"']))("+poly+"\\s*=\\s*"+poly+")(?=\\s|$|[,;:?!.)\\]\"'])","g");
+  str=str.replace(reEq,m=>{if(m.includes('___MATH_'))return m;const tr=m.trim();return(tr.includes('^')||/^[a-zA-Z]\([a-zA-Z]\)/.test(tr))?addMath(tr):m;});
+  const rePolyOnly=new RegExp("(?:(?<=\\s|^|[([\"']))((?:[-+]?\\s*"+term+"(?:\\s*[+\\-*/]\\s*"+term+")+))(?=\\s|$|[,;:?!.)\\]\"'])","g");
+  str=str.replace(rePolyOnly,m=>{if(m.includes('___MATH_'))return m;const tr=m.trim();return tr.includes('^')?addMath(tr):m;});
+  str=str.replace(/(?:\\pi\s*r\^\{?[0-9]+\}?|\\pi\s*r\^2|\\frac\{[^}]+\}\{[^}]+\}|\\sqrt\{[^}]+\})/g,m=>addMath(m));
+  str=str.replace(/\b([a-zA-Z](?:_[0-9]+|[0-9]+)?\s*=\s*[-+]?\d+(?:[.,]\d+)?)\b/g,m=>addMath(m));
+  str=str.replace(/\b([a-zA-Z0-9]+)\^\{?([0-9a-zA-Z+-]+)\}?\b/g,(m,b,p)=>b.includes('___MATH_')?m:addMath(`${b}^{${p}}`));
+  return str.replace(/___MATH_(\d+)___/g,(_,idx)=>blocks[+idx]);
+}
+function fmt(t){t=normalizeMath(t);let out='',last=0,m;const re=/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
   while((m=re.exec(t))){out+=esc(t.slice(last,m.index)).replace(/\n/g,'<br>');
     try{out+=katex.renderToString(m[1]||m[2],{displayMode:!!m[1],throwOnError:false})}catch(e){out+=esc(m[0])}
     last=re.lastIndex}
   return out+esc(t.slice(last)).replace(/\n/g,'<br>')}
+window.fmt=fmt;window.normalizeMath=normalizeMath;
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const mmss=ms=>{ms=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(ms/60)).padStart(2,'0')+':'+String(ms%60).padStart(2,'0')};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -161,7 +195,8 @@ const SAMPLE=`0|Rukun Islam yang pertama adalah ...|Syahadat|Salat|Zakat|Puasa|0
 3|Hasil dari $12 \\times 8$ adalah ...|96|86|108|88|0
 3|Hasil dari $\\frac{1}{2}+\\frac{1}{4}$ adalah ...|$\\frac{3}{4}$|$\\frac{2}{6}$|$\\frac{1}{6}$|$1$|0
 3|Nilai $x$ jika $2x+6=14$ adalah ...|4|5|3|8|0
-3|Luas persegi dengan sisi 7 cm adalah ... cm$^2$|49|28|14|56|0
+3|Luas persegi dengan sisi 7 cm adalah ... cm$^2$|49 cm^2|28 cm^2|14 cm^2|56 cm^2|0
+3|Akar-akar dari persamaan kuadrat x^2 + 5x - 14 = 0 adalah ...|x = 2 atau x = -7|x = -2 atau x = 7|x = 1 atau x = -14|x = -1 atau x = 14|0
 4|Planet terdekat dengan Matahari adalah ...|Merkurius|Venus|Bumi|Mars|0
 4|Rumus kimia air adalah ...|$H_2O$|$CO_2$|$O_2$|$NaCl$|0
 4|Gas yang dihasilkan tumbuhan saat fotosintesis adalah ...|Oksigen|Karbon dioksida|Nitrogen|Hidrogen|0
