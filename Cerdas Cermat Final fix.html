@@ -87,7 +87,9 @@ textarea{min-height:190px;font-size:13px;line-height:1.5}
 @keyframes fall{to{top:105%;transform:rotate(720deg)}}
 @media(max-width:700px){#board{grid-template-columns:repeat(2,1fr)}#score{grid-template-columns:repeat(2,1fr)!important}.qbox{text-align:center}}
 </style>
+<link rel="stylesheet" href="/css/katex.min.css">
 <link rel="stylesheet" href="/css/unified-stage.css">
+<script src="/vendor/katex.min.js"></script>
 <script>
 window.addEventListener('message', e => {
   if (e.data && e.data.theme) document.documentElement.setAttribute('data-theme', e.data.theme);
@@ -143,7 +145,13 @@ try {
 <div id="qnum"></div>
 <div class="stage">
 <div id="ringw"><svg viewBox="0 0 200 200"><circle class="rb" cx="100" cy="100" r="90"/><circle id="rf" cx="100" cy="100" r="90" transform="rotate(-90 100 100)"/></svg><div id="timer">90</div></div>
-<div class="qbox"><div id="qtext"></div><div id="qans"></div></div>
+<div class="qbox">
+  <div id="qimg-box" style="display:none;text-align:center;margin-bottom:16px;">
+    <img id="qimg" src="" alt="Gambar Soal" style="max-height:240px;max-width:100%;border-radius:14px;border:2px solid var(--gold);box-shadow:0 8px 24px rgba(0,0,0,.45);object-fit:contain;background:#05081a;">
+  </div>
+  <div id="qtext"></div>
+  <div id="qans"></div>
+</div>
 </div>
 <div id="status"></div><div id="tb"></div><div id="act"></div>
 </div>
@@ -169,23 +177,98 @@ const SAMPLE=[
 "SOAL TAMBAHAN: Satu byte terdiri dari berapa bit? ||| 8 bit"].join("\n");
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const fresh=()=>({title:'CERDAS CERMAT FINAL',n:5,init:100,dur:90,np:5,snd:1,rb:0,names:['Tim 1','Tim 2','Tim 3','Tim 4','Tim 5','Tim 6'],score:Array(5).fill(100),done:Array(15).fill(false),q:SAMPLE,tie:null,started:false});
+
+/* KaTeX Formula Renderer */
+function normalizeMath(str){
+  if(!str||typeof str!=='string')return '';
+  const blocks=[];
+  const addMath=(eq,disp)=>{
+    eq=eq.trim().replace(/(^|[^\\])%/g,'$1\\%');
+    eq=eq.replace(/\b(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi,'\\text{$1}^{$2}');
+    if(/^\^[0-9a-zA-Z]/.test(eq))eq='{}'+eq;
+    const ph=`___MATH_${blocks.length}___`;
+    blocks.push(disp?`$$${eq}$$`:`$${eq}$`);
+    return ph;
+  };
+  str=str.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g,(m,d,i)=>addMath(d||i,!!d));
+  str=str.replace(/(\b\d+(?:[.,]\d+)?)\s*(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi,(m,n,u,p)=>addMath(`${n}\\text{ ${u}}^{${p}}`));
+  str=str.replace(/\b(cm|m|km|mm|dm|m\/s|cm\/s)\^\{?([0-9]+)\}?/gi,(m,u,p)=>addMath(`\\text{${u}}^{${p}}`));
+  str=str.replace(/\(([a-zA-Z0-9\s+\-*/]+)\)\^\{?([0-9a-zA-Z+-]+)\}?/g,(m,i,p)=>addMath(`(${i})^{${p}}`));
+  const term="(?:\\d*[a-zA-Z]+(?:\\^[0-9]+)?|\\d+|[a-zA-Z]\\([a-zA-Z]\\)|\\\\pi(?:\\s*r(?:\\^[0-9]+)?)?)";
+  const poly="(?:[-+]?\\s*"+term+"(?:\\s*[+\\-*/]\\s*"+term+")*)";
+  const reEq=new RegExp("(?:(?<=\\s|^|[([\"']))(" + poly + "\\s*=\\s*" + poly + ")(?=\\s|$|[,;:?!.)\\]\"'])","g");
+  str=str.replace(reEq,m=>{if(m.includes('___MATH_'))return m;const tr=m.trim();return(tr.includes('^')||/^[a-zA-Z]\([a-zA-Z]\)/.test(tr))?addMath(tr):m;});
+  const rePolyOnly=new RegExp("(?:(?<=\\s|^|[([\"']))((?:[-+]?\\s*" + term + "(?:\\s*[+\\-*/]\\s*" + term + ")+))(?=\\s|$|[,;:?!.)\\]\"'])","g");
+  str=str.replace(rePolyOnly,m=>{if(m.includes('___MATH_'))return m;const tr=m.trim();return tr.includes('^')?addMath(tr):m;});
+  str=str.replace(/(?:\\pi\s*r\^\{?[0-9]+\}?|\\pi\s*r\^2|\\frac\{[^}]+\}\{[^}]+\}|\\sqrt\{[^}]+\})/g,m=>addMath(m));
+  str=str.replace(/\b([a-zA-Z](?:_[0-9]+|[0-9]+)?\s*=\s*[-+]?\d+(?:[.,]\d+)?)\b/g,m=>addMath(m));
+  str=str.replace(/\b([a-zA-Z0-9]+)\^\{?([0-9a-zA-Z+-]+)\}?\b/g,(m,b,p)=>b.includes('___MATH_')?m:addMath(`${b}^{${p}}`));
+  return str.replace(/___MATH_(\d+)___/g,(_,idx)=>blocks[+idx]);
+}
+
+function fmt(t){
+  if(!t)return '';
+  t=normalizeMath(t);
+  let out='',last=0,m;
+  const re=/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
+  while((m=re.exec(t))){
+    out+=esc(t.slice(last,m.index)).replace(/\n/g,'<br>');
+    if(typeof katex!=='undefined'){
+      try{out+=katex.renderToString(m[1]||m[2],{displayMode:!!m[1],throwOnError:false})}catch(e){out+=esc(m[0])}
+    }else{
+      out+=esc(m[0]);
+    }
+    last=re.lastIndex;
+  }
+  return out+esc(t.slice(last)).replace(/\n/g,'<br>');
+}
+
+const fresh=()=>({title:'CERDAS CERMAT FINAL',n:5,init:100,dur:90,np:5,snd:1,rb:0,names:['Tim 1','Tim 2','Tim 3','Tim 4','Tim 5','Tim 6'],score:Array(5).fill(100),done:Array(15).fill(false),q:SAMPLE,qObj:null,tie:null,started:false});
 let S=fresh(),cur=null,hist=[],armed=false,celebrated=false,prev=null;
 try{const r=localStorage.getItem('cc-final3');if(r)S=Object.assign(fresh(),JSON.parse(r))}catch(e){}
-if(!localStorage.getItem('cc-final3') && typeof fetch !== 'undefined'){
+if((!localStorage.getItem('cc-final3')||!S.qObj)&&typeof fetch!=='undefined'){
   fetch('/api/banks?stage=final').then(r=>r.json()).then(d=>{
     if(d&&d.success&&Array.isArray(d.questions)&&d.questions.length>0){
-      S.q = d.questions.map(x=>`${x.q} ||| ${x.ans}`).join('\n');
+      S.qObj=d.questions;
+      S.q=d.questions.map(x=>x.img?`${x.q} ||| ${x.ans} ||| img:${x.img}`:`${x.q} ||| ${x.ans}`).join('\n');
       save();
       render();
     }
   }).catch(()=>{});
 }
+window.addEventListener('message',e=>{
+  if(e.data&&(e.data.type==='FINAL_RELOAD_BANK'||e.data.type==='STAGE_QUESTIONS_UPDATED')){
+    try{
+      const r=localStorage.getItem('cc-final3');
+      if(r)S=Object.assign(fresh(),JSON.parse(r));
+      render();
+      if(cur)upd();
+    }catch(err){}
+  }
+});
 const save=()=>{try{localStorage.setItem('cc-final3',JSON.stringify(S));if(window.top&&window.top!==window.self){window.top.postMessage({type:'FINAL_STATE_UPDATED',state:S},'*');}}catch(e){}};
 const snap=()=>{hist.push(JSON.stringify(S));if(hist.length>40)hist.shift()};
 const val=i=>i>14?100:TIER[Math.floor(i/5)],pen=i=>PEN[Math.floor(i/5)];
 const nextIdx=()=>S.done.indexOf(false);
-const QA=i=>{const p=(S.q.split('\n')[i]||'').split('|||');return{q:(p[0]||'').trim(),a:(p[1]||'').trim()}};
+const QA=i=>{
+  if(Array.isArray(S.qObj)&&S.qObj[i]){
+    const it=S.qObj[i];
+    return{
+      q:(it.q||'').trim(),
+      a:(it.ans||it.a||'').trim(),
+      img:it.img||null
+    };
+  }
+  const raw=(S.q.split('\n')[i]||'').trim();
+  const parts=raw.split('|||').map(s=>s.trim());
+  let qText=parts[0]||'';
+  let aText=parts[1]||'';
+  let imgSrc=null;
+  if(parts[2]&&parts[2].startsWith('img:')){
+    imgSrc=parts[2].slice(4).trim();
+  }
+  return{q:qText,a:aText,img:imgSrc};
+};
 
 /* audio */
 let AC=null;
@@ -227,8 +310,20 @@ function upd(){
   $('#ov').classList.add('show');
   $('#qnum').textContent=(cur.tb?'SOAL TAMBAHAN | 100 poin':`SOAL ${cur.i+1} | ${val(cur.i)} poin | salah -${pen(cur.i)}`)+(S.rb?'':' | 1 kesempatan');
   const qa=QA(cur.i);
-  $('#qtext').textContent=qa.q.replace(/^SOAL TAMBAHAN:\s*/,'');
-  $('#qans').textContent=(cur.ans||cur.over)&&qa.a?'Jawaban: '+qa.a:'';
+  const qClean=qa.q.replace(/^SOAL TAMBAHAN:\s*/,'');
+  $('#qtext').innerHTML=fmt(qClean);
+  $('#qans').innerHTML=(cur.ans||cur.over)&&qa.a?'<div style="font-size:0.65em;color:var(--gold);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">Kunci Jawaban:</div>'+fmt(qa.a):'';
+  const imgBox=$('#qimg-box');
+  const imgEl=$('#qimg');
+  if(imgBox&&imgEl){
+    if(qa.img){
+      imgEl.src=qa.img;
+      imgBox.style.display='block';
+    }else{
+      imgEl.src='';
+      imgBox.style.display='none';
+    }
+  }
   const f=cur.rem/S.dur;
   $('#timer').textContent=Math.ceil(cur.rem);$('#timer').className=cur.rem<=10&&!cur.over?'danger':'';
   $('#rf').style.strokeDashoffset=565.5*(1-f);
@@ -319,6 +414,13 @@ document.addEventListener('keydown',e=>{
   else if(k==='j'){cur.ans=!cur.ans;upd()}
   else if(k==='p'&&!cur.over&&cur.sel===null){cur.run=!cur.run;upd()}
 });
+window.S=S;
+window.cur=cur;
+window.openQ=open;
+window.upd=upd;
+window.QA=QA;
+window.save=save;
+window.render=render;
 render();
 if(!S.started)showSetup();
 </script>

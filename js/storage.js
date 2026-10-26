@@ -238,7 +238,8 @@
             if (fin.length > 0) {
               let curFinal = {};
               try { curFinal = JSON.parse(localStorage.getItem('cc-final3') || '{}'); } catch(e) {}
-              curFinal.q = fin.map(q => `${q.q} ||| ${q.ans}`).join('\n');
+              curFinal.q = fin.map(q => q.img ? `${q.q} ||| ${q.ans} ||| img:${q.img}` : `${q.q} ||| ${q.ans}`).join('\n');
+              curFinal.qObj = fin;
               localStorage.setItem('cc-final3', JSON.stringify(curFinal));
               await set('bank_final', fin);
               localStorage.removeItem('cc_cleared_final');
@@ -488,6 +489,261 @@
 
       await this.saveFinalState(finalState);
       return top5;
+    },
+
+    // ─── SYNCHRONIZATION & ANTI-DUPLICATION MANAGER ────────────
+    normalizeQuestionKey(str) {
+      return String(str || '')
+        .toLowerCase()
+        .replace(/<[^>]*>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/["'“”‘’`]/g, '')
+        .replace(/[.,:;?!]+$/g, '')
+        .trim();
+    },
+
+    deduplicateQuestions(items = []) {
+      const map = new Map();
+      items.forEach(it => {
+        const k = this.normalizeQuestionKey(it.q || it.question);
+        if (!k) return;
+        if (!map.has(k)) {
+          map.set(k, Object.assign({}, it));
+        } else {
+          const ex = map.get(k);
+          if (!ex.img && (it.img || it.image_url)) {
+            ex.img = it.img || it.image_url;
+          }
+          const exOpts = Array.isArray(ex.o) ? ex.o : [];
+          const newOpts = Array.isArray(it.o) ? it.o : [];
+          if (exOpts.length === 0 && newOpts.length > 0) {
+            ex.o = newOpts;
+          }
+          const exAns = String(ex.ans || ex.answer_key || '');
+          const newAns = String(it.ans || it.answer_key || '');
+          if (newAns.length > exAns.length) {
+            ex.ans = newAns;
+          }
+        }
+      });
+      return Array.from(map.values());
+    },
+
+    async getSyncStats() {
+      let cloudConnected = false;
+      let cloudQuestions = [];
+
+      try {
+        const res = await fetch('/api/banks?stage=all', { cache: 'no-cache' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.questions)) {
+            cloudConnected = true;
+            cloudQuestions = data.questions;
+          }
+        }
+      } catch (e) {
+        cloudConnected = false;
+      }
+
+      const p7_c = cloudQuestions.filter(q => q.stage === 'penyisihan_7' || q.jenjang === 7);
+      const p8_c = cloudQuestions.filter(q => q.stage === 'penyisihan_8' || q.jenjang === 8);
+      const p9_c = cloudQuestions.filter(q => q.stage === 'penyisihan_9' || q.stage === 'penyisihan' || q.jenjang === 9);
+      const semi_c = cloudQuestions.filter(q => q.stage === 'semifinal');
+      const final_c = cloudQuestions.filter(q => q.stage === 'final');
+
+      // Local questions
+      const p7_l = (window.DocxEngine) ? (await window.DocxEngine.getStageQuestions('penyisihan', 7)) : [];
+      const p8_l = (window.DocxEngine) ? (await window.DocxEngine.getStageQuestions('penyisihan', 8)) : [];
+      const p9_l = (window.DocxEngine) ? (await window.DocxEngine.getStageQuestions('penyisihan', 9)) : [];
+      const semi_l = (window.DocxEngine) ? (await window.DocxEngine.getStageQuestions('semifinal')) : [];
+      const final_l = (window.DocxEngine) ? (await window.DocxEngine.getStageQuestions('final')) : [];
+
+      const countDuplicates = (list) => {
+        const seen = new Set();
+        let dupes = 0;
+        (list || []).forEach(q => {
+          const k = this.normalizeQuestionKey(q.q || q.question);
+          if (k) {
+            if (seen.has(k)) dupes++;
+            else seen.add(k);
+          }
+        });
+        return dupes;
+      };
+
+      const countCrossDuplicates = (listA, listB) => {
+        const setA = new Set((listA || []).map(q => this.normalizeQuestionKey(q.q || q.question)).filter(Boolean));
+        let dupes = 0;
+        (listB || []).forEach(q => {
+          const k = this.normalizeQuestionKey(q.q || q.question);
+          if (k && setA.has(k)) dupes++;
+        });
+        return dupes;
+      };
+
+      const stages = {
+        penyisihan_7: {
+          name: 'Penyisihan Kelas 7',
+          local: p7_l.length,
+          cloud: p7_c.length,
+          localDupes: countDuplicates(p7_l),
+          cloudDupes: countDuplicates(p7_c),
+          crossMatches: countCrossDuplicates(p7_l, p7_c)
+        },
+        penyisihan_8: {
+          name: 'Penyisihan Kelas 8',
+          local: p8_l.length,
+          cloud: p8_c.length,
+          localDupes: countDuplicates(p8_l),
+          cloudDupes: countDuplicates(p8_c),
+          crossMatches: countCrossDuplicates(p8_l, p8_c)
+        },
+        penyisihan_9: {
+          name: 'Penyisihan Kelas 9',
+          local: p9_l.length,
+          cloud: p9_c.length,
+          localDupes: countDuplicates(p9_l),
+          cloudDupes: countDuplicates(p9_c),
+          crossMatches: countCrossDuplicates(p9_l, p9_c)
+        },
+        semifinal: {
+          name: 'Babak Semifinal',
+          local: semi_l.length,
+          cloud: semi_c.length,
+          localDupes: countDuplicates(semi_l),
+          cloudDupes: countDuplicates(semi_c),
+          crossMatches: countCrossDuplicates(semi_l, semi_c)
+        },
+        final: {
+          name: 'Babak Grand Final',
+          local: final_l.length,
+          cloud: final_c.length,
+          localDupes: countDuplicates(final_l),
+          cloudDupes: countDuplicates(final_c),
+          crossMatches: countCrossDuplicates(final_l, final_c)
+        }
+      };
+
+      const totalLocal = p7_l.length + p8_l.length + p9_l.length + semi_l.length + final_l.length;
+      const totalCloud = p7_c.length + p8_c.length + p9_c.length + semi_c.length + final_c.length;
+      const totalDuplicates = Object.values(stages).reduce((sum, s) => sum + s.localDupes + s.cloudDupes, 0);
+
+      return {
+        cloudConnected,
+        stages,
+        totalLocal,
+        totalCloud,
+        totalDuplicates
+      };
+    },
+
+    async smartMergeAllStages() {
+      let cloudQuestions = [];
+      try {
+        const res = await fetch('/api/banks?stage=all', { cache: 'no-cache' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.questions)) {
+            cloudQuestions = data.questions;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch cloud questions for smart merge:', e);
+      }
+
+      const stageConfigs = [
+        { key: 'penyisihan_7', stage: 'penyisihan', jenjang: 7, cloudList: cloudQuestions.filter(q => q.stage === 'penyisihan_7' || q.jenjang === 7) },
+        { key: 'penyisihan_8', stage: 'penyisihan', jenjang: 8, cloudList: cloudQuestions.filter(q => q.stage === 'penyisihan_8' || q.jenjang === 8) },
+        { key: 'penyisihan_9', stage: 'penyisihan', jenjang: 9, cloudList: cloudQuestions.filter(q => q.stage === 'penyisihan_9' || q.stage === 'penyisihan' || q.jenjang === 9) },
+        { key: 'semifinal', stage: 'semifinal', jenjang: null, cloudList: cloudQuestions.filter(q => q.stage === 'semifinal') },
+        { key: 'final', stage: 'final', jenjang: null, cloudList: cloudQuestions.filter(q => q.stage === 'final') }
+      ];
+
+      let totalMergedCount = 0;
+      let totalPurgedCount = 0;
+      const results = {};
+
+      for (const sc of stageConfigs) {
+        const localList = (window.DocxEngine) ? (await window.DocxEngine.getStageQuestions(sc.stage, sc.jenjang || 7)) : [];
+        const combined = [...localList, ...sc.cloudList];
+        const deduped = this.deduplicateQuestions(combined);
+        const purged = combined.length - deduped.length;
+
+        totalMergedCount += deduped.length;
+        totalPurgedCount += purged;
+        results[sc.key] = { count: deduped.length, purged };
+
+        if (window.DocxEngine) {
+          await window.DocxEngine.saveStageQuestions(sc.stage, deduped, sc.jenjang || 7, false /* push to cloud */);
+        }
+      }
+
+      return {
+        success: true,
+        totalMerged: totalMergedCount,
+        totalPurged: totalPurgedCount,
+        results
+      };
+    },
+
+    async cleanAllDuplicates() {
+      let totalPurged = 0;
+      const stageConfigs = [
+        { stage: 'penyisihan', jenjang: 7 },
+        { stage: 'penyisihan', jenjang: 8 },
+        { stage: 'penyisihan', jenjang: 9 },
+        { stage: 'semifinal', jenjang: null },
+        { stage: 'final', jenjang: null }
+      ];
+
+      for (const sc of stageConfigs) {
+        if (!window.DocxEngine) continue;
+        const curList = await window.DocxEngine.getStageQuestions(sc.stage, sc.jenjang || 7);
+        const deduped = this.deduplicateQuestions(curList);
+        const purged = curList.length - deduped.length;
+        totalPurged += purged;
+        if (purged > 0) {
+          await window.DocxEngine.saveStageQuestions(sc.stage, deduped, sc.jenjang || 7, false);
+        }
+      }
+
+      try {
+        await fetch('/api/banks?action=clean_duplicates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'clean_duplicates' })
+        });
+      } catch (e) {}
+
+      return {
+        success: true,
+        purgedCount: totalPurged
+      };
+    },
+
+    async pushAllLocalToCloud() {
+      const stageConfigs = [
+        { stage: 'penyisihan_7', qStage: 'penyisihan', jenjang: 7 },
+        { stage: 'penyisihan_8', qStage: 'penyisihan', jenjang: 8 },
+        { stage: 'penyisihan_9', qStage: 'penyisihan', jenjang: 9 },
+        { stage: 'semifinal', qStage: 'semifinal', jenjang: null },
+        { stage: 'final', qStage: 'final', jenjang: null }
+      ];
+
+      let pushedTotal = 0;
+      for (const sc of stageConfigs) {
+        const localList = (window.DocxEngine) ? (await window.DocxEngine.getStageQuestions(sc.qStage, sc.jenjang || 7)) : [];
+        const deduped = this.deduplicateQuestions(localList);
+        await this.saveStageBank(sc.stage, deduped);
+        pushedTotal += deduped.length;
+      }
+
+      return {
+        success: true,
+        pushedCount: pushedTotal
+      };
     }
   };
 

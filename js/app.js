@@ -667,6 +667,130 @@
         });
       }
 
+      // ─── SYNC & ANTI-DUPLICATION MANAGER ──────────────────
+      const btnOpenSyncMgr = document.getElementById('btn-open-sync-manager');
+      const modalSyncMgr = document.getElementById('modal-sync-manager');
+      const btnCloseSyncMgr = document.getElementById('btn-close-sync-manager');
+      const btnCloseSyncMgrFooter = document.getElementById('btn-close-sync-mgr-footer');
+      const btnRefreshSyncStats = document.getElementById('btn-refresh-sync-stats');
+
+      const btnSmartMerge = document.getElementById('btn-action-smart-merge');
+      const btnCleanDupes = document.getElementById('btn-action-clean-dupes');
+      const btnPullCloud = document.getElementById('btn-action-pull-cloud');
+      const btnPushCloud = document.getElementById('btn-action-push-cloud');
+
+      const openSyncManager = async () => {
+        if (!self.isAdminLoggedIn()) {
+          self.promptAdminLogin({ onSuccess: () => openSyncManager() });
+          return;
+        }
+        if (modalSyncMgr) modalSyncMgr.classList.add('active');
+        await self.refreshSyncManagerUI();
+      };
+
+      const closeSyncManager = () => {
+        if (modalSyncMgr) modalSyncMgr.classList.remove('active');
+      };
+
+      if (btnOpenSyncMgr) btnOpenSyncMgr.addEventListener('click', openSyncManager);
+      if (btnCloseSyncMgr) btnCloseSyncMgr.addEventListener('click', closeSyncManager);
+      if (btnCloseSyncMgrFooter) btnCloseSyncMgrFooter.addEventListener('click', closeSyncManager);
+      if (btnRefreshSyncStats) btnRefreshSyncStats.addEventListener('click', () => self.refreshSyncManagerUI());
+
+      // Smart Merge Action
+      if (btnSmartMerge) {
+        btnSmartMerge.addEventListener('click', async () => {
+          if (!confirm('Gabungkan Cerdas akan menyatukan soal lokal & cloud, mendeteksi dan membersihkan soal duplikat secara otomatis, lalu menyimpan hasilnya ke semua sumber. Lanjutkan?')) return;
+          const origText = btnSmartMerge.textContent;
+          btnSmartMerge.disabled = true;
+          btnSmartMerge.textContent = '⏳ Menggabungkan & Membersihkan...';
+
+          try {
+            const res = await window.PortalStorage.smartMergeAllStages();
+            await self.refreshSyncManagerUI();
+            await self.renderBankList();
+            self.updateJenjangCountsUI();
+            self.refreshCloudStatusUI();
+            self.showToast(`✅ Smart Merge selesai! Total ${res.totalMerged} soal terpadu (${res.totalPurged} duplikat disatukan & dibersihkan).`);
+          } catch (err) {
+            alert('Gagal melakukan Smart Merge: ' + err.message);
+          } finally {
+            btnSmartMerge.disabled = false;
+            btnSmartMerge.textContent = origText;
+          }
+        });
+      }
+
+      // Clean Duplicates Action
+      if (btnCleanDupes) {
+        btnCleanDupes.addEventListener('click', async () => {
+          if (!confirm('Bersihkan seluruh soal duplikat / kembar di semua babak tanpa menimpa soal unik? Lanjutkan?')) return;
+          const origText = btnCleanDupes.textContent;
+          btnCleanDupes.disabled = true;
+          btnCleanDupes.textContent = '⏳ Membersihkan...';
+
+          try {
+            const res = await window.PortalStorage.cleanAllDuplicates();
+            await self.refreshSyncManagerUI();
+            await self.renderBankList();
+            self.updateJenjangCountsUI();
+            self.refreshCloudStatusUI();
+            self.showToast(`✅ Berhasil membersihkan ${res.purgedCount} soal duplikat di seluruh babak!`);
+          } catch (err) {
+            alert('Gagal membersihkan duplikat: ' + err.message);
+          } finally {
+            btnCleanDupes.disabled = false;
+            btnCleanDupes.textContent = origText;
+          }
+        });
+      }
+
+      // Pull Full Cloud Action
+      if (btnPullCloud) {
+        btnPullCloud.addEventListener('click', async () => {
+          if (!confirm('Tarik Penuh dari Cloud akan menggantikan seluruh bank soal di komputer ini dengan master dari Cloud. Soal lokal yang belum ada di Cloud akan terhapus. Lanjutkan?')) return;
+          const origText = btnPullCloud.textContent;
+          btnPullCloud.disabled = true;
+          btnPullCloud.textContent = '⏳ Menarik Data Cloud...';
+
+          try {
+            const res = await window.PortalStorage.syncFromCloud();
+            await self.refreshSyncManagerUI();
+            await self.renderBankList();
+            self.updateJenjangCountsUI();
+            self.refreshCloudStatusUI();
+            self.showToast(`✅ Berhasil menarik ${res.count} soal dari Database Cloud master!`);
+          } catch (err) {
+            alert('Gagal menarik data cloud: ' + err.message);
+          } finally {
+            btnPullCloud.disabled = false;
+            btnPullCloud.textContent = origText;
+          }
+        });
+      }
+
+      // Push Full Local to Cloud Action
+      if (btnPushCloud) {
+        btnPushCloud.addEventListener('click', async () => {
+          if (!confirm('Unggah Penuh ke Cloud akan menimpa seluruh bank soal di Cloud dengan data dari komputer ini. Lanjutkan?')) return;
+          const origText = btnPushCloud.textContent;
+          btnPushCloud.disabled = true;
+          btnPushCloud.textContent = '⏳ Mengunggah Data...';
+
+          try {
+            const res = await window.PortalStorage.pushAllLocalToCloud();
+            await self.refreshSyncManagerUI();
+            self.refreshCloudStatusUI();
+            self.showToast(`✅ Berhasil mengunggah ${res.pushedCount} soal lokal ke server pusat Cloud!`);
+          } catch (err) {
+            alert('Gagal mengunggah ke cloud: ' + err.message);
+          } finally {
+            btnPushCloud.disabled = false;
+            btnPushCloud.textContent = origText;
+          }
+        });
+      }
+
       if (tabP && tabS && tabF) {
         tabP.onclick = () => { activeBankStage = 'penyisihan'; this.onBankStageChange(); };
         tabS.onclick = () => { activeBankStage = 'semifinal'; this.onBankStageChange(); };
@@ -1274,6 +1398,92 @@
       }
     },
 
+    async refreshSyncManagerUI() {
+      const tbody = document.getElementById('sync-mgr-table-body');
+      const dupeAlert = document.getElementById('sync-mgr-dupe-alert');
+      const dupeDesc = document.getElementById('sync-mgr-dupe-desc');
+      const statusDot = document.getElementById('sync-mgr-status-dot');
+      const statusLabel = document.getElementById('sync-mgr-status-label');
+
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text-mut);">Memindai status soal lokal &amp; cloud...</td></tr>`;
+      }
+
+      try {
+        const stats = await window.PortalStorage.getSyncStats();
+
+        if (statusDot && statusLabel) {
+          if (stats.cloudConnected) {
+            statusDot.style.background = '#10b981';
+            statusDot.style.boxShadow = '0 0 10px #10b981';
+            statusLabel.textContent = 'Database Cloud (Neon PostgreSQL): Terhubung Online';
+          } else {
+            statusDot.style.background = '#ef4444';
+            statusDot.style.boxShadow = '0 0 10px #ef4444';
+            statusLabel.textContent = 'Database Cloud: Tidak Terhubung (Mode Offline)';
+          }
+        }
+
+        if (tbody) {
+          const rows = Object.values(stats.stages).map(st => {
+            const dupes = st.localDupes + st.cloudDupes;
+            let statusBadge = '';
+            if (dupes > 0) {
+              statusBadge = `<span class="badge" style="background:rgba(245,158,11,0.2);color:var(--gold);font-weight:700;border:1px solid rgba(245,158,11,0.3);padding:2px 8px;border-radius:10px;">⚠️ Duplikat</span>`;
+            } else if (st.local === st.cloud && st.local > 0) {
+              statusBadge = `<span class="badge" style="background:rgba(16,185,129,0.2);color:#10b981;font-weight:700;border:1px solid rgba(16,185,129,0.3);padding:2px 8px;border-radius:10px;">🟢 Sinkron</span>`;
+            } else if (st.local === 0 && st.cloud === 0) {
+              statusBadge = `<span class="badge" style="background:rgba(255,255,255,0.06);color:var(--text-mut);padding:2px 8px;border-radius:10px;">⚪ Kosong</span>`;
+            } else {
+              statusBadge = `<span class="badge" style="background:rgba(59,130,246,0.2);color:#60a5fa;font-weight:700;border:1px solid rgba(59,130,246,0.3);padding:2px 8px;border-radius:10px;">🟡 Beda Data</span>`;
+            }
+
+            const dupeText = dupes > 0 
+              ? `<span style="color:var(--gold);font-weight:800;">${dupes} duplikat</span>` 
+              : `<span style="color:var(--text-mut);">0</span>`;
+
+            return `
+              <tr style="border-bottom:1px solid var(--card-border);">
+                <td style="padding:10px 14px;font-weight:700;">${st.name}</td>
+                <td style="padding:10px 14px;text-align:center;font-weight:700;">${st.local}</td>
+                <td style="padding:10px 14px;text-align:center;font-weight:700;">${stats.cloudConnected ? st.cloud : '<span style="color:var(--text-mut);">—</span>'}</td>
+                <td style="padding:10px 14px;text-align:center;">${dupeText}</td>
+                <td style="padding:10px 14px;text-align:center;">${statusBadge}</td>
+              </tr>
+            `;
+          }).join('');
+
+          const totalDupes = stats.totalDuplicates;
+          const totalRow = `
+            <tr style="background:rgba(255,255,255,0.03);font-weight:800;border-top:2px solid var(--card-border);">
+              <td style="padding:12px 14px;color:var(--gold);">TOTAL KESELURUHAN</td>
+              <td style="padding:12px 14px;text-align:center;color:var(--text-main);">${stats.totalLocal}</td>
+              <td style="padding:12px 14px;text-align:center;color:var(--text-main);">${stats.cloudConnected ? stats.totalCloud : '—'}</td>
+              <td style="padding:12px 14px;text-align:center;color:${totalDupes > 0 ? 'var(--gold)' : 'var(--text-mut)'};">${totalDupes}</td>
+              <td style="padding:12px 14px;text-align:center;">${totalDupes > 0 ? '⚠️ Perlu Dirapikan' : '🟢 Bersih'}</td>
+            </tr>
+          `;
+
+          tbody.innerHTML = rows + totalRow;
+        }
+
+        if (dupeAlert) {
+          if (stats.totalDuplicates > 0) {
+            dupeAlert.style.display = 'block';
+            if (dupeDesc) {
+              dupeDesc.innerHTML = `Terdeteksi <strong>${stats.totalDuplicates} soal kembar / duplikat</strong> pada bank soal. Klik <strong>🤝 Jalankan Smart Merge</strong> untuk menyatukan dan menghapus duplikat secara otomatis.`;
+            }
+          } else {
+            dupeAlert.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--bad);">Gagal memuat status: ${err.message}</td></tr>`;
+        }
+      }
+    },
+
     onBankStageChange() {
       bankSearchQuery = '';
       bankFilterCategory = '';
@@ -1351,10 +1561,11 @@
 
         const result = await window.DocxEngine.importQuestionsFromDocx(file, activeBankStage, activeJenjang);
 
+        const dupeMsg = (result.duplicateCount && result.duplicateCount > 0) ? ` (${result.duplicateCount} soal duplikat dilewati / disatukan)` : '';
         if (statusEl) {
-          statusEl.textContent = `✅ Berhasil mengimpor ${result.count} soal ke Bank ${stageDesc} (Ditemukan ${result.mathCount} rumus matematika)!`;
+          statusEl.textContent = `✅ Berhasil mengimpor ${result.count} soal ke Bank ${stageDesc}${dupeMsg} (Ditemukan ${result.mathCount} rumus matematika)!`;
         }
-        this.showToast(`✅ Berhasil mengimpor ${result.count} soal ke Bank Soal ${stageDesc} & tersimpan di Database Cloud!`);
+        this.showToast(`✅ Berhasil mengimpor ${result.count} soal ke Bank Soal ${stageDesc}${dupeMsg} & tersimpan di Database Cloud!`);
         await this.renderBankList();
         this.updateJenjangCountsUI();
         this.refreshCloudStatusUI();

@@ -399,8 +399,9 @@
       } else if (stage === 'final') {
         try {
           let curFinal = JSON.parse(localStorage.getItem('cc-final3') || '{}');
-          const lines = questions.map(q => `${q.q} ||| ${q.ans}`);
+          const lines = questions.map(q => q.img ? `${q.q} ||| ${q.ans} ||| img:${q.img}` : `${q.q} ||| ${q.ans}`);
           curFinal.q = lines.join('\n');
+          curFinal.qObj = questions;
           localStorage.setItem('cc-final3', JSON.stringify(curFinal));
         } catch(e) {}
         if (window.PortalStorage) {
@@ -411,7 +412,10 @@
         }
         const frame = document.getElementById('frame-final');
         if (frame && frame.contentWindow) {
-          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
+          try {
+            frame.contentWindow.postMessage({ type: 'FINAL_RELOAD_BANK' }, '*');
+            frame.contentWindow.location.reload();
+          } catch(e) { frame.src = frame.src; }
         }
       }
 
@@ -820,10 +824,15 @@
                 });
               } else if (targetStage === 'final') {
                 const tier = cells[1] ? cells[1].textContent.trim() : 'Tier 1 (50 Poin)';
+                const val = tier.includes('75') ? 75 : tier.includes('100') ? 100 : 50;
+                const pen = tier.includes('75') ? 35 : tier.includes('100') ? 50 : 25;
                 parsedQuestions.push({
+                  id: `fn_imp_${Date.now().toString(36)}_${t}_${i}`,
                   q: qText,
                   ans: keyRaw,
                   tier: tier,
+                  val: val,
+                  pen: pen,
                   img: imgSrc
                 });
               }
@@ -832,13 +841,52 @@
         }
       }
 
-      // Save directly to the native stage storage using unified saveStageQuestions
+      // Save directly to the native stage storage with smart anti-duplication
       const effectiveStage = (targetStage === 'benar_salah' || targetStage === 'bs') ? 'semifinal' : targetStage;
       const curQuestions = await this.getStageQuestions(effectiveStage, j);
-      await this.saveStageQuestions(effectiveStage, curQuestions.concat(parsedQuestions), j);
+
+      function normalizeKey(str) {
+        return String(str || '')
+          .toLowerCase()
+          .replace(/<[^>]*>/g, '')
+          .replace(/\s+/g, ' ')
+          .replace(/["'“”‘’`]/g, '')
+          .replace(/[.,:;?!]+$/g, '')
+          .trim();
+      }
+
+      const existingMap = new Map();
+      curQuestions.forEach(q => {
+        const k = normalizeKey(q.q);
+        if (k) existingMap.set(k, q);
+      });
+
+      let duplicateSkipped = 0;
+      let newAdded = 0;
+      const finalQuestions = [...curQuestions];
+
+      parsedQuestions.forEach(pq => {
+        const k = normalizeKey(pq.q);
+        if (k && existingMap.has(k)) {
+          duplicateSkipped++;
+          // Enrich existing item if it lacks image or richer answer
+          const existingItem = existingMap.get(k);
+          if (!existingItem.img && pq.img) existingItem.img = pq.img;
+          if ((!existingItem.o || existingItem.o.length === 0) && pq.o && pq.o.length > 0) existingItem.o = pq.o;
+          if ((!existingItem.ans || existingItem.ans.length < (pq.ans || '').length) && pq.ans) existingItem.ans = pq.ans;
+        } else {
+          newAdded++;
+          if (k) existingMap.set(k, pq);
+          finalQuestions.push(pq);
+        }
+      });
+
+      await this.saveStageQuestions(effectiveStage, finalQuestions, j);
 
       return {
         count: parsedQuestions.length,
+        newCount: newAdded,
+        duplicateCount: duplicateSkipped,
         questions: parsedQuestions,
         mathCount: mathEquations.length,
         stage: effectiveStage,
@@ -1133,20 +1181,21 @@
         subtitle = "Matriks 15 Kotak Rebutan & Tie-Breaker Cerdas Cermat IFP";
         petunjuk = [
           "Babak Grand Final memiliki struktur matriks 15 Kotak (5 kolom x 3 baris) + 1 Kotak Soal Tambahan.",
-          "Format tabel 4 kolom: No, Kategori & Poin Kotak, Pertanyaan Rebutan, dan Kunci Jawaban Dewan Juri.",
+          "Format tabel 4 kolom: No, Kategori & Poin Kotak, Pertanyaan Rebutan Panggung & Gambar (Rumus LaTeX $...$), dan Kunci Jawaban Dewan Juri.",
+          "Dukungan Lengkap: Anda dapat menyisipkan Gambar langsung ke dalam sel pertanyaan, dan menulis rumus matematika KaTeX/LaTeX menggunakan tanda dollar seperti $x^2 + y^2 = r^2$ atau $\\sqrt{144}$.",
           "Pembagian Poin Panggung: Tier 1 (50 Poin), Tier 2 (75 Poin), Tier 3 (100 Poin), dan Kotak 16 Soal Tambahan (100 Poin)."
         ];
         models = [
           "Model Tier 1 (Kotak 1-5): Fakta Singkat & Refleks Cepat (50 Poin)",
-          "Model Tier 2 (Kotak 6-10): Hitungan Logika & Hubungan Menengah (75 Poin)",
-          "Model Tier 3 (Kotak 11-15): Konseptual & Analisis Tingkat Tinggi (100 Poin)",
+          "Model Tier 2 (Kotak 6-10): Hitungan Logika, Rumus & Hubungan Menengah (75 Poin)",
+          "Model Tier 3 (Kotak 11-15): Konseptual, Gambar & Analisis Tingkat Tinggi (100 Poin)",
           "Model Tie-Breaker (Kotak 16): Soal Tambahan Penentuan Kemenangan (100 Poin)"
         ];
         rows.push(new TableRow({
           children: [
             createHeaderCell("No", 8),
-            createHeaderCell("Kategori & Poin Kotak", 24),
-            createHeaderCell("Pertanyaan Rebutan Panggung", 44),
+            createHeaderCell("Kategori & Poin Kotak", 22),
+            createHeaderCell("Pertanyaan Rebutan Panggung & Gambar (Rumus LaTeX $...$)", 46),
             createHeaderCell("Kunci Jawaban Dewan Juri", 24)
           ]
         }));
@@ -1156,7 +1205,7 @@
           ["3", "Tier 1 (50 Poin)", "Sistem bilangan berbasis dua yang hanya menggunakan simbol 0 dan 1 disebut?", "Biner (Binary)"],
           ["4", "Tier 1 (50 Poin)", "Apakah ekstensi file standar dokumen dokumen pengolah kata modern Microsoft Word?", ".docx"],
           ["5", "Tier 1 (50 Poin)", "Perangkat lunak untuk menjelajah halaman internet seperti Google Chrome atau Edge disebut?", "Browser / Web Browser (Peramban Web)"],
-          ["6", "Tier 2 (75 Poin)", "Konversikan bilangan biner 1010 ke dalam bentuk bilangan desimal!", "10 (Sepuluh)"],
+          ["6", "Tier 2 (75 Poin)", "Berapakah nilai dari $\\sqrt{144} + 5^2$?", "37 (12 + 25)"],
           ["7", "Tier 2 (75 Poin)", "Apakah fungsi utama sistem firewall pada jaringan komputer?", "Menyaring lalu lintas data & mencegah akses tidak sah"],
           ["8", "Tier 2 (75 Poin)", "Urutan langkah-langkah logis dan terstruktur untuk menyelesaikan suatu masalah disebut?", "Algoritma"],
           ["9", "Tier 2 (75 Poin)", "Fungsi spreadsheet Microsoft Excel untuk menghitung nilai rata-rata dari rentang sel adalah?", "=AVERAGE(...)"],
@@ -1172,8 +1221,8 @@
           rows.push(new TableRow({
             children: [
               createCell(r[0], 8, AlignmentType.CENTER),
-              createCell(r[1], 24),
-              createCell(r[2], 44),
+              createCell(r[1], 22),
+              createCell(r[2], 46),
               createCell(r[3], 24)
             ]
           }));
@@ -1532,8 +1581,8 @@
         rows.push(new TableRow({
           children: [
             createHeaderCell("No", 8),
-            createHeaderCell("Kategori & Poin Kotak", 24),
-            createHeaderCell("Pertanyaan Rebutan Panggung", 44),
+            createHeaderCell("Kategori & Poin Kotak", 22),
+            createHeaderCell("Pertanyaan Rebutan Panggung & Gambar (Rumus LaTeX $...$)", 46),
             createHeaderCell("Kunci Jawaban Dewan Juri", 24)
           ]
         }));
@@ -1545,8 +1594,8 @@
           rows.push(new TableRow({
             children: [
               createCell(String(i + 1), 8, AlignmentType.CENTER),
-              createCell(tier, 24),
-              createCell(q.q || '', 44, AlignmentType.LEFT, imgInfo),
+              createCell(tier, 22),
+              createCell(q.q || '', 46, AlignmentType.LEFT, imgInfo),
               createCell(q.ans || '', 24)
             ]
           }));
