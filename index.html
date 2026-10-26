@@ -32,6 +32,16 @@
     </nav>
 
     <div class="header-actions">
+      <!-- Admin Session Badge (when logged in) -->
+      <div id="admin-session-badge" style="display:none;align-items:center;gap:8px;background:rgba(59,130,246,0.15);border:1.5px solid rgba(59,130,246,0.4);border-radius:20px;padding:4px 10px;font-size:12.5px;font-weight:700;color:var(--text-main);">
+        <span style="display:flex;align-items:center;gap:5px;"><span style="color:#10b981;font-size:10px;">●</span> 👤 Admin</span>
+        <button class="btn btn-ghost" id="btn-admin-logout" style="padding:2px 8px;font-size:11.5px;color:var(--bad);font-weight:800;border-radius:8px;border-color:rgba(239,68,68,0.3);line-height:1;" title="Keluar dari sesi Admin">Keluar ✕</button>
+      </div>
+      <!-- Admin Login Button (when logged out) -->
+      <button class="btn btn-ghost btn-sm" id="btn-admin-login" title="Masuk sebagai Administrator" style="padding:6px 12px;font-size:12.5px;font-weight:700;">
+        🔒 Admin
+      </button>
+
       <button class="btn btn-ghost btn-icon" id="btn-toggle-fullscreen" title="Layar Penuh IFP / F11">
         <span>⛶</span>
       </button>
@@ -591,6 +601,49 @@
       <div style="display:flex;justify-content:flex-end;margin-top:20px;border-top:1px solid var(--card-border);padding-top:14px;">
         <button class="btn btn-ghost" id="btn-close-pv">Tutup</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ════════════ ADMIN AUTHENTICATION MODAL ════════════ -->
+  <div id="admin-auth-modal" class="modal-overlay">
+    <div class="glass-panel" style="width:min(440px, 100%);padding:28px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:rgba(59,130,246,0.15);border:1.5px solid rgba(59,130,246,0.35);display:flex;align-items:center;justify-content:center;font-size:22px;">🔒</div>
+          <div>
+            <h2 style="font-size:19px;font-weight:800;margin:0;color:var(--text-main);">Akses Khusus Admin</h2>
+            <p style="font-size:12px;color:var(--text-mut);margin:2px 0 0;">Bank Soal, Laporan &amp; Sinkronisasi</p>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-close-admin-auth" style="padding:4px 10px;font-size:14px;">✕</button>
+      </div>
+
+      <p style="font-size:13px;color:var(--text-mut);line-height:1.5;margin-bottom:16px;">
+        Menu ini dilindungi kredensial administrator kejuaraan. Silakan masukkan username dan password admin untuk melanjutkan.
+      </p>
+
+      <div id="admin-auth-error" style="display:none;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:14px;align-items:center;gap:8px;">
+        <span>⚠️</span>
+        <span id="admin-auth-error-msg">Username atau password salah!</span>
+      </div>
+
+      <form id="form-admin-auth" onsubmit="return false;" style="display:grid;gap:14px;">
+        <div>
+          <label style="font-size:12.5px;font-weight:700;color:var(--text-mut);display:block;margin-bottom:6px;">Username Admin</label>
+          <input type="text" id="admin-auth-user" class="input-field" placeholder="Masukkan username (admin)" autocomplete="username" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:12.5px;font-weight:700;color:var(--text-mut);display:block;margin-bottom:6px;">Password Admin</label>
+          <div style="position:relative;display:flex;align-items:center;">
+            <input type="password" id="admin-auth-pass" class="input-field" placeholder="Masukkan password (spensa123)" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding-right:42px;">
+            <button type="button" id="btn-toggle-auth-pass" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;color:var(--text-mut);font-size:16px;padding:4px 6px;" title="Lihat/Sembunyikan password">👁️</button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+          <button type="button" class="btn btn-ghost" id="btn-cancel-admin-auth">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-admin-auth" style="font-weight:700;padding:10px 20px;">Masuk Admin ➔</button>
+        </div>
+      </form>
     </div>
   </div>
 

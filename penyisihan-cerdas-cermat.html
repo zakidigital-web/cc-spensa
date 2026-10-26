@@ -107,7 +107,24 @@ td input{padding:5px 8px}
 <link rel="stylesheet" href="/css/unified-stage.css">
 <script>
 window.addEventListener('message', e => {
-  if (e.data && e.data.theme) document.documentElement.setAttribute('data-theme', e.data.theme);
+  if (!e.data) return;
+  if (e.data.theme) document.documentElement.setAttribute('data-theme', e.data.theme);
+  if (e.data.type === 'ADMIN_AUTH_STATE') {
+    if (e.data.authenticated) {
+      try { sessionStorage.setItem('cc_admin_auth', '1'); localStorage.setItem('cc_admin_auth', '1'); } catch(x) {}
+    } else {
+      try { sessionStorage.removeItem('cc_admin_auth'); localStorage.removeItem('cc_admin_auth'); } catch(x) {}
+      if (typeof view !== 'undefined' && view === 'bank') go('setup');
+    }
+  } else if (e.data.type === 'ADMIN_LOGOUT') {
+    try { sessionStorage.removeItem('cc_admin_auth'); localStorage.removeItem('cc_admin_auth'); } catch(x) {}
+    if (typeof view !== 'undefined' && view === 'bank') go('setup');
+  }
+});
+window.addEventListener('storage', e => {
+  if (e.key === 'cc_admin_auth' && e.newValue !== '1' && typeof view !== 'undefined' && view === 'bank') {
+    go('setup');
+  }
 });
 try {
   const t = localStorage.getItem('portal_theme');
@@ -255,8 +272,89 @@ const buildQI=()=>{QI={};bank.soal[S.cfg.jenjang].forEach(s=>QI[s.id]=s)};
 /* ===== kelompok & gelombang ===== */
 function getTim(j){cfg.tim=cfg.tim||{};let a=(cfg.tim[j]||[]).slice(0,cfg.nTim);for(let i=a.length;i<cfg.nTim;i++)a.push(j+(LET[i]||('-'+(i+1))));cfg.tim[j]=a;return a}
 function gels(j){const t=getTim(j),r=[];for(let i=0;i<t.length;i+=3)r.push(t.slice(i,i+3));return r}
-/* ===== router ===== */
-function go(v){view=v;render()}
+/* ===== router & admin auth ===== */
+function isAdmin(){
+  try {
+    return sessionStorage.getItem('cc_admin_auth') === '1' || localStorage.getItem('cc_admin_auth') === '1';
+  } catch(e) { return false; }
+}
+
+function promptAdminLogin(onSuccess){
+  const existing = $('#admin_auth_modal');
+  if (existing) existing.remove();
+  const d = document.createElement('div');
+  d.className = 'modal';
+  d.id = 'admin_auth_modal';
+  d.innerHTML = `<div class="mbox" style="max-width:420px;width:100%;text-align:left;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <span style="font-size:26px;">🔒</span>
+      <div>
+        <h2 style="margin:0;font-size:18px;">Akses Khusus Admin</h2>
+        <p class="sub" style="margin:2px 0 0;font-size:12px;">Kredensial Bank Soal &amp; Pengaturan</p>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--mut);line-height:1.5;margin-bottom:14px;">
+      Pengelolaan bank soal hanya dapat diakses oleh administrator resmi. Masukkan kredensial admin:
+    </p>
+    <div id="auth_err" style="display:none;background:rgba(239,68,68,0.2);border:1px solid #ef4444;color:#fca5a5;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;">
+      ⚠️ Username atau password salah!
+    </div>
+    <form id="auth_form" onsubmit="return false;" style="display:grid;gap:10px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--mut);">Username Admin</label>
+        <input type="text" id="auth_u" placeholder="admin" style="width:100%;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--mut);">Password Admin</label>
+        <input type="password" id="auth_p" placeholder="spensa123" style="width:100%;box-sizing:border-box;">
+      </div>
+      <div class="row" style="margin-top:12px;justify-content:flex-end;">
+        <button type="button" class="ghost" id="auth_cancel">Batal</button>
+        <button type="submit" class="pri" id="auth_submit" style="font-weight:700;">Masuk Admin ➔</button>
+      </div>
+    </form>
+  </div>`;
+  document.body.appendChild(d);
+  const u = $('#auth_u'), p = $('#auth_p'), err = $('#auth_err'), form = $('#auth_form');
+  setTimeout(() => u && u.focus(), 60);
+
+  const doSubmit = () => {
+    const user = (u.value || '').trim().toLowerCase();
+    const pass = p.value || '';
+    if (user === 'admin' && pass === 'spensa123') {
+      try {
+        sessionStorage.setItem('cc_admin_auth', '1');
+        localStorage.setItem('cc_admin_auth', '1');
+      } catch(e) {}
+      try {
+        if (window.top && window.top !== window.self) {
+          window.top.postMessage({ type: 'ADMIN_AUTH_SUCCESS' }, '*');
+        }
+      } catch(e) {}
+      d.remove();
+      if (typeof onSuccess === 'function') onSuccess();
+    } else {
+      err.style.display = 'block';
+      p.value = '';
+      p.focus();
+    }
+  };
+
+  form.addEventListener('submit', (e) => { e.preventDefault(); doSubmit(); });
+  $('#auth_cancel').addEventListener('click', () => d.remove());
+  d.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') d.remove();
+  });
+}
+
+function go(v){
+  if (v === 'bank' && !isAdmin()) {
+    promptAdminLogin(() => { view = 'bank'; render(); });
+    return;
+  }
+  view = v;
+  render();
+}
 function render(){
   const a=$('#app');
   if(view==='setup')a.innerHTML=vSetup();
@@ -520,7 +618,12 @@ function download(name,text,type){const a=document.createElement('a');a.href=URL
 let bf={j:9,m:''};
 function vBank(){
   const list=bank.soal[bf.j].filter(s=>!bf.m||s.mapel===bf.m);
-  return `<div class="scroll"><div class="wrap"><div class="row" style="justify-content:space-between"><h1>📚 Bank Soal</h1><button data-act="tosetup">← Kembali ke Setup</button></div>
+  return `<div class="scroll"><div class="wrap"><div class="row" style="justify-content:space-between"><h1>📚 Bank Soal</h1>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button data-act="adminlogout" class="ghost" style="color:var(--dng);border-color:rgba(239,68,68,0.4);" title="Keluar dari sesi Admin">🔒 Keluar Admin</button>
+      <button data-act="tosetup">← Kembali ke Setup</button>
+    </div>
+  </div>
   <div class="card"><h2>Ringkasan jumlah soal</h2><div style="overflow:auto"><table><tr><th>Mapel</th><th>Kuota/Bobot</th>${[7,8,9].map(j=>`<th>Kelas ${j}</th>`).join('')}</tr>
   ${bank.mapel.map(m=>`<tr><td>${esc(m.n)}</td><td>${m.k}</td>${[7,8,9].map(j=>{const a=avail(j,m.n);return `<td class="${a<m.k?'red':'grn'}">${a}</td>`}).join('')}</tr>`).join('')}
   <tr><th>Total</th><th></th>${[7,8,9].map(j=>`<th>${bank.soal[j].length}</th>`).join('')}</tr></table></div></div>
@@ -586,7 +689,19 @@ const acts={
   jen(d){readSetup();cfg.jenjang=+d.j;cfg.gel=0;saveCfg();render()},
   gel(d){readSetup();cfg.gel=+d.gi;saveCfg();render()},
   start(){startGame()},
-  tobank(){readSetup();bf.j=cfg.jenjang;go('bank')},
+  tobank(){readSetup();bf.j=cfg.jenjang;if(!isAdmin()){promptAdminLogin(()=>{go('bank');});}else{go('bank');}},
+  adminlogout(){
+    try {
+      sessionStorage.removeItem('cc_admin_auth');
+      localStorage.removeItem('cc_admin_auth');
+    } catch(e) {}
+    try {
+      if (window.top && window.top !== window.self) {
+        window.top.postMessage({ type: 'ADMIN_LOGOUT' }, '*');
+      }
+    } catch(e) {}
+    go('setup');
+  },
   toboard(){if(view==='setup')readSetup();bj2=(S&&S.phase==='result')?S.cfg.jenjang:cfg.jenjang;go('board')},
   bj2(d){bj2=+d.j;render()},
   csvboard(){csvBoard()},

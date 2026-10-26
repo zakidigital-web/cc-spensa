@@ -11,7 +11,17 @@ async function run() {
   });
 
   console.log('1. Loading penyisihan-cerdas-cermat.html...');
-  await page.goto('http://localhost:3000/penyisihan-cerdas-cermat.html', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:3000/penyisihan-cerdas-cermat.html', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(500);
+
+  // Ensure bank questions exist
+  await page.evaluate(() => {
+    if (!window.bank || !window.bank.soal || !window.bank.soal[9] || window.bank.soal[9].length === 0) {
+      if (typeof window.loadSample === 'function') {
+        window.loadSample();
+      }
+    }
+  });
 
   // 2. Set wSoal to 0 in Setup
   console.log('2. Setting Waktu per Soal input to 0 in Setup screen...');

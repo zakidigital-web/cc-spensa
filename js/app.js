@@ -32,6 +32,8 @@
       }
 
       this.updateHeaderInfo(cfg);
+      this.bindAdminAuth();
+      this.updateAdminAuthUI();
       this.bindNavigation();
       this.bindBankSoal();
       this.bindLaporan();
@@ -68,7 +70,12 @@
       // Handle hash routing if loaded with #stage
       const initialHash = (window.location.hash || '').replace('#', '').trim();
       if (initialHash && ['penyisihan', 'semifinal', 'final', 'bank', 'laporan', 'hub'].includes(initialHash)) {
-        this.switchView(initialHash);
+        if ((initialHash === 'bank' || initialHash === 'laporan') && !this.isAdminLoggedIn()) {
+          this.switchView('hub');
+          this.switchView(initialHash);
+        } else {
+          this.switchView(initialHash);
+        }
       } else {
         this.switchView('hub');
       }
@@ -143,6 +150,24 @@
     },
 
     switchView(viewName) {
+      if ((viewName === 'bank' || viewName === 'laporan') && !this.isAdminLoggedIn()) {
+        const prevView = (currentView && !['bank', 'laporan'].includes(currentView)) ? currentView : 'hub';
+        this.promptAdminLogin({
+          onSuccess: () => {
+            this.switchView(viewName);
+          },
+          onCancel: () => {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+              btn.classList.toggle('active', btn.dataset.view === prevView);
+            });
+            if (window.location.hash.replace('#', '') !== prevView) {
+              history.replaceState(null, '', `#${prevView}`);
+            }
+          }
+        });
+        return;
+      }
+
       currentView = viewName;
 
       // Update Nav Buttons
@@ -295,6 +320,227 @@
       });
     },
 
+    // ─── ADMIN AUTHENTICATION & ACCESS CONTROL ─────────────
+    isAdminLoggedIn() {
+      try {
+        return sessionStorage.getItem('cc_admin_auth') === '1' || localStorage.getItem('cc_admin_auth') === '1';
+      } catch (e) {
+        return false;
+      }
+    },
+
+    updateAdminAuthUI() {
+      const isAuth = this.isAdminLoggedIn();
+      const badge = document.getElementById('admin-session-badge');
+      const loginBtn = document.getElementById('btn-admin-login');
+      if (badge) badge.style.display = isAuth ? 'inline-flex' : 'none';
+      if (loginBtn) loginBtn.style.display = isAuth ? 'none' : 'inline-flex';
+    },
+
+    broadcastAdminAuth(isAuthenticated) {
+      ['frame-penyisihan', 'frame-semifinal', 'frame-final'].forEach(id => {
+        const frame = document.getElementById(id);
+        if (frame && frame.contentWindow) {
+          try {
+            frame.contentWindow.postMessage({
+              type: 'ADMIN_AUTH_STATE',
+              authenticated: isAuthenticated
+            }, '*');
+          } catch (e) {}
+        }
+      });
+    },
+
+    promptAdminLogin(options = {}) {
+      const modal = document.getElementById('admin-auth-modal');
+      const userInput = document.getElementById('admin-auth-user');
+      const passInput = document.getElementById('admin-auth-pass');
+      const errEl = document.getElementById('admin-auth-error');
+      if (!modal) return;
+
+      if (errEl) errEl.style.display = 'none';
+      if (userInput) userInput.value = '';
+      if (passInput) {
+        passInput.value = '';
+        passInput.type = 'password';
+      }
+
+      modal.classList.add('active');
+      setTimeout(() => {
+        if (userInput) userInput.focus();
+      }, 100);
+
+      this._adminAuthCallbacks = options;
+    },
+
+    closeAdminLoginModal(success = false) {
+      const modal = document.getElementById('admin-auth-modal');
+      if (modal) modal.classList.remove('active');
+
+      const cb = this._adminAuthCallbacks;
+      this._adminAuthCallbacks = null;
+
+      if (success) {
+        if (cb && typeof cb.onSuccess === 'function') {
+          cb.onSuccess();
+        }
+      } else {
+        if (cb && typeof cb.onCancel === 'function') {
+          cb.onCancel();
+        }
+      }
+    },
+
+    submitAdminLogin() {
+      const userInput = document.getElementById('admin-auth-user');
+      const passInput = document.getElementById('admin-auth-pass');
+      const errEl = document.getElementById('admin-auth-error');
+      const errMsg = document.getElementById('admin-auth-error-msg');
+
+      const user = (userInput ? userInput.value : '').trim().toLowerCase();
+      const pass = (passInput ? passInput.value : '');
+
+      if (user === 'admin' && pass === 'spensa123') {
+        try {
+          sessionStorage.setItem('cc_admin_auth', '1');
+          localStorage.setItem('cc_admin_auth', '1');
+        } catch (e) {}
+
+        this.updateAdminAuthUI();
+        this.broadcastAdminAuth(true);
+        this.showToast('✅ Berhasil masuk sebagai Administrator!');
+        this.closeAdminLoginModal(true);
+      } else {
+        if (errEl) {
+          errEl.style.display = 'flex';
+          if (errMsg) errMsg.textContent = 'Username atau password admin salah!';
+        }
+        if (passInput) {
+          passInput.value = '';
+          passInput.focus();
+        }
+        if (window.SoundFX) {
+          try { window.SoundFX.playBuzzerBad(); } catch(e) {}
+        }
+      }
+    },
+
+    adminLogout() {
+      try {
+        sessionStorage.removeItem('cc_admin_auth');
+        localStorage.removeItem('cc_admin_auth');
+      } catch (e) {}
+
+      this.updateAdminAuthUI();
+      this.broadcastAdminAuth(false);
+      this.showToast('🔒 Sesi Admin telah keluar');
+
+      if (currentView === 'bank' || currentView === 'laporan') {
+        this.switchView('hub');
+      }
+    },
+
+    bindAdminAuth() {
+      const self = this;
+      const btnLogin = document.getElementById('btn-admin-login');
+      const btnLogout = document.getElementById('btn-admin-logout');
+      const btnClose = document.getElementById('btn-close-admin-auth');
+      const btnCancel = document.getElementById('btn-cancel-admin-auth');
+      const formAuth = document.getElementById('form-admin-auth');
+      const btnSubmit = document.getElementById('btn-submit-admin-auth');
+      const btnTogglePass = document.getElementById('btn-toggle-auth-pass');
+      const passInput = document.getElementById('admin-auth-pass');
+
+      if (btnLogin) {
+        btnLogin.addEventListener('click', () => {
+          self.promptAdminLogin();
+        });
+      }
+
+      if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+          self.adminLogout();
+        });
+      }
+
+      if (btnClose) {
+        btnClose.addEventListener('click', () => {
+          self.closeAdminLoginModal(false);
+        });
+      }
+
+      if (btnCancel) {
+        btnCancel.addEventListener('click', () => {
+          self.closeAdminLoginModal(false);
+        });
+      }
+
+      if (formAuth) {
+        formAuth.addEventListener('submit', (e) => {
+          e.preventDefault();
+          self.submitAdminLogin();
+        });
+      }
+
+      if (btnSubmit) {
+        btnSubmit.addEventListener('click', (e) => {
+          e.preventDefault();
+          self.submitAdminLogin();
+        });
+      }
+
+      if (btnTogglePass && passInput) {
+        btnTogglePass.addEventListener('click', () => {
+          if (passInput.type === 'password') {
+            passInput.type = 'text';
+            btnTogglePass.textContent = '🙈';
+          } else {
+            passInput.type = 'password';
+            btnTogglePass.textContent = '👁️';
+          }
+        });
+      }
+
+      const modalAuth = document.getElementById('admin-auth-modal');
+      if (modalAuth) {
+        modalAuth.addEventListener('click', (e) => {
+          if (e.target === modalAuth) {
+            self.closeAdminLoginModal(false);
+          }
+        });
+      }
+
+      // Sync auth status with stage iframes and other tabs
+      window.addEventListener('message', (e) => {
+        if (!e.data) return;
+        if (e.data.type === 'ADMIN_AUTH_SUCCESS') {
+          try {
+            sessionStorage.setItem('cc_admin_auth', '1');
+            localStorage.setItem('cc_admin_auth', '1');
+          } catch(err) {}
+          self.updateAdminAuthUI();
+        } else if (e.data.type === 'ADMIN_LOGOUT') {
+          try {
+            sessionStorage.removeItem('cc_admin_auth');
+            localStorage.removeItem('cc_admin_auth');
+          } catch(err) {}
+          self.updateAdminAuthUI();
+          if (currentView === 'bank' || currentView === 'laporan') {
+            self.switchView('hub');
+          }
+        }
+      });
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'cc_admin_auth') {
+          self.updateAdminAuthUI();
+          if (!self.isAdminLoggedIn() && (currentView === 'bank' || currentView === 'laporan')) {
+            self.switchView('hub');
+          }
+        }
+      });
+    },
+
     // ─── KEYBOARD SHORTCUTS MODAL ─────────────────────────
     bindShortcuts() {
       const modal = document.getElementById('shortcuts-modal');
@@ -386,6 +632,15 @@
       const btnSyncCloud = document.getElementById('btn-sync-cloud');
       if (btnSyncCloud) {
         btnSyncCloud.addEventListener('click', async () => {
+          if (!self.isAdminLoggedIn()) {
+            self.promptAdminLogin({
+              onSuccess: () => {
+                btnSyncCloud.click();
+              }
+            });
+            return;
+          }
+
           const iconEl = document.getElementById('btn-sync-cloud-icon');
           const textEl = document.getElementById('btn-sync-cloud-text');
           btnSyncCloud.disabled = true;
@@ -644,6 +899,10 @@
       const btnDeleteSelected = document.getElementById('btn-delete-selected');
       if (btnDeleteSelected) {
         btnDeleteSelected.addEventListener('click', () => {
+          if (!self.isAdminLoggedIn()) {
+            self.promptAdminLogin({ onSuccess: () => btnDeleteSelected.click() });
+            return;
+          }
           if (selectedQuestionIds.size === 0) return;
           const count = selectedQuestionIds.size;
           const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
@@ -669,6 +928,10 @@
       const btnDeleteAll = document.getElementById('btn-delete-all');
       if (btnDeleteAll) {
         btnDeleteAll.addEventListener('click', async () => {
+          if (!self.isAdminLoggedIn()) {
+            self.promptAdminLogin({ onSuccess: () => btnDeleteAll.click() });
+            return;
+          }
           if (activeBankStage === 'penyisihan') {
             const counts = await window.DocxEngine.getPenyisihanJenjangCounts();
             const countCurrent = counts[activeJenjang] || 0;
@@ -786,6 +1049,10 @@
       const btnRestoreDefault = document.getElementById('btn-restore-default');
       if (btnRestoreDefault) {
         btnRestoreDefault.addEventListener('click', async () => {
+          if (!self.isAdminLoggedIn()) {
+            self.promptAdminLogin({ onSuccess: () => btnRestoreDefault.click() });
+            return;
+          }
           if (activeBankStage === 'penyisihan') {
             self.openCustomDeleteModal({
               icon: '🔄',
@@ -854,6 +1121,10 @@
       const btnAddQuestion = document.getElementById('btn-add-question');
       if (btnAddQuestion) {
         btnAddQuestion.addEventListener('click', () => {
+          if (!self.isAdminLoggedIn()) {
+            self.promptAdminLogin({ onSuccess: () => btnAddQuestion.click() });
+            return;
+          }
           self.openAddQuestionModal();
         });
       }
@@ -882,6 +1153,10 @@
           }
 
           if (btnDel) {
+            if (!self.isAdminLoggedIn()) {
+              self.promptAdminLogin();
+              return;
+            }
             const id = btnDel.dataset.id;
             const q = allQuestionsCache.find(x => String(x.id) === String(id));
             const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
@@ -905,6 +1180,10 @@
           }
 
           if (btnEdit) {
+            if (!self.isAdminLoggedIn()) {
+              self.promptAdminLogin();
+              return;
+            }
             const id = btnEdit.dataset.id;
             const q = allQuestionsCache.find(x => String(x.id) === String(id));
             if (q) self.openEditQuestionModal(q);

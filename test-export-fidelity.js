@@ -200,6 +200,11 @@ async function runTest() {
 
     // Step 6: Test UI Export Button Modal
     console.log('6. Testing UI Export Button in Portal...');
+    // Ensure admin authenticated
+    await page.evaluate(() => {
+      sessionStorage.setItem('cc_admin_auth', '1');
+      localStorage.setItem('cc_admin_auth', '1');
+    });
     await page.click('button.nav-btn[data-view="bank"]');
     await page.waitForTimeout(500);
 

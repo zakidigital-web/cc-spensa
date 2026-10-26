@@ -1653,5 +1653,35 @@ html.is-fullscreen .ifp-fullscreen-controls:hover {
   border-color: #cbd5e1;
 }
 
+/* ════════════ ADMIN AUTHENTICATION STYLES ════════════ */
+.admin-auth-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1.5px solid rgba(59, 130, 246, 0.4);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+[data-theme="light"] #admin-session-badge {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.3);
+  color: #1e3a8a;
+}
+[data-theme="light"] #admin-auth-modal .glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] #admin-auth-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #b91c1c;
+}
+
+
 
 
