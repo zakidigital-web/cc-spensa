@@ -115,7 +115,7 @@
             </select>
           </div>
           <div style="font-size:13px;color:var(--gold);font-weight:700;">
-            Waktu Soal: ${S.cfg.wSoal || 30}s · Poin Benar: +${S.cfg.poin || 2}
+            Waktu Soal: ${(S.cfg.wSoal > 0 ? (S.cfg.wSoal + 's') : 'Tanpa Batas (Disabled)')} · Poin Benar: +${S.cfg.poin || 2}
           </div>
         </div>
 
@@ -227,8 +227,9 @@
               <input type="number" id="set_p_anak" class="input-field" value="${S.cfg.anak || 10}" min="1">
             </div>
             <div>
-              <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Waktu per Soal (Detik)</label>
-              <input type="number" id="set_p_wsoal" class="input-field" value="${S.cfg.wSoal || 30}" min="5">
+              <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Waktu per Soal (Detik, 0 = Nonaktif)</label>
+              <input type="number" id="set_p_wsoal" class="input-field" value="${S.cfg.wSoal ?? 30}" min="0" placeholder="0 = tanpa batas">
+              <small style="color:var(--text-dim);font-size:11px;">Isi 0 untuk disable batas waktu per soal</small>
             </div>
             <div>
               <label style="font-size:13px;color:var(--text-mut);display:block;margin-bottom:4px;">Timer Global (Menit)</label>
@@ -258,7 +259,8 @@
         S.cfg.jenjang = +document.getElementById('set_p_jenjang').value;
         S.cfg.nTim = +document.getElementById('set_p_ntim').value;
         S.cfg.anak = +document.getElementById('set_p_anak').value;
-        S.cfg.wSoal = +document.getElementById('set_p_wsoal').value;
+        const rawWSoal = document.getElementById('set_p_wsoal').value;
+        S.cfg.wSoal = rawWSoal === '' ? 30 : Math.max(0, +rawWSoal || 0);
         S.cfg.gMenit = +document.getElementById('set_p_gmenit').value;
         S.cfg.poin = +document.getElementById('set_p_poin').value;
 

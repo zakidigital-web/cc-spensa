@@ -250,7 +250,7 @@ function vSetup(){
   <div class="card"><h2>2. Pengaturan Permainan</h2><div class="grid4">
    <div><label>Mode soal</label><select id="mode"><option value="batas" ${!loop?'selected':''}>Terbatas (sesuai bobot mapel)</option><option value="loop" ${loop?'selected':''}>Tanpa batas (berulang sampai timer global habis)</option></select></div>
    <div><label>Anak per kelompok (giliran)</label><input id="anak" type="number" min="1" value="${cfg.anak}"></div>
-   <div><label>Waktu per soal (detik)</label><input id="wSoal" type="number" min="5" value="${cfg.wSoal}"></div>
+   <div><label>Waktu per soal (detik, 0 = nonaktif)</label><input id="wSoal" type="number" min="0" value="${cfg.wSoal}" placeholder="0 = tanpa batas"><small style="color:var(--mut);font-size:11px;display:block;margin-top:2px">Isi 0 untuk disable batas waktu per soal</small></div>
    <div><label>Timer global (menit)</label><input id="gMenit" type="number" min="1" value="${cfg.gMenit}"></div>
    <div><label>Poin per jawaban benar</label><input id="poin" type="number" min="1" value="${cfg.poin}"></div>
    <div><label>Penalti jawaban salah</label><input id="penalti" type="number" min="0" value="${cfg.penalti}"></div>
@@ -276,7 +276,10 @@ function readSetup(){
   document.querySelectorAll('[data-tn]').forEach(e=>{const i=+e.dataset.tn;cfg.tim[j][i]=e.value.trim()||(j+(LET[i]||('-'+(i+1))))});
   const n=id=>Math.max(0,+$('#'+id).value||0);
   cfg.nTim=Math.min(26,Math.max(1,n('nTim')||1));
-  cfg.anak=n('anak')||1;cfg.wSoal=n('wSoal')||30;cfg.gMenit=n('gMenit')||30;cfg.poin=n('poin')||1;cfg.penalti=n('penalti');
+  cfg.anak=n('anak')||1;
+  const wsInp=$('#wSoal');
+  cfg.wSoal=(wsInp&&wsInp.value.trim()!=='')?Math.max(0,+wsInp.value||0):30;
+  cfg.gMenit=n('gMenit')||30;cfg.poin=n('poin')||1;cfg.penalti=n('penalti');
   cfg.pin=$('#pin').value.trim();cfg.kunci=$('#kunci').value==='1';cfg.label=$('#label').value==='1';cfg.mode=$('#mode').value;cfg.fontSize=$('#fontSize')?$('#fontSize').value:(cfg.fontSize||'auto');
   document.querySelectorAll('[data-mn]').forEach(e=>{const i=+e.dataset.mn,old=bank.mapel[i].n,nw=e.value.trim()||old;
     if(nw!==old){[7,8,9].forEach(x=>bank.soal[x].forEach(s=>{if(s.mapel===old)s.mapel=nw}));bank.mapel[i].n=nw}});
@@ -324,7 +327,8 @@ function startGame(){
     if(kurang.length&&!confirm('Soal kurang pada mapel: '+kurang.map(m=>m.n).join(', ')+'.\nSebagian kelompok mendapat soal lebih sedikit/sama. Lanjutkan?'))return;
     lists=alokasi(j,n)}
   S={phase:'ready',cfg:JSON.parse(JSON.stringify(cfg)),total:cfg.gMenit*60000,gLeft:cfg.gMenit*60000,paused:false,
-    groups:names.map((nm,i)=>({nama:nm,qs:lists[i].map(x=>mkQ(x,1)),cyc:1,i:0,ans:[],turn:0,tLeft:cfg.wSoal*1000,done:false,sel:null,lock:false}))};
+    groups:names.map((nm,i)=>({nama:nm,qs:lists[i].map(x=>mkQ(x,1)),cyc:1,i:0,ans:[],turn:0,tLeft:cfg.wSoal>0?cfg.wSoal*1000:0,done:false,sel:null,lock:false}))};
+  window.S=S;
   buildQI();view='play';render();countdown()}
 function countdown(){
   let n=3;const d=document.createElement('div');d.id='cd';d.textContent=n;document.body.appendChild(d);
@@ -335,14 +339,18 @@ function onTick(){
   const now=Date.now(),dt=now-lastT;lastT=now;
   if(S.paused)return;
   S.gLeft-=dt;
-  S.groups.forEach((g,i)=>{if(g.done||g.lock)return;g.tLeft-=dt;if(g.tLeft<=0)advance(i,-1)});
+  S.groups.forEach((g,i)=>{if(g.done||g.lock)return;if(S.cfg.wSoal>0){g.tLeft-=dt;if(g.tLeft<=0)advance(i,-1)}});
   if(S.gLeft<=0){S.gLeft=0;finishAll();return}
   updTimers();
   if(now%5000<250)saveSess()}
 function updTimers(){
   const gt=$('#gt');if(!gt)return;gt.textContent=mmss(S.gLeft);gt.classList.toggle('low',S.gLeft<60000);
   S.groups.forEach((g,i)=>{const t=$('#tm'+i),b=$('#bar'+i);if(!t||!b||g.done)return;
-    t.textContent=mmss(g.tLeft);b.style.width=Math.max(0,g.tLeft/(S.cfg.wSoal*1000)*100)+'%';b.classList.toggle('low',g.tLeft<=5000)})}
+    if(S.cfg.wSoal>0){
+      t.textContent=mmss(g.tLeft);b.style.width=Math.max(0,g.tLeft/(S.cfg.wSoal*1000)*100)+'%';b.classList.toggle('low',g.tLeft<=5000);
+    }else{
+      t.textContent='∞ Bebas';b.style.width='100%';b.classList.remove('low');
+    }})}
 /* ===== PLAY ===== */
 function getQuestionTier(q){
   if(cfg.fontSize && cfg.fontSize !== 'auto') return cfg.fontSize;
@@ -388,8 +396,8 @@ function renderCol(i){
   const e=g.qs[g.i],q=QI[e.id],c=S.cfg,loop=c.mode==='loop';
   const tier=getQuestionTier(q);
   el.innerHTML=`<div class="ch"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%">${esc(g.nama)}</span><small>Soal ${g.i+1}${loop?'':' / '+g.qs.length}</small></div>
-   <div class="tb"><i id="bar${i}" style="width:${Math.max(0,g.tLeft/(c.wSoal*1000)*100)}%"></i></div>
-   <div class="turn"><span>👤 Giliran: Anak ke-${g.turn+1}</span><span id="tm${i}">${mmss(g.tLeft)}</span></div>
+   <div class="tb" style="${c.wSoal<=0?'display:none':''}"><i id="bar${i}" style="width:${c.wSoal>0?Math.max(0,g.tLeft/(c.wSoal*1000)*100):100}%"></i></div>
+   <div class="turn"><span>👤 Giliran: Anak ke-${g.turn+1}</span><span id="tm${i}">${c.wSoal>0?mmss(g.tLeft):'∞ Bebas'}</span></div>
    <div class="qa tier-${tier}">${c.label?`<span class="badge">${esc(q.mapel)}</span>`:''}
     ${q.img?`<img class="qimg" src="${q.img}">`:''}
     <div class="qt">${fmt(q.q)}</div>
@@ -403,7 +411,7 @@ function pick(i,o){
 function lockAns(i){const g=S.groups[i];if(g.done||g.lock||g.sel==null||S.paused)return;g.lock=true;renderCol(i);setTimeout(()=>advance(i,g.sel),300)}
 function advance(i,ans){
   const g=S.groups[i];if(g.done||S.phase!=='play')return;
-  g.ans[g.i]=ans;g.i++;g.turn=(g.turn+1)%S.cfg.anak;g.sel=null;g.lock=false;g.tLeft=S.cfg.wSoal*1000;
+  g.ans[g.i]=ans;g.i++;g.turn=(g.turn+1)%S.cfg.anak;g.sel=null;g.lock=false;g.tLeft=S.cfg.wSoal>0?S.cfg.wSoal*1000:0;
   if(g.i>=g.qs.length){
     if(S.cfg.mode==='loop'){ // putaran baru: semua soal diacak ulang, tanpa ulang di dalam putaran
       g.cyc++;siklus(S.cfg.jenjang,i,S.groups.length,g.qs[g.qs.length-1].id).forEach(x=>g.qs.push(mkQ(x,g.cyc)))}
@@ -436,6 +444,13 @@ function openPanel(){
       <option value="md" ${fs==='md'?'selected':''}>Sedang (Seimbang)</option>
       <option value="sm" ${fs==='sm'?'selected':''}>Kecil / Ringkas</option>
     </select>
+  </div>
+  <div style="background:#0a1530;padding:10px 14px;border-radius:12px;border:1px solid #284b9a;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-weight:600;font-size:14px">Waktu per Soal:</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="number" id="p_wsoal" min="0" value="${S.cfg.wSoal}" style="width:75px;padding:4px 8px;font-size:13px;text-align:center" onchange="const v=Math.max(0,+this.value||0);S.cfg.wSoal=v;cfg.wSoal=v;saveCfg();S.groups.forEach(g=>g.tLeft=v>0?v*1000:0);updTimers();S.groups.forEach((_,i)=>renderCol(i))">
+      <span style="font-size:12px;color:var(--mut)">detik (0 = nonaktif)</span>
+    </div>
   </div>
   <button class="pri" data-act="presume">▶ Lanjutkan permainan</button>
   <button data-act="plus">⏱ Tambah 1 menit timer global</button>
