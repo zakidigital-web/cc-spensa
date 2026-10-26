@@ -171,8 +171,12 @@ const SAMPLE=`0|Rukun Islam yang pertama adalah ...|Syahadat|Salat|Zakat|Puasa|0
 10|Mengolah limbah plastik menjadi barang berguna disebut ...|daur ulang|membuang|membakar|menimbun|0
 10|Bahasa Jawa "matur nuwun" artinya ...|terima kasih|selamat pagi|maaf|permisi|0`;
 function loadSample(){
-  [7,8,9].forEach(j=>{bank.soal[j]=bank.soal[j].filter(s=>!s.sample);
-    SAMPLE.split('\n').forEach((ln,i)=>{const p=ln.split('|');bank.soal[j].push({id:'s'+j+'-'+i,sample:1,mapel:bank.mapel[+p[0]].n,q:p[1],o:p.slice(2,6),k:+p[6],img:null})})});
+  [7,8,9].forEach(j=>{
+    localStorage.removeItem('cc_cleared_penyisihan_'+j);
+    bank.soal[j]=bank.soal[j].filter(s=>!s.sample);
+    SAMPLE.split('\n').forEach((ln,i)=>{const p=ln.split('|');bank.soal[j].push({id:'s'+j+'-'+i,sample:1,mapel:bank.mapel[+p[0]].n,q:p[1],o:p.slice(2,6),k:+p[6],img:null})})
+  });
+  localStorage.removeItem('cc_cleared_penyisihan');
   saveBank()}
 const saveBank=()=>kvSet('bank',bank);
 const saveCfg=()=>kvSet('cfg',cfg);
@@ -485,7 +489,17 @@ const acts={
       render();
     }
   },
-  clearj(){if(confirm('Hapus SEMUA soal kelas '+bf.j+'?')){bank.soal[bf.j]=[];saveBank();render()}}
+  clearj(){
+    if(confirm('Hapus SEMUA soal kelas '+bf.j+'?')){
+      bank.soal[bf.j]=[];
+      localStorage.setItem('cc_cleared_penyisihan_'+bf.j,'true');
+      saveBank();
+      render();
+      if(window.top && window.top !== window.self){
+        try{ window.top.postMessage({type:'PENYISIHAN_BANK_CLEARED', jenjang: bf.j},'*'); }catch(e){}
+      }
+    }
+  }
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&acts[b.dataset.act])acts[b.dataset.act](b.dataset,e)});
 document.addEventListener('change',e=>{
@@ -516,7 +530,15 @@ document.addEventListener('contextmenu',e=>{if(view==='play')e.preventDefault()}
   const c=await kvGet('cfg');if(c)cfg=Object.assign(cfg,c);
   const k=await kvGet('skor');if(k)skorAll=Object.assign({7:{},8:{},9:{}},k);
   const s=await kvGet('sess');if(s&&s.phase==='play'&&s.groups&&s.groups[0]&&s.groups[0].qs&&s.groups[0].qs[0]&&s.groups[0].qs[0].perm)S=s;
-  if(!bank.soal[7].length&&!bank.soal[8].length&&!bank.soal[9].length){loadSample()}
+  const wasCleared = (localStorage.getItem('cc_cleared_penyisihan_7') === 'true') ||
+                     (localStorage.getItem('cc_cleared_penyisihan_8') === 'true') ||
+                     (localStorage.getItem('cc_cleared_penyisihan_9') === 'true') ||
+                     (localStorage.getItem('cc_cleared_penyisihan') === 'true') ||
+                     (localStorage.getItem('cc_init_penyisihan') === 'true');
+  if(!b && !wasCleared && !bank.soal[7].length&&!bank.soal[8].length&&!bank.soal[9].length){
+    loadSample();
+  }
+  localStorage.setItem('cc_init_penyisihan', 'true');
   render()})();
 </script>
 </body>

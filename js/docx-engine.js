@@ -139,11 +139,18 @@
     async getPenyisihanJenjangCounts() {
       const b = await kvGetLegacy('bank');
       const counts = { 7: 0, 8: 0, 9: 0 };
-      if (b && b.soal) {
-        counts[7] = Array.isArray(b.soal[7]) ? b.soal[7].length : 0;
-        counts[8] = Array.isArray(b.soal[8]) ? b.soal[8].length : 0;
-        counts[9] = Array.isArray(b.soal[9]) ? b.soal[9].length : 0;
-      }
+      const defaultLen = (window.DEFAULT_BANKS && window.DEFAULT_BANKS.penyisihan) ? window.DEFAULT_BANKS.penyisihan.length : 44;
+      [7, 8, 9].forEach(j => {
+        const isCleared = (localStorage.getItem(`cc_cleared_penyisihan_${j}`) === 'true') ||
+                          (localStorage.getItem('cc_cleared_penyisihan') === 'true');
+        if (b && b.soal && Array.isArray(b.soal[j])) {
+          counts[j] = b.soal[j].length;
+        } else if (!isCleared) {
+          counts[j] = defaultLen;
+        } else {
+          counts[j] = 0;
+        }
+      });
       return counts;
     },
 
@@ -151,7 +158,8 @@
       let list = [];
       const j = parseInt(jenjang, 10) || 7;
       const clearKey = (stage === 'penyisihan') ? `cc_cleared_${stage}_${j}` : `cc_cleared_${stage}`;
-      const isExplicitlyCleared = localStorage.getItem(clearKey) === 'true';
+      const isExplicitlyCleared = (localStorage.getItem(clearKey) === 'true') ||
+                                  (stage === 'penyisihan' && localStorage.getItem('cc_cleared_penyisihan') === 'true');
 
       if (stage === 'penyisihan') {
         const b = await kvGetLegacy('bank');
@@ -205,8 +213,16 @@
       const clearKey = (stage === 'penyisihan') ? `cc_cleared_${stage}_${j}` : `cc_cleared_${stage}`;
       if (questions.length === 0) {
         localStorage.setItem(clearKey, 'true');
+        if (stage === 'penyisihan') {
+          localStorage.setItem('cc_init_penyisihan', 'true');
+        } else if (stage === 'semifinal') {
+          localStorage.setItem('cc_init_semifinal', 'true');
+        }
       } else {
         localStorage.removeItem(clearKey);
+        if (stage === 'penyisihan') {
+          localStorage.removeItem('cc_cleared_penyisihan');
+        }
       }
 
       if (stage === 'penyisihan') {
@@ -267,8 +283,39 @@
       return this.saveStageQuestions(stage, questions, jenjang);
     },
 
-    async clearStageQuestions(stage, jenjang = 7) {
+    async clearStageQuestions(stage, jenjang = 7, clearAllJenjang = false) {
+      if (stage === 'penyisihan' && clearAllJenjang) {
+        localStorage.setItem('cc_cleared_penyisihan_7', 'true');
+        localStorage.setItem('cc_cleared_penyisihan_8', 'true');
+        localStorage.setItem('cc_cleared_penyisihan_9', 'true');
+        localStorage.setItem('cc_cleared_penyisihan', 'true');
+        localStorage.setItem('cc_init_penyisihan', 'true');
+
+        let b = (await kvGetLegacy('bank')) || { mapel: [], soal: { 7: [], 8: [], 9: [] } };
+        b.soal = { 7: [], 8: [], 9: [] };
+        await kvSetLegacy('bank', b);
+
+        if (window.PortalStorage) {
+          await window.PortalStorage.saveStageBank('penyisihan_7', []);
+          await window.PortalStorage.saveStageBank('penyisihan_8', []);
+          await window.PortalStorage.saveStageBank('penyisihan_9', []);
+          await window.PortalStorage.saveStageBank('penyisihan', []);
+        }
+
+        const frame = document.getElementById('frame-penyisihan');
+        if (frame && frame.contentWindow) {
+          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
+        }
+        return [];
+      }
       return this.saveStageQuestions(stage, [], jenjang);
+    },
+
+    async clearAllStages() {
+      await this.clearStageQuestions('penyisihan', 7, true);
+      await this.clearStageQuestions('semifinal');
+      await this.clearStageQuestions('final');
+      return true;
     },
 
     async updateStageQuestion(stage, qId, updatedData, jenjang = 7) {
@@ -297,10 +344,30 @@
       return this.saveStageQuestions(stage, questions, jenjang);
     },
 
-    async restoreDefaultStageQuestions(stage, jenjang = 7) {
+    async restoreDefaultStageQuestions(stage, jenjang = 7, restoreAllJenjang = false) {
+      if (stage === 'penyisihan' && restoreAllJenjang) {
+        localStorage.removeItem('cc_cleared_penyisihan_7');
+        localStorage.removeItem('cc_cleared_penyisihan_8');
+        localStorage.removeItem('cc_cleared_penyisihan_9');
+        localStorage.removeItem('cc_cleared_penyisihan');
+        const defaults = (window.DEFAULT_BANKS && window.DEFAULT_BANKS.penyisihan) || [];
+        for (let j of [7, 8, 9]) {
+          const cloned = JSON.parse(JSON.stringify(defaults)).map((q, idx) => {
+            q.jenjang = j;
+            q.id = `p_${j}_${idx + 1}`;
+            return q;
+          });
+          await this.saveStageQuestions('penyisihan', cloned, j);
+        }
+        return true;
+      }
+
       const j = parseInt(jenjang, 10) || 7;
       const clearKey = (stage === 'penyisihan') ? `cc_cleared_${stage}_${j}` : `cc_cleared_${stage}`;
       localStorage.removeItem(clearKey);
+      if (stage === 'penyisihan') {
+        localStorage.removeItem('cc_cleared_penyisihan');
+      }
       const defaults = (window.DEFAULT_BANKS && window.DEFAULT_BANKS[stage]) || [];
       let cloned = JSON.parse(JSON.stringify(defaults));
       if (stage === 'penyisihan') {

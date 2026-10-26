@@ -191,8 +191,16 @@
     // ─── STAGE-SPECIFIC QUESTION BANKS ─────────────────────────
     async getStageBank(stage) {
       const key = `bank_${stage}`;
+      const clearKey = `cc_cleared_${stage}`;
       let bank = await get(key);
-      if (!bank || !Array.isArray(bank) || bank.length === 0) {
+      const isCleared = (localStorage.getItem(clearKey) === 'true') ||
+                        (stage === 'penyisihan' && (
+                          localStorage.getItem('cc_cleared_penyisihan_7') === 'true' ||
+                          localStorage.getItem('cc_cleared_penyisihan_8') === 'true' ||
+                          localStorage.getItem('cc_cleared_penyisihan_9') === 'true' ||
+                          localStorage.getItem('cc_cleared_penyisihan') === 'true'
+                        ));
+      if ((!bank || !Array.isArray(bank) || bank.length === 0) && !isCleared) {
         if (window.DEFAULT_BANKS && window.DEFAULT_BANKS[stage]) {
           bank = JSON.parse(JSON.stringify(window.DEFAULT_BANKS[stage]));
           await set(key, bank);
@@ -200,9 +208,14 @@
           bank = [];
         }
       }
-      return bank;
+      return bank || [];
     },
     async saveStageBank(stage, questions) {
+      if (questions && questions.length === 0) {
+        localStorage.setItem(`cc_cleared_${stage}`, 'true');
+      } else if (questions && questions.length > 0) {
+        localStorage.removeItem(`cc_cleared_${stage}`);
+      }
       cloudSyncPost('/api/banks', { stage, questions });
       return set(`bank_${stage}`, questions);
     },

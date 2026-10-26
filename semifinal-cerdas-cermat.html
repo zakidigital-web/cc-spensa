@@ -226,6 +226,7 @@ const SPG2=[['Nilai $x$ dari persamaan $3x-5=16$ adalah ...','7','6','8','9'],['
 const SES=[['Sebutkan bunyi sila ke-4 Pancasila.','Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan.'],['Sebutkan bahan dan hasil fotosintesis.','Bahan: karbon dioksida, air, dan cahaya matahari. Hasil: glukosa dan oksigen.'],['Hitunglah $\\frac{3}{4}+\\frac{5}{6}$.','$\\frac{19}{12}$ atau $1\\frac{7}{12}$'],['Sebutkan tiga contoh sumber energi terbarukan.','Contoh: matahari, angin, air, panas bumi, biomassa (sebut 3).'],['Terjemahkan ke bahasa Inggris: "Saya sedang membaca buku di perpustakaan."','I am reading a book in the library.'],['Sebutkan tiga contoh perangkat input komputer.','Contoh: keyboard, mouse, scanner, mikrofon, webcam (sebut 3).'],['Apa pengertian gotong royong? Berikan satu contohnya.','Bekerja sama secara sukarela untuk kepentingan bersama. Contoh: kerja bakti membersihkan lingkungan.'],['Sebutkan tiga teknik dasar permainan bola basket.','Dribbling (menggiring), passing (mengoper), shooting (menembak), (juga: pivot, rebound).'],['Sebutkan ibu kota Jepang, Korea Selatan, dan Thailand.','Tokyo, Seoul, Bangkok.']];
 const SCAD=[['Hasil dari $25 \\times 4$ adalah ...','100'],['Planet tempat tinggal manusia adalah ...','Bumi'],['Mata uang negara Jepang adalah ...','Yen']];
 function loadSample(){
+  localStorage.removeItem('cc_cleared_semifinal');
   bank.soal=bank.soal.filter(s=>!s.sample);let n=0;const id=()=>'sm'+(n++);
   SBS.forEach(x=>bank.soal.push({id:id(),sample:1,tipe:'BS',q:x[0],o:['Benar','Salah'],key:x[1]?0:1,ans:'',img:null}));
   SPG1.forEach(x=>bank.soal.push({id:id(),sample:1,tipe:'PG1',q:x[0],o:x.slice(1,5),key:0,ans:'',img:null}));
@@ -586,7 +587,17 @@ const acts={
       render();
     }
   },
-  clearall(){if(confirm('Hapus SEMUA soal di bank?')){bank.soal=[];saveBank();render()}}
+  clearall(){
+    if(confirm('Hapus SEMUA soal di bank?')){
+      bank.soal=[];
+      localStorage.setItem('cc_cleared_semifinal','true');
+      saveBank();
+      render();
+      if(window.top && window.top !== window.self){
+        try{ window.top.postMessage({type:'SEMIFINAL_BANK_CLEARED'},'*'); }catch(e){}
+      }
+    }
+  }
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&acts[b.dataset.act])acts[b.dataset.act](b.dataset,e)});
 document.addEventListener('change',e=>{
@@ -621,7 +632,12 @@ document.addEventListener('contextmenu',e=>{if(view==='game')e.preventDefault()}
   const b=await kvGet('bank3');if(b&&b.soal)bank=b;
   const c=await kvGet('cfg3');if(c)cfg=Object.assign(cfg,c);ensureTim();
   const g=await kvGet('game3');if(g&&g.phase&&g.teams)G=g;
-  if(!bank.soal.length)loadSample();
+  const wasCleared = (localStorage.getItem('cc_cleared_semifinal') === 'true') ||
+                     (localStorage.getItem('cc_init_semifinal') === 'true');
+  if(!b && !wasCleared && !bank.soal.length){
+    loadSample();
+  }
+  localStorage.setItem('cc_init_semifinal', 'true');
   render()})();
 </script>
 </body>

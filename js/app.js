@@ -285,6 +285,11 @@
           if (window.PortalStorage) {
             window.PortalStorage.getSemifinalState();
           }
+        } else if (e.data.type === 'PENYISIHAN_BANK_CLEARED' || e.data.type === 'SEMIFINAL_BANK_CLEARED') {
+          this.updateJenjangCountsUI();
+          if (currentView === 'bank') {
+            this.renderBankList();
+          }
         }
       });
     },
@@ -506,45 +511,179 @@
 
       const btnDeleteAll = document.getElementById('btn-delete-all');
       if (btnDeleteAll) {
-        btnDeleteAll.addEventListener('click', () => {
-          const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
-          self.openConfirmDeleteModal({
-            title: `⚠️ Hapus SEMUA Soal ${stageDesc}`,
-            message: `PERINGATAN: Seluruh soal di Bank Soal Babak ${stageDesc} akan dihapus. Anda dapat memulihkan soal bawaan kapan saja dengan menekan tombol <strong>'Pulihkan Soal Bawaan'</strong>. Lanjutkan?`,
-            onConfirm: async () => {
-              try {
-                await window.DocxEngine.clearStageQuestions(activeBankStage, activeJenjang);
-                selectedQuestionIds.clear();
-                await self.renderBankList();
-                self.updateJenjangCountsUI();
-                self.showToast(`⚠️ Seluruh soal Bank ${stageDesc} telah dikosongkan!`, 'warning');
-              } catch (err) {
-                alert('Gagal mengosongkan bank soal: ' + err.message);
-              }
-            }
-          });
+        btnDeleteAll.addEventListener('click', async () => {
+          if (activeBankStage === 'penyisihan') {
+            const counts = await window.DocxEngine.getPenyisihanJenjangCounts();
+            const countCurrent = counts[activeJenjang] || 0;
+            const countTotal = (counts[7] || 0) + (counts[8] || 0) + (counts[9] || 0);
+
+            self.openCustomDeleteModal({
+              icon: '⚠️',
+              title: 'Hapus Bank Soal Babak Penyisihan',
+              message: `Pilih cakupan penghapusan soal untuk Babak Penyisihan:<br>
+                <div style="margin-top:10px;text-align:left;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;">
+                  • <strong>Kelas ${activeJenjang} saja:</strong> Menghapus ${countCurrent} soal pada Kelas ${activeJenjang}.<br>
+                  • <strong>SEMUA Kelas (7, 8, & 9):</strong> Menghapus seluruh ${countTotal} soal di babak Penyisihan.<br>
+                  • <strong>Semua Babak:</strong> Mengosongkan seluruh bank soal (Penyisihan, Semifinal, Final).
+                </div>`,
+              buttons: [
+                {
+                  text: `🗑️ Hapus Kelas ${activeJenjang} Saja (${countCurrent} Soal)`,
+                  class: 'btn-danger-soft',
+                  id: 'btn-confirm-del-action',
+                  style: 'padding:10px 16px;font-weight:800;border-radius:10px;',
+                  action: async () => {
+                    await window.DocxEngine.clearStageQuestions('penyisihan', activeJenjang, false);
+                    selectedQuestionIds.clear();
+                    await self.renderBankList();
+                    self.updateJenjangCountsUI();
+                    self.showToast(`⚠️ Soal Penyisihan Kelas ${activeJenjang} telah dikosongkan!`, 'warning');
+                  }
+                },
+                {
+                  text: `💥 Hapus SEMUA Kelas 7, 8 & 9 (${countTotal} Soal)`,
+                  class: 'btn-danger',
+                  id: 'btn-del-all-classes',
+                  style: 'background:var(--bad);color:#fff;font-weight:900;border:none;padding:11px 18px;border-radius:10px;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,0.35);',
+                  action: async () => {
+                    await window.DocxEngine.clearStageQuestions('penyisihan', activeJenjang, true);
+                    selectedQuestionIds.clear();
+                    await self.renderBankList();
+                    self.updateJenjangCountsUI();
+                    self.showToast('💥 Seluruh soal Penyisihan (Kelas 7, 8, dan 9) telah dikosongkan!', 'warning');
+                  }
+                },
+                {
+                  text: '🌐 Kosongkan Seluruh Bank Soal Semua Babak',
+                  class: 'btn-ghost',
+                  id: 'btn-del-all-stages',
+                  style: 'color:var(--bad);font-weight:700;font-size:12.5px;padding:6px 12px;',
+                  action: async () => {
+                    await window.DocxEngine.clearAllStages();
+                    selectedQuestionIds.clear();
+                    await self.renderBankList();
+                    self.updateJenjangCountsUI();
+                    self.showToast('⚠️ Seluruh Bank Soal Semua Babak telah dikosongkan!', 'warning');
+                  }
+                },
+                {
+                  text: 'Batal',
+                  class: 'btn-ghost',
+                  id: 'btn-cancel-del',
+                  style: 'padding:8px 18px;',
+                  action: () => {}
+                }
+              ]
+            });
+          } else {
+            const stageName = activeBankStage === 'semifinal' ? 'Semifinal' : 'Grand Final';
+            const questions = await window.DocxEngine.getStageQuestions(activeBankStage);
+            const count = questions.length;
+
+            self.openCustomDeleteModal({
+              icon: '⚠️',
+              title: `Hapus SEMUA Soal Babak ${stageName}`,
+              message: `PERINGATAN: Seluruh <strong>${count} soal</strong> di Bank Soal Babak ${stageName} akan dihapus secara permanen. Anda dapat memulihkan soal standar kapan saja melalui tombol 'Pulihkan Soal Bawaan'.`,
+              buttons: [
+                {
+                  text: `🗑️ Ya, Hapus SEMUA Soal ${stageName} (${count})`,
+                  class: 'btn-danger',
+                  id: 'btn-confirm-del-action',
+                  style: 'background:var(--bad);color:#fff;font-weight:800;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;',
+                  action: async () => {
+                    await window.DocxEngine.clearStageQuestions(activeBankStage, activeJenjang);
+                    selectedQuestionIds.clear();
+                    await self.renderBankList();
+                    self.updateJenjangCountsUI();
+                    self.showToast(`⚠️ Seluruh soal Babak ${stageName} telah dikosongkan!`, 'warning');
+                  }
+                },
+                {
+                  text: '🌐 Kosongkan Seluruh Bank Soal Semua Babak',
+                  class: 'btn-ghost',
+                  style: 'color:var(--bad);font-weight:700;font-size:12.5px;',
+                  action: async () => {
+                    await window.DocxEngine.clearAllStages();
+                    selectedQuestionIds.clear();
+                    await self.renderBankList();
+                    self.updateJenjangCountsUI();
+                    self.showToast('⚠️ Seluruh Bank Soal Semua Babak telah dikosongkan!', 'warning');
+                  }
+                },
+                {
+                  text: 'Batal',
+                  class: 'btn-ghost',
+                  id: 'btn-cancel-del',
+                  style: 'padding:8px 18px;',
+                  action: () => {}
+                }
+              ]
+            });
+          }
         });
       }
 
       const btnRestoreDefault = document.getElementById('btn-restore-default');
       if (btnRestoreDefault) {
-        btnRestoreDefault.addEventListener('click', () => {
-          const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
-          self.openConfirmDeleteModal({
-            title: '🔄 Pulihkan Soal Bawaan',
-            message: `Bank Soal Babak ${stageDesc} akan diisi kembali dengan daftar soal standar bawaan awal. Lanjutkan?`,
-            onConfirm: async () => {
-              try {
+        btnRestoreDefault.addEventListener('click', async () => {
+          if (activeBankStage === 'penyisihan') {
+            self.openCustomDeleteModal({
+              icon: '🔄',
+              title: 'Pulihkan Soal Bawaan Babak Penyisihan',
+              message: `Pilih cakupan pemulihan soal standar untuk Babak Penyisihan:<br>
+                <div style="margin-top:10px;text-align:left;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;">
+                  • <strong>Kelas ${activeJenjang} saja:</strong> Memulihkan 44 soal standar bawaan ke Kelas ${activeJenjang}.<br>
+                  • <strong>SEMUA Kelas (7, 8, & 9):</strong> Memulihkan soal standar ke Kelas 7, 8, dan 9 sekaligus.
+                </div>`,
+              buttons: [
+                {
+                  text: `🔄 Pulihkan Kelas ${activeJenjang} Saja`,
+                  class: 'btn-primary',
+                  id: 'btn-confirm-del-action',
+                  style: 'padding:10px 18px;font-weight:800;border-radius:10px;',
+                  action: async () => {
+                    await window.DocxEngine.restoreDefaultStageQuestions('penyisihan', activeJenjang, false);
+                    selectedQuestionIds.clear();
+                    await self.renderBankList();
+                    self.updateJenjangCountsUI();
+                    self.showToast(`✅ Soal standar Penyisihan Kelas ${activeJenjang} berhasil dipulihkan!`);
+                  }
+                },
+                {
+                  text: `✨ Pulihkan SEMUA Kelas (7, 8 & 9)`,
+                  class: 'btn-gold',
+                  style: 'padding:10px 18px;font-weight:900;border-radius:10px;box-shadow:0 4px 14px rgba(245,158,11,0.3);',
+                  action: async () => {
+                    await window.DocxEngine.restoreDefaultStageQuestions('penyisihan', activeJenjang, true);
+                    selectedQuestionIds.clear();
+                    await self.renderBankList();
+                    self.updateJenjangCountsUI();
+                    self.showToast('✅ Soal standar Penyisihan untuk Kelas 7, 8, dan 9 berhasil dipulihkan!');
+                  }
+                },
+                {
+                  text: 'Batal',
+                  class: 'btn-ghost',
+                  id: 'btn-cancel-del',
+                  style: 'padding:8px 18px;',
+                  action: () => {}
+                }
+              ]
+            });
+          } else {
+            const stageName = activeBankStage === 'semifinal' ? 'Semifinal' : 'Grand Final';
+            self.openConfirmDeleteModal({
+              title: `🔄 Pulihkan Soal Bawaan ${stageName}`,
+              message: `Bank Soal Babak ${stageName} akan diisi kembali dengan daftar soal standar bawaan awal. Lanjutkan?`,
+              onConfirm: async () => {
                 await window.DocxEngine.restoreDefaultStageQuestions(activeBankStage, activeJenjang);
                 selectedQuestionIds.clear();
                 await self.renderBankList();
                 self.updateJenjangCountsUI();
-                self.showToast(`✅ Soal standar ${stageDesc} berhasil dipulihkan!`);
-              } catch (err) {
-                alert('Gagal memulihkan soal: ' + err.message);
+                self.showToast(`✅ Soal standar Babak ${stageName} berhasil dipulihkan!`);
               }
-            }
-          });
+            });
+          }
         });
       }
 
@@ -1268,15 +1407,66 @@
       modal.classList.add('active');
     },
 
-    openConfirmDeleteModal({ title, message, onConfirm }) {
+    openCustomDeleteModal({ icon, title, message, buttons = [] }) {
       const modal = document.getElementById('modal-confirm-delete');
       if (!modal) return;
 
-      document.getElementById('modal-del-title').innerHTML = title || 'Konfirmasi Hapus';
-      document.getElementById('modal-del-msg').innerHTML = message || 'Apakah Anda yakin ingin menghapus data ini?';
-      pendingDelAction = onConfirm;
+      const iconEl = document.getElementById('modal-del-icon');
+      if (iconEl) iconEl.textContent = icon || '⚠️';
+      const titleEl = document.getElementById('modal-del-title');
+      if (titleEl) titleEl.innerHTML = title || 'Konfirmasi';
+      const msgEl = document.getElementById('modal-del-msg');
+      if (msgEl) msgEl.innerHTML = message || '';
+
+      const actionsWrap = document.getElementById('modal-del-actions');
+      if (actionsWrap) {
+        actionsWrap.innerHTML = '';
+        buttons.forEach(btnConfig => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `btn ${btnConfig.class || 'btn-ghost'}`;
+          if (btnConfig.id) btn.id = btnConfig.id;
+          if (btnConfig.style) btn.style.cssText += btnConfig.style;
+          btn.innerHTML = btnConfig.text;
+          btn.addEventListener('click', async () => {
+            modal.classList.remove('active');
+            if (typeof btnConfig.action === 'function') {
+              try {
+                await btnConfig.action();
+              } catch (err) {
+                alert('Terjadi kesalahan: ' + err.message);
+              }
+            }
+          });
+          actionsWrap.appendChild(btn);
+        });
+      }
 
       modal.classList.add('active');
+    },
+
+    openConfirmDeleteModal({ title, message, onConfirm }) {
+      this.openCustomDeleteModal({
+        icon: '⚠️',
+        title: title || 'Konfirmasi Hapus',
+        message: message || 'Apakah Anda yakin ingin menghapus data ini?',
+        buttons: [
+          {
+            text: 'Ya, Hapus Sekarang',
+            class: 'btn-danger',
+            id: 'btn-confirm-del-action',
+            style: 'background:var(--bad);color:#fff;font-weight:800;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;',
+            action: onConfirm
+          },
+          {
+            text: 'Batal',
+            class: 'btn-ghost',
+            id: 'btn-cancel-del',
+            style: 'padding:8px 18px;',
+            action: () => {}
+          }
+        ]
+      });
     },
 
     populateCategorySelectOptions(stage, selectedCategory = '') {
