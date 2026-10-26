@@ -200,89 +200,64 @@ async function buildPenyisihanTemplate() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// 2. TEMPLATE BABAK SEMIFINAL (SEMUA MODEL SOAL 5 BABAK)
+// 2. TEMPLATE KHUSUS SOAL BENAR / SALAH (TRUE / FALSE - 4 KOLOM)
 // ══════════════════════════════════════════════════════════════
-async function buildSemifinalTemplate() {
+async function buildBenarSalahTemplate() {
   const notes = [
-    "Format tabel 9 kolom: No, Jenis Soal, Pertanyaan & Gambar, Pilihan A, B, C, D, Kunci Pilihan, dan Kunci Esai Juri.",
-    "Kolom 'Jenis Soal' WAJIB diisi dengan kode standar:",
-    "  • BS    : Soal Benar / Salah (Babak 1, +100 poin, salah -50, durasi 20 detik)",
-    "  • PG150 : Pilihan Ganda Sedang (Babak 2, +150 poin, salah -75, durasi 30 detik)",
-    "  • PG200 : Pilihan Ganda Sukar / Hitungan (Babak 3, +200 poin, salah -100, durasi 45 detik)",
-    "  • ES    : Soal Esai Rebutan (Babak 4, +100 s.d. +300 poin, juri memverifikasi uraian, durasi 90 detik)",
-    "  • CAD   : Soal Cadangan (Digunakan sewaktu-waktu saat tie-break atau anulir soal)",
-    "Untuk tipe BS: Kolom Kunci diisi 'B' (Benar) atau 'S' (Salah). Pilihan A & B otomatis Benar/Salah.",
-    "Untuk tipe PG150 & PG200: Isi opsi A, B, C, D dan kolom Kunci diisi A, B, C, atau D.",
-    "Untuk tipe ES & CAD: Tuliskan jawaban lengkap pada kolom 'Kunci Jawaban Esai (Juri)' sebagai pegangan dewan juri."
+    "Format tabel 4 kolom bersih & standar: No, Pernyataan / Soal & Gambar, Kunci (B / S), dan Keterangan / Pembahasan.",
+    "Kolom 'Kunci (B / S)': Cukup tulis huruf 'B' (jika pernyataan Benar) atau 'S' (jika pernyataan Salah). Boleh juga ditulis 'Benar' atau 'Salah'.",
+    "Mendukung Rumus Matematika LaTeX: Tulis rumus di dalam tanda dollar $...$, contoh: $15 \\times 4 = 60$, $\\frac{1}{2} > \\frac{1}{4}$, $\\sqrt{144} = 12$.",
+    "Mendukung Gambar Ilustrasi: Silakan salin (copy-paste) atau sisipkan gambar langsung ke dalam sel kolom 'Pernyataan / Soal'.",
+    "Kolom 'Keterangan / Pembahasan' bersifat opsional untuk catatan alasan juri atau penjelasan kepada peserta.",
+    "File template ini dapat diimpor secara langsung ke Bank Soal Babak Semifinal tanpa perlu kolom pilihan ganda tambahan."
   ];
 
   const models = [
-    "Model BS-1: Benar/Salah Sains & Fakta Alamiah (Contoh: Paus termasuk mamalia)",
-    "Model BS-2: Benar/Salah Hitungan Matematika Cepat (Contoh: 12 x 8 = 96)",
-    "Model BS-3: Benar/Salah Sejarah & Kenegaraan (Contoh: Proklamasi 17 Agustus 1945)",
-    "Model PG150: Pilihan Ganda Sedang Berbobot 150 Poin (Opsi A, B, C, D)",
-    "Model PG200: Pilihan Ganda Sukar Berbobot 200 Poin (Hitungan Rumus / Logika Kompleks)",
-    "Model ES-1: Soal Uraian / Isian Singkat Rebutan (Kunci padat jelas untuk Dewan Juri)",
-    "Model ES-2: Soal Uraian Sebutkan / Klasifikasi (Dilengkapi rubrik poin jawaban juri)",
-    "Model CAD: Soal Cadangan Siaga Rebutan (Sebagai bantalan darurat panggung)"
+    "Model BS-1: Benar/Salah Sains & Fakta Alamiah (Contoh: Paus termasuk mamalia, Gas terbanyak adalah Nitrogen)",
+    "Model BS-2: Benar/Salah Numerasi & Perhitungan Matematika (Contoh: Kelipatan 4 adalah genap, Rata-rata 5 bilangan)",
+    "Model BS-3: Benar/Salah Logika Geometri & Bangun Datar (Contoh: Persegi adalah persegi panjang)",
+    "Model BS-4: Benar/Salah Sejarah, Kenegaraan & Pengetahuan Umum (Contoh: Zona waktu Indonesia, Pendirian ASEAN)",
+    "Model BS-5: Benar/Salah Silogisme & Logika Bahasa (Contoh: Pernyataan implikasi sebab-akibat)"
   ];
 
   const headerRows = [
     new TableRow({
       children: [
-        hCell("No", 5),
-        hCell("Jenis Soal", 11),
-        hCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 34),
-        hCell("Pilihan A", 9),
-        hCell("Pilihan B", 9),
-        hCell("Pilihan C", 9),
-        hCell("Pilihan D", 9),
-        hCell("Kunci", 5),
-        hCell("Kunci Jawaban Esai (Juri)", 18)
+        hCell("No", 8),
+        hCell("Pernyataan / Soal & Gambar (Rumus LaTeX $...$)", 52),
+        hCell("Kunci (B / S)", 14),
+        hCell("Keterangan / Pembahasan (Opsional)", 26)
       ]
     })
   ];
 
-  const sampleData = [
-    // Model BS: Benar / Salah (Babak 1)
-    ["1", "BS", "Matahari terbit dari arah timur dan tenggelam di sebelah barat.", "Benar", "Salah", "-", "-", "B", ""],
-    ["2", "BS", "Paus dan lumba-lumba tergolong hewan mamalia yang bernapas dengan paru-paru.", "Benar", "Salah", "-", "-", "B", ""],
-    ["3", "BS", "Hasil perhitungan dari $15 \\times 4$ adalah 55.", "Benar", "Salah", "-", "-", "S", ""],
-    ["4", "BS", "Candi Prambanan merupakan candi peninggalan kebudayaan bercorak Buddha terbesar di dunia.", "Benar", "Salah", "-", "-", "S", ""],
-    ["5", "BS", "Kandungan gas terbanyak yang menyusun atmosfer bumi adalah gas Nitrogen.", "Benar", "Salah", "-", "-", "B", ""],
-
-    // Model PG150: Pilihan Ganda I (Babak 2)
-    ["6", "PG150", "Ibu kota dari Provinsi Kalimantan Timur saat ini adalah ...", "Samarinda", "Balikpapan", "Bontang", "Tarakan", "A", ""],
-    ["7", "PG150", "Planet terdekat dari Matahari dalam sistem tata surya kita adalah ...", "Merkurius", "Venus", "Mars", "Bumi", "A", ""],
-    ["8", "PG150", "Tokoh proklamator yang menandatangani naskah teks Proklamasi Kemerdekaan RI adalah ...", "Soekarno dan Hatta", "Soepomo dan Yamin", "Sutan Sjahrir", "Ahmad Soebardjo", "A", ""],
-
-    // Model PG200: Pilihan Ganda II (Babak 3 - Sukar / Hitungan)
-    ["9", "PG200", "Sebuah tabung memiliki jari-jari $r = 7\\text{ cm}$ dan tinggi $t = 10\\text{ cm}$. Berapakah volumenya? ($\\pi = \\frac{22}{7}$)", "1.540 cm³", "770 cm³", "3.080 cm³", "154 cm³", "A", ""],
-    ["10", "PG200", "Hasil operasi hitung aljabar dari $(2x + 3)(x - 4)$ adalah ...", "$2x^2 - 5x - 12$", "$2x^2 + 5x - 12$", "$2x^2 - 11x - 12$", "$2x^2 - 5x + 12$", "A", ""],
-    ["11", "PG200", "Sebuah benda bermassa 4 kg bergerak dengan percepatan $5\\text{ m/s}^2$. Besar gaya yang bekerja adalah ... ($F = m \\cdot a$)", "20 Newton", "9 Newton", "1 Newton", "40 Newton", "A", ""],
-
-    // Model ES: Soal Esai Rebutan (Babak 4)
-    ["12", "ES", "Sebutkan rumusan lengkap teks sila kelima Pancasila!", "-", "-", "-", "-", "-", "Keadilan sosial bagi seluruh rakyat Indonesia."],
-    ["13", "ES", "Apakah nama zat cair penghubung yang membawa oksigen dan nutrisi ke seluruh sel tubuh manusia?", "-", "-", "-", "-", "-", "Darah (atau Sel Darah Merah / Hemoglobin)."],
-    ["14", "ES", "Sebutkan 3 komponen utama sistem komputer!", "-", "-", "-", "-", "-", "1. Perangkat Keras (Hardware), 2. Perangkat Lunak (Software), 3. Pengguna (Brainware)."],
-    ["15", "ES", "Berapakah hasil dari operasi akar kubik $\\sqrt[3]{1.000} + 5^2$?", "-", "-", "-", "-", "-", "35 (karena 10 + 25 = 35)."],
-
-    // Model CAD: Soal Cadangan Siaga
-    ["16", "CAD", "SOAL CADANGAN: Siapakah pencipta lagu kebangsaan Indonesia Raya?", "-", "-", "-", "-", "-", "Wage Rudolf Supratman (W.R. Supratman)."],
-    ["17", "CAD", "SOAL CADANGAN: Berapakah hasil dari $25 \\times 4 + 50$?", "-", "-", "-", "-", "-", "150."]
+  const sampleBS = [
+    ["1", "Indonesia memiliki tiga zona waktu, yaitu WIB, WITA, dan WIT.", "B", "Indonesia menggunakan tiga zona waktu resmi (WIB, WITA, WIT)."],
+    ["2", "Bilangan 1 merupakan bilangan prima karena hanya memiliki satu faktor positif.", "S", "Bilangan prima harus memiliki tepat dua faktor positif yang berbeda (1 dan dirinya sendiri)."],
+    ["3", "Jika suatu bilangan habis dibagi 4, bilangan tersebut pasti habis dibagi 2.", "B", "Setiap kelipatan 4 pasti merupakan bilangan genap / habis dibagi 2."],
+    ["4", "Tumbuhan menyerap oksigen dan melepaskan karbon dioksida sebagai satu-satunya proses pertukaran gas sepanjang hidupnya.", "S", "Tumbuhan juga melakukan fotosintesis (menyerap CO2 dan melepaskan O2 saat ada cahaya)."],
+    ["5", "Perubahan wujud dari gas menjadi cair disebut kondensasi atau pengembunan.", "B", "Kondensasi adalah proses fisis perubahan wujud uap gas menjadi cairan."],
+    ["6", "Candi Borobudur merupakan salah satu warisan budaya Indonesia yang bercorak Buddha.", "B", "Candi Borobudur dibangun pada abad ke-8 bercorak agama Buddha Mahayana."],
+    ["7", "Jika harga barang Rp80.000 naik 25%, harga akhirnya menjadi Rp100.000.", "B", "Besar kenaikan: 25% x Rp80.000 = Rp20.000. Harga akhir = Rp100.000."],
+    ["8", "Semua benda yang tenggelam di air memiliki massa lebih besar daripada semua benda yang mengapung, tanpa dipengaruhi ukuran dan volume benda.", "S", "Terapung atau tenggelam ditentukan oleh massa jenis (densitas relatif) dan gaya apung Archimedes, bukan semata-mata massa absolut."],
+    ["9", "Dalam rantai makanan, energi yang tersedia umumnya semakin berkurang pada tingkat trofik yang lebih tinggi.", "B", "Hukum termodinamika & efisiensi ekologi: terjadi kehilangan energi ~90% pada setiap perpindahan tingkat trofik."],
+    ["10", "Jika rata-rata lima bilangan adalah 12, jumlah kelima bilangan tersebut adalah 60.", "B", "Jumlah data = rata-rata x banyak data = 12 x 5 = 60."],
+    ["11", "Semua persegi merupakan persegi panjang, tetapi semua persegi panjang belum tentu merupakan persegi.", "B", "Persegi memenuhi seluruh definisi persegi panjang (keempat sudut siku-siku) dengan tambahan sifat khusus keempat sisinya sama panjang."],
+    ["12", "Bunyi dapat merambat melalui ruang hampa tanpa memerlukan medium perantara.", "S", "Bunyi merupakan gelombang mekanik yang mutlak membutuhkan medium materi (padat, cair, gas) untuk merambat."],
+    ["13", "Jika dua bilangan positif memiliki hasil kali 36, jumlah kedua bilangan tersebut pasti 13.", "S", "Contoh penyangkal: pasangan 6 dan 6 menghasilkan hasil kali 36 namun jumlahnya 12 (bukan 13)."],
+    ["14", "ASEAN didirikan pada 8 Agustus 1967 di Bangkok, Thailand.", "B", "Deklarasi Bangkok ditandatangani oleh 5 negara perintis pada 8 Agustus 1967."],
+    ["15", "Dalam demokrasi, hasil pemungutan suara selalu membuat semua orang memperoleh pilihan yang mereka inginkan.", "S", "Pemungutan suara menetapkan keputusan mayoritas, bukan pemenuhan seluruh keinginan individual."],
+    ["16", "Jika jarak pada peta semakin besar, jarak sebenarnya pasti semakin besar meskipun skala petanya berbeda.", "S", "Jarak sebenarnya berbanding terbalik dengan pembagi skala; skala yang berbeda dapat menghasilkan jarak sebenarnya yang berbeda arah."],
+    ["17", "Pada rangkaian listrik paralel, setiap cabang memiliki jalur aliran arus tersendiri.", "B", "Karakteristik rangkaian paralel: arus listrik total terbagi ke masing-masing cabang penghantar."],
+    ["18", "Jika suatu pernyataan berbunyi 'Semua peserta yang lolos adalah siswa kelas IX', maka dapat dipastikan bahwa semua siswa kelas IX lolos.", "S", "Pernyataan bernilai satu arah; tidak dapat dibalik karena siswa kelas IX yang tidak lolos bisa saja ada."]
   ];
 
-  const bodyRows = sampleData.map(row => new TableRow({
+  const bodyRows = sampleBS.map(row => new TableRow({
     children: [
-      bCell(row[0], 5, AlignmentType.CENTER),
-      bCell(row[1], 11, AlignmentType.CENTER, true),
-      bCell(row[2], 34),
-      bCell(row[3], 9),
-      bCell(row[4], 9),
-      bCell(row[5], 9),
-      bCell(row[6], 9),
-      bCell(row[7], 5, AlignmentType.CENTER, true),
-      bCell(row[8], 18, AlignmentType.LEFT, false, true)
+      bCell(row[0], 8, AlignmentType.CENTER),
+      bCell(row[1], 52),
+      bCell(row[2], 14, AlignmentType.CENTER, true),
+      bCell(row[3], 26, AlignmentType.LEFT, false, true)
     ]
   }));
 
@@ -291,8 +266,8 @@ async function buildSemifinalTemplate() {
       properties: {},
       children: [
         ...makeHeaderSection(
-          "TEMPLATE BANK SOAL BABAK SEMIFINAL",
-          "Kompetisi Papan Kotak Skor Multiround & Perebutan Nilai IFP",
+          "TEMPLATE BANK SOAL: BENAR / SALAH (TRUE / FALSE)",
+          "Format Standar Bersih 4 Kolom Khusus Soal Benar / Salah IFP",
           notes,
           models
         ),
@@ -305,7 +280,191 @@ async function buildSemifinalTemplate() {
   });
 
   const buffer = await Packer.toBuffer(doc);
+  fs.writeFileSync("./templates/Template_Soal_Benar_Salah.docx", buffer);
+  if (fs.existsSync("./soal")) {
+    fs.writeFileSync("./soal/Template_Soal_Benar_Salah.docx", buffer);
+  }
+  console.log("✓ Template Benar / Salah generated (bytes):", buffer.length);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 3. TEMPLATE BABAK SEMIFINAL (MULTI-TABEL RESMI: BS, PG, ESAI)
+// ══════════════════════════════════════════════════════════════
+async function buildSemifinalTemplate() {
+  const notes = [
+    "Template Semifinal Resmi ini menggunakan 3 tabel terpisah yang rapi dan terstruktur:",
+    "  1. TABEL 1 (BENAR / SALAH - 4 Kolom): No, Pernyataan & Gambar, Kunci (B/S), Pembahasan.",
+    "  2. TABEL 2 (PILIHAN GANDA - 8 Kolom): No, Kategori (PG150 / PG200), Pertanyaan, Opsi A, B, C, D, Kunci (A/B/C/D).",
+    "  3. TABEL 3 (ESAI REBUTAN & CADANGAN - 4 Kolom): No, Jenis (ES / CAD), Pertanyaan Rebutan, Kunci Jawaban Dewan Juri.",
+    "Format ini bebas dari kolom dummy '-' dan langsung dapat diedit dengan mudah oleh para guru / penyusun soal.",
+    "Sistem secara otomatis membaca seluruh tabel di dalam file dokumen ini sekaligus."
+  ];
+
+  const models = [
+    "Tabel 1: Soal Benar / Salah (Babak 1, +100 poin, salah -50, durasi 20 detik)",
+    "Tabel 2: Pilihan Ganda Sedang (Babak 2 - PG150, +150 poin, durasi 30 detik)",
+    "Tabel 2: Pilihan Ganda Sukar / Hitungan (Babak 3 - PG200, +200 poin, durasi 45 detik)",
+    "Tabel 3: Soal Esai Rebutan (Babak 4 - ES, +100 s.d. +300 poin dinilai juri, durasi 90 detik)",
+    "Tabel 3: Soal Cadangan Siaga (CAD, untuk tie-break atau anulir darurat panggung)"
+  ];
+
+  // ─── Table 1: Benar / Salah (4 Kolom) ───────────────
+  const t1Header = new TableRow({
+    children: [
+      hCell("No", 8),
+      hCell("Pernyataan / Soal & Gambar (Rumus LaTeX $...$)", 52),
+      hCell("Kunci (B / S)", 14),
+      hCell("Keterangan / Pembahasan (Opsional)", 26)
+    ]
+  });
+
+  const t1Data = [
+    ["1", "Indonesia memiliki tiga zona waktu, yaitu WIB, WITA, dan WIT.", "B", "Indonesia menggunakan tiga zona waktu resmi."],
+    ["2", "Bilangan 1 merupakan bilangan prima karena hanya memiliki satu faktor positif.", "S", "Bilangan prima memiliki tepat dua faktor positif."],
+    ["3", "Jika suatu bilangan habis dibagi 4, bilangan tersebut pasti habis dibagi 2.", "B", "Setiap kelipatan 4 pasti habis dibagi 2."],
+    ["4", "Tumbuhan menyerap oksigen dan melepaskan karbon dioksida sebagai satu-satunya proses pertukaran gas sepanjang hidupnya.", "S", "Tumbuhan juga melakukan fotosintesis."],
+    ["5", "Perubahan wujud dari gas menjadi cair disebut kondensasi atau pengembunan.", "B", "Kondensasi adalah perubahan wujud gas menjadi cair."],
+    ["6", "Candi Borobudur merupakan salah satu warisan budaya Indonesia yang bercorak Buddha.", "B", "Candi Borobudur bercorak Buddha Mahayana."],
+    ["7", "Jika harga barang Rp80.000 naik 25%, harga akhirnya menjadi Rp100.000.", "B", "25% x Rp80.000 = Rp20.000. Total = Rp100.000."],
+    ["8", "Semua benda yang tenggelam di air memiliki massa lebih besar daripada semua benda yang mengapung, tanpa dipengaruhi ukuran dan volume benda.", "S", "Ditentukan massa jenis dan gaya apung."],
+    ["9", "Dalam rantai makanan, energi yang tersedia umumnya semakin berkurang pada tingkat trofik yang lebih tinggi.", "B", "Terjadi penyusutan energi antartingkat trofik."],
+    ["10", "Jika rata-rata lima bilangan adalah 12, jumlah kelima bilangan tersebut adalah 60.", "B", "Jumlah = 5 x 12 = 60."],
+    ["11", "Semua persegi merupakan persegi panjang, tetapi semua persegi panjang belum tentu merupakan persegi.", "B", "Persegi memenuhi seluruh sifat persegi panjang."],
+    ["12", "Bunyi dapat merambat melalui ruang hampa tanpa medium.", "S", "Bunyi memerlukan medium untuk merambat."],
+    ["13", "Jika dua bilangan positif memiliki hasil kali 36, jumlah kedua bilangan tersebut pasti 13.", "S", "Contoh 6x6=36 menghasilkan jumlah 12."],
+    ["14", "ASEAN didirikan pada 8 Agustus 1967 di Bangkok, Thailand.", "B", "Deklarasi Bangkok, 8 Agustus 1967."],
+    ["15", "Dalam demokrasi, hasil pemungutan suara selalu membuat semua orang memperoleh pilihan yang mereka inginkan.", "S", "Keputusan diambil berdasarkan suara mayoritas."],
+    ["16", "Jika jarak pada peta semakin besar, jarak sebenarnya pasti semakin besar meskipun skala petanya berbeda.", "S", "Perlu memperhitungkan skala peta."],
+    ["17", "Pada rangkaian listrik paralel, setiap cabang memiliki jalur arus tersendiri.", "B", "Rangkaian paralel memiliki cabang arus."],
+    ["18", "Jika suatu pernyataan berbunyi 'Semua peserta yang lolos adalah siswa kelas IX', maka dapat dipastikan bahwa semua siswa kelas IX lolos.", "S", "Tidak berarti semua siswa kelas IX lolos."]
+  ];
+
+  const t1Rows = t1Data.map(r => new TableRow({
+    children: [
+      bCell(r[0], 8, AlignmentType.CENTER),
+      bCell(r[1], 52),
+      bCell(r[2], 14, AlignmentType.CENTER, true),
+      bCell(r[3], 26, AlignmentType.LEFT, false, true)
+    ]
+  }));
+
+  // ─── Table 2: Pilihan Ganda PG150 & PG200 (8 Kolom) ────────
+  const t2Header = new TableRow({
+    children: [
+      hCell("No", 5),
+      hCell("Kategori", 12),
+      hCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 39),
+      hCell("Pilihan A", 10),
+      hCell("Pilihan B", 10),
+      hCell("Pilihan C", 10),
+      hCell("Pilihan D", 10),
+      hCell("Kunci", 4)
+    ]
+  });
+
+  const t2Data = [
+    ["1", "PG150", "Negara yang dijuluki Negeri Matahari Terbit adalah ...", "Tiongkok", "Jepang", "Korea Selatan", "Thailand", "B"],
+    ["2", "PG150", "Hasil dari $125 : 5 + 7 \\times 3$ adalah ...", "32", "42", "46", "60", "C"],
+    ["3", "PG150", "Tokoh yang dikenal sebagai Proklamator Kemerdekaan Indonesia bersama Mohammad Hatta adalah ...", "Ki Hajar Dewantara", "Jenderal Sudirman", "Soekarno", "Soepomo", "C"],
+    ["4", "PG150", "Organ tubuh manusia yang berfungsi menyaring darah dan menghasilkan urine adalah ...", "Jantung", "Ginjal", "Paru-paru", "Lambung", "B"],
+    ["5", "PG150", "Benua terbesar di dunia berdasarkan luas wilayah adalah ...", "Afrika", "Eropa", "Amerika Utara", "Asia", "D"],
+    ["6", "PG150", "Sinonim kata cermat adalah ...", "Ceroboh", "Teliti", "Lambat", "Ragu-ragu", "B"],
+    ["7", "PG200", "Sebuah persegi panjang memiliki panjang 12 cm dan lebar 5 cm. Kelilingnya adalah ...", "17 cm", "30 cm", "34 cm", "60 cm", "C"],
+    ["8", "PG200", "Gas yang paling banyak terdapat di atmosfer Bumi adalah ...", "Oksigen", "Karbon dioksida", "Nitrogen", "Hidrogen", "C"],
+    ["9", "PG200", "Sebuah tabung memiliki jari-jari $r = 7\\text{ cm}$ dan tinggi $t = 10\\text{ cm}$. Berapakah volumenya? ($\\pi = \\frac{22}{7}$)", "1.540 cm³", "770 cm³", "3.080 cm³", "154 cm³", "A"],
+    ["10", "PG200", "Hasil operasi aljabar dari $(2x + 3)(x - 4)$ adalah ...", "$2x^2 - 5x - 12$", "$2x^2 + 5x - 12$", "$2x^2 - 11x - 12$", "$2x^2 - 5x + 12$", "A"]
+  ];
+
+  const t2Rows = t2Data.map(r => new TableRow({
+    children: [
+      bCell(r[0], 5, AlignmentType.CENTER),
+      bCell(r[1], 12, AlignmentType.CENTER, true),
+      bCell(r[2], 39),
+      bCell(r[3], 10),
+      bCell(r[4], 10),
+      bCell(r[5], 10),
+      bCell(r[6], 10),
+      bCell(r[7], 4, AlignmentType.CENTER, true)
+    ]
+  }));
+
+  // ─── Table 3: Esai Rebutan & Cadangan (4 Kolom) ─────────────
+  const t3Header = new TableRow({
+    children: [
+      hCell("No", 8),
+      hCell("Jenis Soal", 14),
+      hCell("Pertanyaan Rebutan & Gambar (Rumus LaTeX $...$)", 48),
+      hCell("Kunci Jawaban Dewan Juri", 30)
+    ]
+  });
+
+  const t3Data = [
+    ["1", "ES", "Tiga bilangan bulat positif berbeda memiliki jumlah 24. Bilangan terbesar dua kali bilangan terkecil, sedangkan bilangan tengah 4 lebih besar daripada bilangan terkecil. Tentukan ketiga bilangan tersebut!", "5, 9, dan 10. (Misal x, x+4, 2x => 4x+4=24 => x=5)."],
+    ["2", "ES", "Sebuah toko menaikkan harga tas sebesar 20%, lalu mendiskonnya 20%. Jika harga awal Rp250.000, berapakah harga akhirnya? Apakah kembali ke harga awal?", "Rp240.000 (tidak kembali ke harga awal, karena dasar persentase berbeda)."],
+    ["3", "ES", "Jika tanggal 1 suatu bulan jatuh pada hari Rabu, pada hari apakah hari ke-100 jatuh jika dihitung menurut siklus 7 hari?", "Hari Kamis. (Selisih 99 hari, 99 mod 7 = 1 hari setelah Rabu)."],
+    ["4", "ES", "Dalam sebuah kelas, 30 siswa menyukai Matematika, 22 siswa menyukai IPA, dan 12 menyukai keduanya. Berapa jumlah siswa yang menyukai setidaknya salah satu pelajaran?", "40 siswa. (30 + 22 - 12 = 40)."],
+    ["5", "CAD", "SOAL CADANGAN: Siapakah pencipta lagu kebangsaan Indonesia Raya?", "Wage Rudolf Supratman (W.R. Supratman)."],
+    ["6", "CAD", "SOAL CADANGAN: Berapakah hasil dari $25 \\times 4 + 50$?", "150."]
+  ];
+
+  const t3Rows = t3Data.map(r => new TableRow({
+    children: [
+      bCell(r[0], 8, AlignmentType.CENTER),
+      bCell(r[1], 14, AlignmentType.CENTER, true),
+      bCell(r[2], 48),
+      bCell(r[3], 30, AlignmentType.LEFT, true)
+    ]
+  }));
+
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: [
+        ...makeHeaderSection(
+          "TEMPLATE BANK SOAL BABAK SEMIFINAL",
+          "Format Multi-Tabel Resmi: Benar / Salah, Pilihan Ganda & Esai Rebutan IFP",
+          notes,
+          models
+        ),
+        new Paragraph({
+          spacing: { before: 180, after: 100 },
+          children: [
+            new TextRun({ text: "🟦 TABEL 1: SOAL BENAR / SALAH (BABAK 1 — 18 KOTAK)", bold: true, size: 22, color: "1E3A8A" })
+          ]
+        }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [t1Header, ...t1Rows]
+        }),
+        new Paragraph({
+          spacing: { before: 260, after: 100 },
+          children: [
+            new TextRun({ text: "🟩 TABEL 2: SOAL PILIHAN GANDA (BABAK 2 & 3 — PG150 & PG200)", bold: true, size: 22, color: "1E3A8A" })
+          ]
+        }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [t2Header, ...t2Rows]
+        }),
+        new Paragraph({
+          spacing: { before: 260, after: 100 },
+          children: [
+            new TextRun({ text: "🟨 TABEL 3: SOAL ESAI REBUTAN & CADANGAN (BABAK 4 & TIE-BREAK)", bold: true, size: 22, color: "1E3A8A" })
+          ]
+        }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [t3Header, ...t3Rows]
+        })
+      ]
+    }]
+  });
+
+  const buffer = await Packer.toBuffer(doc);
   fs.writeFileSync("./templates/Template_Soal_Semifinal.docx", buffer);
+  if (fs.existsSync("./soal")) {
+    fs.writeFileSync("./soal/Template_Soal_Semifinal.docx", buffer);
+  }
   console.log("✓ Template Semifinal generated (bytes):", buffer.length);
 }
 
@@ -402,6 +561,7 @@ async function buildFinalTemplate() {
 
 async function main() {
   await buildPenyisihanTemplate();
+  await buildBenarSalahTemplate();
   await buildSemifinalTemplate();
   await buildFinalTemplate();
   console.log("🎉 SEMUA TEMPLATE WORD DENGAN SELURUH MODEL SOAL BERHASIL DI-GENERATE LENGKAP!");

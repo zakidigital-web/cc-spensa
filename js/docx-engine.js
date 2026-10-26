@@ -513,52 +513,34 @@
       const tables = tempDiv.getElementsByTagName('table');
 
       if (tables.length > 0) {
-        const rows = tables[0].querySelectorAll('tr');
-        for (let i = 1; i < rows.length; i++) {
-          const cells = rows[i].querySelectorAll('td, th');
-          if (cells.length < 3) continue;
+        for (let t = 0; t < tables.length; t++) {
+          const rows = tables[t].querySelectorAll('tr');
+          if (rows.length < 2) continue;
 
-          const category = cells[1] ? cells[1].textContent.trim() : 'Umum';
-          const qCell = cells[2];
-          const imgEl = qCell ? qCell.querySelector('img') : null;
-          const imgSrc = imgEl ? imgEl.src : null;
-          const qText = qCell ? qCell.textContent.trim() : '';
+          // Header inspection
+          const headerCells = rows[0].querySelectorAll('td, th');
+          const headerTexts = Array.from(headerCells).map(c => c.textContent.trim().toLowerCase());
+          const isBsHeader = headerTexts.some(h => /b\s*[\/\-]\s*s|benar|salah/i.test(h)) ||
+            (targetStage === 'semifinal' && headerTexts.some(h => /pernyataan/i.test(h)) && !headerTexts.some(h => /pilihan|opsi/i.test(h)));
+          const isPgHeader = headerTexts.some(h => /pilihan|opsi/i.test(h)) || headerCells.length >= 7;
+          const isEsaiHeader = headerTexts.some(h => /esai|essay|uraian|juri|rubrik/i.test(h));
 
-          if (targetStage === 'penyisihan') {
-            const optA = cells[3] ? cells[3].textContent.trim() : '';
-            const optB = cells[4] ? cells[4].textContent.trim() : '';
-            const optC = cells[5] ? cells[5].textContent.trim() : '';
-            const optD = cells[6] ? cells[6].textContent.trim() : '';
-            const keyRaw = cells[7] ? cells[7].textContent.trim().toUpperCase() : 'A';
-            const options = [optA, optB, optC, optD];
+          for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].querySelectorAll('td, th');
+            if (cells.length < 2) continue;
 
-            let keyIdx = 0;
-            if (keyRaw === 'B' || keyRaw === '1') keyIdx = 1;
-            else if (keyRaw === 'C' || keyRaw === '2') keyIdx = 2;
-            else if (keyRaw === 'D' || keyRaw === '3') keyIdx = 3;
+            // 1. Check if 9-column unified Semifinal table
+            if (cells.length >= 8 && targetStage === 'semifinal' && (/BS|PG1|PG2|ES|CAD/i.test(cells[1].textContent.trim()))) {
+              const rawType = cells[1].textContent.trim().toUpperCase();
+              const tipe = (/ES|ESSAY|URAIAN/i.test(rawType)) ? 'ES' :
+                           (/CAD/i.test(rawType)) ? 'CAD' :
+                           (/PG200|PG2/i.test(rawType)) ? 'PG2' :
+                           (/PG150|PG1|PG/i.test(rawType)) ? 'PG1' : 'BS';
+              const qCell = cells[2];
+              const imgEl = qCell ? qCell.querySelector('img') : null;
+              const imgSrc = imgEl ? imgEl.src : null;
+              const qText = qCell ? qCell.textContent.trim() : '';
 
-            parsedQuestions.push({
-              id: `imp_${j}_${Date.now().toString(36)}${i}`,
-              jenjang: j,
-              mapel: category,
-              q: qText,
-              o: options.length >= 2 ? options : ['A', 'B', 'C', 'D'],
-              k: keyIdx,
-              ans: options[keyIdx] || '',
-              img: imgSrc
-            });
-          } else if (targetStage === 'semifinal') {
-            const tipe = (/ES|ESSAY|URAIAN/i.test(category)) ? 'ES' :
-                         (/CAD/i.test(category)) ? 'CAD' :
-                         (/PG200|PG2/i.test(category)) ? 'PG2' :
-                         (/PG150|PG1|PG/i.test(category)) ? 'PG1' : 'BS';
-
-            // Support both 9-column and legacy 5-column formats
-            let options = [];
-            let keyIndex = null;
-            let ansText = '';
-
-            if (cells.length >= 8) {
               const optA = cells[3] ? cells[3].textContent.trim() : '';
               const optB = cells[4] ? cells[4].textContent.trim() : '';
               const optC = cells[5] ? cells[5].textContent.trim() : '';
@@ -567,64 +549,241 @@
               const esRaw = cells[8] ? cells[8].textContent.trim() : (cells[7] ? cells[7].textContent.trim() : '');
 
               if (tipe === 'BS') {
-                options = ['Benar', 'Salah'];
-                keyIndex = /S|SALAH|FALSE|1/i.test(keyRaw || optA) ? 1 : 0;
+                const isSalah = /^(S|SALAH|FALSE|1)/i.test(keyRaw || optA);
+                parsedQuestions.push({
+                  id: `sm_imp_${Date.now().toString(36)}_${t}_${i}`,
+                  tipe: 'BS',
+                  q: qText,
+                  o: ['Benar', 'Salah'],
+                  key: isSalah ? 1 : 0,
+                  k: isSalah ? 1 : 0,
+                  ans: isSalah ? 'Salah' : 'Benar',
+                  img: imgSrc
+                });
               } else if (tipe === 'PG1' || tipe === 'PG2') {
-                options = [optA, optB, optC, optD];
-                keyIndex = (keyRaw === 'B' || keyRaw === '1') ? 1 :
-                           (keyRaw === 'C' || keyRaw === '2') ? 2 :
-                           (keyRaw === 'D' || keyRaw === '3') ? 3 : 0;
+                let keyIdx = 0;
+                if (keyRaw === 'B' || keyRaw === '1') keyIdx = 1;
+                else if (keyRaw === 'C' || keyRaw === '2') keyIdx = 2;
+                else if (keyRaw === 'D' || keyRaw === '3') keyIdx = 3;
+                parsedQuestions.push({
+                  id: `sm_imp_${Date.now().toString(36)}_${t}_${i}`,
+                  tipe: tipe,
+                  q: qText,
+                  o: [optA, optB, optC, optD],
+                  key: keyIdx,
+                  k: keyIdx,
+                  ans: [optA, optB, optC, optD][keyIdx] || '',
+                  img: imgSrc
+                });
               } else {
-                options = [];
-                keyIndex = null;
-                ansText = esRaw;
+                parsedQuestions.push({
+                  id: `sm_imp_${Date.now().toString(36)}_${t}_${i}`,
+                  tipe: tipe,
+                  q: qText,
+                  o: [],
+                  key: 0,
+                  k: 0,
+                  ans: esRaw || optA,
+                  img: imgSrc
+                });
               }
-            } else {
-              const optRaw = cells[3] ? cells[3].textContent.trim() : '';
-              const keyRaw = cells[4] ? cells[4].textContent.trim() : '';
-              if (tipe === 'BS') {
-                options = ['Benar', 'Salah'];
-                keyIndex = /S|SALAH|FALSE|1/i.test(keyRaw) ? 1 : 0;
-              } else if (tipe === 'PG1' || tipe === 'PG2') {
-                options = optRaw.split(',').map(s => s.trim());
-                keyIndex = (keyRaw.toUpperCase() === 'B' || keyRaw === '1') ? 1 :
-                           (keyRaw.toUpperCase() === 'C' || keyRaw === '2') ? 2 :
-                           (keyRaw.toUpperCase() === 'D' || keyRaw === '3') ? 3 : 0;
+              continue;
+            }
+
+            // 2. Check if 7-8 column Multiple Choice table (Penyisihan or Semifinal PG)
+            if (cells.length >= 7 && (isPgHeader || targetStage === 'penyisihan')) {
+              let category = 'Umum';
+              let qCell, optA, optB, optC, optD, keyRaw;
+              if (cells.length >= 8) {
+                category = cells[1].textContent.trim();
+                qCell = cells[2];
+                optA = cells[3] ? cells[3].textContent.trim() : '';
+                optB = cells[4] ? cells[4].textContent.trim() : '';
+                optC = cells[5] ? cells[5].textContent.trim() : '';
+                optD = cells[6] ? cells[6].textContent.trim() : '';
+                keyRaw = cells[7] ? cells[7].textContent.trim().toUpperCase() : 'A';
               } else {
-                ansText = keyRaw || optRaw;
+                qCell = cells[1];
+                optA = cells[2] ? cells[2].textContent.trim() : '';
+                optB = cells[3] ? cells[3].textContent.trim() : '';
+                optC = cells[4] ? cells[4].textContent.trim() : '';
+                optD = cells[5] ? cells[5].textContent.trim() : '';
+                keyRaw = cells[6] ? cells[6].textContent.trim().toUpperCase() : 'A';
+              }
+              const imgEl = qCell ? qCell.querySelector('img') : null;
+              const imgSrc = imgEl ? imgEl.src : null;
+              const qText = qCell ? qCell.textContent.trim() : '';
+              const options = [optA, optB, optC, optD];
+              let keyIdx = 0;
+              if (keyRaw === 'B' || keyRaw === '1') keyIdx = 1;
+              else if (keyRaw === 'C' || keyRaw === '2') keyIdx = 2;
+              else if (keyRaw === 'D' || keyRaw === '3') keyIdx = 3;
+
+              if (targetStage === 'penyisihan') {
+                parsedQuestions.push({
+                  id: `imp_${j}_${Date.now().toString(36)}_${t}_${i}`,
+                  jenjang: j,
+                  mapel: category,
+                  q: qText,
+                  o: options,
+                  k: keyIdx,
+                  ans: options[keyIdx] || '',
+                  img: imgSrc
+                });
+              } else if (targetStage === 'semifinal') {
+                const isPG2 = /PG2|SUKAR|HITUNGAN/i.test(category);
+                parsedQuestions.push({
+                  id: `sm_imp_${Date.now().toString(36)}_${t}_${i}`,
+                  tipe: isPG2 ? 'PG2' : 'PG1',
+                  q: qText,
+                  o: options,
+                  key: keyIdx,
+                  k: keyIdx,
+                  ans: options[keyIdx] || '',
+                  img: imgSrc
+                });
+              }
+              continue;
+            }
+
+            // 3. Check if Benar / Salah Table (3-5 columns)
+            let isRowBs = isBsHeader || targetStage === 'semifinal' || targetStage === 'benar_salah';
+            let qCell = null, keyRaw = '', desc = '';
+
+            if (cells.length === 3) {
+              const c1 = cells[1].textContent.trim();
+              const c2 = cells[2].textContent.trim();
+              if (/^[BS]$/i.test(c1) || /^(BENAR|SALAH)$/i.test(c1)) {
+                keyRaw = c1;
+                qCell = cells[2];
+                isRowBs = true;
+              } else if (/^[BS]$/i.test(c2) || /^(BENAR|SALAH)$/i.test(c2)) {
+                qCell = cells[1];
+                keyRaw = c2;
+                isRowBs = true;
+              } else {
+                qCell = cells[1];
+                keyRaw = c2;
+              }
+            } else if (cells.length === 4) {
+              const c1 = cells[1].textContent.trim();
+              const c2 = cells[2].textContent.trim();
+              const c3 = cells[3].textContent.trim();
+              if (/^BS$/i.test(c1)) {
+                qCell = cells[2];
+                keyRaw = c3;
+                isRowBs = true;
+              } else if (/^[BS]$/i.test(c2) || /^(BENAR|SALAH)$/i.test(c2)) {
+                qCell = cells[1];
+                keyRaw = c2;
+                desc = c3;
+                isRowBs = true;
+              } else if (/^[BS]$/i.test(c3) || /^(BENAR|SALAH)$/i.test(c3)) {
+                qCell = cells[1];
+                keyRaw = c3;
+                desc = c2;
+                isRowBs = true;
+              } else if (isEsaiHeader || /ES|CAD/i.test(c1)) {
+                isRowBs = false;
+                qCell = cells[2] || cells[1];
+                keyRaw = c3 || c2;
+              } else {
+                qCell = cells[1];
+                keyRaw = c2;
+                desc = c3;
+              }
+            } else if (cells.length === 5) {
+              const c1 = cells[1].textContent.trim();
+              const c3 = cells[3].textContent.trim();
+              if (/^BS$/i.test(c1) || /^[BS]$/i.test(c3) || /^(BENAR|SALAH)$/i.test(c3)) {
+                qCell = cells[2];
+                keyRaw = c3;
+                desc = cells[4] ? cells[4].textContent.trim() : '';
+                isRowBs = true;
+              } else {
+                qCell = cells[2];
+                keyRaw = cells[3] ? cells[3].textContent.trim() : '';
+                desc = cells[4] ? cells[4].textContent.trim() : '';
               }
             }
 
-            parsedQuestions.push({
-              id: 'sm_imp_' + Date.now().toString(36) + i,
-              tipe: tipe,
-              q: qText,
-              o: options,
-              key: keyIndex,
-              ans: ansText,
-              img: imgSrc
-            });
-          } else {
-            // Final
-            const keyRaw = cells[3] ? cells[3].textContent.trim() : (cells[2] ? cells[2].textContent.trim() : '');
-            parsedQuestions.push({
-              q: qText,
-              ans: keyRaw,
-              tier: category
-            });
+            if (isRowBs && qCell) {
+              const imgEl = qCell.querySelector('img');
+              const imgSrc = imgEl ? imgEl.src : null;
+              const qText = qCell.textContent.trim();
+              if (qText) {
+                const isSalah = /^(S|SALAH|F|FALSE|1)/i.test(keyRaw.trim());
+                if (targetStage === 'semifinal' || targetStage === 'benar_salah') {
+                  parsedQuestions.push({
+                    id: `sm_bs_imp_${Date.now().toString(36)}_${t}_${i}`,
+                    tipe: 'BS',
+                    q: qText,
+                    o: ['Benar', 'Salah'],
+                    key: isSalah ? 1 : 0,
+                    k: isSalah ? 1 : 0,
+                    ans: isSalah ? 'Salah' : 'Benar',
+                    img: imgSrc,
+                    desc: desc
+                  });
+                } else if (targetStage === 'penyisihan') {
+                  parsedQuestions.push({
+                    id: `imp_${j}_${Date.now().toString(36)}_${t}_${i}`,
+                    jenjang: j,
+                    mapel: 'Umum',
+                    q: qText,
+                    o: ['Benar', 'Salah', '-', '-'],
+                    k: isSalah ? 1 : 0,
+                    ans: isSalah ? 'Salah' : 'Benar',
+                    img: imgSrc
+                  });
+                }
+                continue;
+              }
+            }
+
+            // 4. Fallback for Esai or Grand Final
+            if (qCell) {
+              const imgEl = qCell.querySelector('img');
+              const imgSrc = imgEl ? imgEl.src : null;
+              const qText = qCell.textContent.trim();
+              if (!qText) continue;
+
+              if (targetStage === 'semifinal') {
+                const isCad = /CAD/i.test(cells[1] ? cells[1].textContent : '');
+                parsedQuestions.push({
+                  id: `sm_imp_${Date.now().toString(36)}_${t}_${i}`,
+                  tipe: isCad ? 'CAD' : 'ES',
+                  q: qText,
+                  o: [],
+                  key: 0,
+                  k: 0,
+                  ans: keyRaw,
+                  img: imgSrc
+                });
+              } else if (targetStage === 'final') {
+                const tier = cells[1] ? cells[1].textContent.trim() : 'Tier 1 (50 Poin)';
+                parsedQuestions.push({
+                  q: qText,
+                  ans: keyRaw,
+                  tier: tier,
+                  img: imgSrc
+                });
+              }
+            }
           }
         }
       }
 
       // Save directly to the native stage storage using unified saveStageQuestions
-      const curQuestions = await this.getStageQuestions(targetStage, j);
-      await this.saveStageQuestions(targetStage, curQuestions.concat(parsedQuestions), j);
+      const effectiveStage = (targetStage === 'benar_salah' || targetStage === 'bs') ? 'semifinal' : targetStage;
+      const curQuestions = await this.getStageQuestions(effectiveStage, j);
+      await this.saveStageQuestions(effectiveStage, curQuestions.concat(parsedQuestions), j);
 
       return {
         count: parsedQuestions.length,
         questions: parsedQuestions,
         mathCount: mathEquations.length,
-        stage: targetStage,
+        stage: effectiveStage,
         jenjang: j
       };
     },
@@ -677,8 +836,65 @@
         "Model 6: Soal Logika & Hubungan Sebab-Akibat"
       ];
       const rows = [];
+      let multiTables = null;
 
-      if (stage === 'penyisihan') {
+      if (stage === 'benar_salah' || stage === 'bs') {
+        title = "TEMPLATE BANK SOAL: BENAR / SALAH (TRUE / FALSE)";
+        subtitle = "Format Standar Bersih 4 Kolom Khusus Soal Benar / Salah IFP";
+        petunjuk = [
+          "Format tabel 4 kolom bersih & standar: No, Pernyataan / Soal & Gambar, Kunci (B / S), dan Keterangan / Pembahasan.",
+          "Kolom 'Kunci (B / S)': Cukup tulis huruf 'B' (jika pernyataan Benar) atau 'S' (jika pernyataan Salah). Boleh juga ditulis 'Benar' atau 'Salah'.",
+          "Mendukung Rumus Matematika LaTeX: Tulis rumus di dalam tanda dollar $...$, contoh: $15 \\times 4 = 60$, $\\frac{1}{2} > \\frac{1}{4}$, $\\sqrt{144} = 12$.",
+          "Mendukung Gambar Ilustrasi: Silakan salin (copy-paste) atau sisipkan gambar langsung ke dalam sel kolom 'Pernyataan / Soal'.",
+          "Kolom 'Keterangan / Pembahasan' bersifat opsional untuk catatan alasan juri atau penjelasan kepada peserta.",
+          "File template ini dapat diimpor secara langsung ke Bank Soal Babak Semifinal tanpa perlu kolom pilihan ganda tambahan."
+        ];
+        models = [
+          "Model BS-1: Benar/Salah Sains & Fakta Alamiah (Contoh: Paus termasuk mamalia, Gas terbanyak adalah Nitrogen)",
+          "Model BS-2: Benar/Salah Numerasi & Perhitungan Matematika (Contoh: Kelipatan 4 adalah genap, Rata-rata 5 bilangan)",
+          "Model BS-3: Benar/Salah Logika Geometri & Bangun Datar (Contoh: Persegi adalah persegi panjang)",
+          "Model BS-4: Benar/Salah Sejarah, Kenegaraan & Pengetahuan Umum (Contoh: Zona waktu Indonesia, Pendirian ASEAN)",
+          "Model BS-5: Benar/Salah Silogisme & Logika Bahasa (Contoh: Pernyataan implikasi sebab-akibat)"
+        ];
+        rows.push(new TableRow({
+          children: [
+            createHeaderCell("No", 8),
+            createHeaderCell("Pernyataan / Soal & Gambar (Rumus LaTeX $...$)", 52),
+            createHeaderCell("Kunci (B / S)", 14),
+            createHeaderCell("Keterangan / Pembahasan (Opsional)", 26)
+          ]
+        }));
+        const sampleBS = [
+          ["1", "Indonesia memiliki tiga zona waktu, yaitu WIB, WITA, dan WIT.", "B", "Indonesia menggunakan tiga zona waktu resmi."],
+          ["2", "Bilangan 1 merupakan bilangan prima karena hanya memiliki satu faktor positif.", "S", "Bilangan prima memiliki tepat dua faktor positif."],
+          ["3", "Jika suatu bilangan habis dibagi 4, bilangan tersebut pasti habis dibagi 2.", "B", "Setiap kelipatan 4 pasti merupakan bilangan genap."],
+          ["4", "Tumbuhan menyerap oksigen dan melepaskan karbon dioksida sebagai satu-satunya proses pertukaran gas sepanjang hidupnya.", "S", "Tumbuhan juga melakukan fotosintesis."],
+          ["5", "Perubahan wujud dari gas menjadi cair disebut kondensasi atau pengembunan.", "B", "Kondensasi adalah perubahan wujud gas menjadi cair."],
+          ["6", "Candi Borobudur merupakan salah satu warisan budaya Indonesia yang bercorak Buddha.", "B", "Candi Borobudur bercorak Buddha Mahayana."],
+          ["7", "Jika harga barang Rp80.000 naik 25%, harga akhirnya menjadi Rp100.000.", "B", "25% x Rp80.000 = Rp20.000. Total = Rp100.000."],
+          ["8", "Semua benda yang tenggelam di air memiliki massa lebih besar daripada semua benda yang mengapung, tanpa dipengaruhi ukuran dan volume benda.", "S", "Ditentukan oleh massa jenis dan gaya apung."],
+          ["9", "Dalam rantai makanan, energi yang tersedia umumnya semakin berkurang pada tingkat trofik yang lebih tinggi.", "B", "Penyusutan energi ~90% antartingkat trofik."],
+          ["10", "Jika rata-rata lima bilangan adalah 12, jumlah kelima bilangan tersebut adalah 60.", "B", "Jumlah = 5 x 12 = 60."],
+          ["11", "Semua persegi merupakan persegi panjang, tetapi semua persegi panjang belum tentu merupakan persegi.", "B", "Persegi memenuhi seluruh sifat persegi panjang."],
+          ["12", "Bunyi dapat merambat melalui ruang hampa tanpa medium.", "S", "Bunyi adalah gelombang mekanik."],
+          ["13", "Jika dua bilangan positif memiliki hasil kali 36, jumlah kedua bilangan tersebut pasti 13.", "S", "Pasangan 6x6=36 berjumlah 12."],
+          ["14", "ASEAN didirikan pada 8 Agustus 1967 di Bangkok, Thailand.", "B", "Deklarasi Bangkok, 8 Agustus 1967."],
+          ["15", "Dalam demokrasi, hasil pemungutan suara selalu membuat semua orang memperoleh pilihan yang mereka inginkan.", "S", "Keputusan diambil berdasarkan suara mayoritas."],
+          ["16", "Jika jarak pada peta semakin besar, jarak sebenarnya pasti semakin besar meskipun skala petanya berbeda.", "S", "Perlu memperhitungkan skala peta."],
+          ["17", "Pada rangkaian listrik paralel, setiap cabang memiliki jalur arus tersendiri.", "B", "Rangkaian paralel memiliki cabang arus tersendiri."],
+          ["18", "Jika suatu pernyataan berbunyi 'Semua peserta yang lolos adalah siswa kelas IX', maka dapat dipastikan bahwa semua siswa kelas IX lolos.", "S", "Tidak dapat dibalik."]
+        ];
+        sampleBS.forEach(r => {
+          rows.push(new TableRow({
+            children: [
+              createCell(r[0], 8, AlignmentType.CENTER),
+              createCell(r[1], 52),
+              createCell(r[2], 14, AlignmentType.CENTER),
+              createCell(r[3], 26)
+            ]
+          }));
+        });
+      } else if (stage === 'penyisihan') {
         rows.push(new TableRow({
           children: [
             createHeaderCell("No", 5),
@@ -720,61 +936,140 @@
         });
       } else if (stage === 'semifinal') {
         title = "TEMPLATE SOAL BABAK SEMIFINAL";
-        subtitle = "Kompetisi Papan Kotak Skor Multiround & Perebutan Nilai IFP";
+        subtitle = "Format Multi-Tabel Resmi: Benar / Salah, Pilihan Ganda & Esai Rebutan IFP";
         petunjuk = [
-          "Format tabel 9 kolom: No, Jenis Soal, Pertanyaan & Gambar, Pilihan A, B, C, D, Kunci Pilihan, dan Kunci Esai Juri.",
-          "Kode Jenis Soal WAJIB diisi: BS (Benar/Salah), PG150 (Pilihan Ganda I), PG200 (Pilihan Ganda II), ES (Esai Rebutan), atau CAD (Cadangan).",
-          "Untuk tipe BS: Kolom Kunci diisi 'B' (Benar) atau 'S' (Salah).",
-          "Untuk tipe PG150 & PG200: Isi pilihan A, B, C, D dan kolom Kunci diisi A, B, C, atau D.",
-          "Untuk tipe ES & CAD: Tuliskan jawaban lengkap pada kolom 'Kunci Jawaban Esai (Juri)'."
+          "Template Semifinal Resmi ini menggunakan 3 tabel terpisah yang rapi dan terstruktur:",
+          "  1. TABEL 1 (BENAR / SALAH - 4 Kolom): No, Pernyataan & Gambar, Kunci (B/S), Pembahasan.",
+          "  2. TABEL 2 (PILIHAN GANDA - 8 Kolom): No, Kategori (PG150 / PG200), Pertanyaan, Opsi A, B, C, D, Kunci (A/B/C/D).",
+          "  3. TABEL 3 (ESAI REBUTAN & CADANGAN - 4 Kolom): No, Jenis (ES / CAD), Pertanyaan Rebutan, Kunci Jawaban Dewan Juri.",
+          "Format ini bebas dari kolom dummy '-' dan langsung dapat diedit dengan mudah oleh para guru / penyusun soal.",
+          "Sistem secara otomatis membaca seluruh tabel di dalam file dokumen ini sekaligus."
         ];
         models = [
-          "Model BS: Benar / Salah (Babak 1, +100 poin, salah -50, durasi 20 detik)",
-          "Model PG150: Pilihan Ganda Sedang (Babak 2, +150 poin, salah -75, durasi 30 detik)",
-          "Model PG200: Pilihan Ganda Sukar / Hitungan (Babak 3, +200 poin, salah -100, durasi 45 detik)",
-          "Model ES: Esai Rebutan (Babak 4, verifikasi jawaban juri, durasi 90 detik)",
-          "Model CAD: Cadangan Siaga (Saat tie-break atau anulir soal)"
+          "Tabel 1: Soal Benar / Salah (Babak 1, +100 poin, salah -50, durasi 20 detik)",
+          "Tabel 2: Pilihan Ganda Sedang (Babak 2 - PG150, +150 poin, durasi 30 detik)",
+          "Tabel 2: Pilihan Ganda Sukar / Hitungan (Babak 3 - PG200, +200 poin, durasi 45 detik)",
+          "Tabel 3: Soal Esai Rebutan (Babak 4 - ES, +100 s.d. +300 poin dinilai juri, durasi 90 detik)",
+          "Tabel 3: Soal Cadangan Siaga (CAD, untuk tie-break atau anulir darurat panggung)"
         ];
-        rows.push(new TableRow({
-          children: [
-            createHeaderCell("No", 5),
-            createHeaderCell("Jenis Soal", 11),
-            createHeaderCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 34),
-            createHeaderCell("Pilihan A", 9),
-            createHeaderCell("Pilihan B", 9),
-            createHeaderCell("Pilihan C", 9),
-            createHeaderCell("Pilihan D", 9),
-            createHeaderCell("Kunci", 5),
-            createHeaderCell("Kunci Jawaban Esai (Juri)", 18)
-          ]
-        }));
-        const sData = [
-          ["1", "BS", "Matahari terbit dari arah timur dan tenggelam di sebelah barat.", "Benar", "Salah", "-", "-", "B", ""],
-          ["2", "BS", "Paus dan lumba-lumba tergolong hewan mamalia yang bernapas dengan paru-paru.", "Benar", "Salah", "-", "-", "B", ""],
-          ["3", "BS", "Hasil perhitungan dari $15 \\times 4$ adalah 55.", "Benar", "Salah", "-", "-", "S", ""],
-          ["4", "PG150", "Ibu kota dari Provinsi Kalimantan Timur saat ini adalah ...", "Samarinda", "Balikpapan", "Bontang", "Tarakan", "A", ""],
-          ["5", "PG150", "Planet terdekat dari Matahari dalam sistem tata surya kita adalah ...", "Merkurius", "Venus", "Mars", "Bumi", "A", ""],
-          ["6", "PG200", "Sebuah tabung memiliki jari-jari $r = 7\\text{ cm}$ dan tinggi $t = 10\\text{ cm}$. Berapakah volumenya? ($\\pi = \\frac{22}{7}$)", "1.540 cm³", "770 cm³", "3.080 cm³", "154 cm³", "A", ""],
-          ["7", "PG200", "Hasil operasi hitung aljabar dari $(2x + 3)(x - 4)$ adalah ...", "$2x^2 - 5x - 12$", "$2x^2 + 5x - 12$", "$2x^2 - 11x - 12$", "$2x^2 - 5x + 12$", "A", ""],
-          ["8", "ES", "Sebutkan rumusan lengkap teks sila kelima Pancasila!", "-", "-", "-", "-", "-", "Keadilan sosial bagi seluruh rakyat Indonesia."],
-          ["9", "ES", "Apakah nama zat cair yang membawa oksigen dan nutrisi ke seluruh sel tubuh manusia?", "-", "-", "-", "-", "-", "Darah (atau Hemoglobin / Sel Darah Merah)."],
-          ["10", "CAD", "SOAL CADANGAN: Siapakah pencipta lagu kebangsaan Indonesia Raya?", "-", "-", "-", "-", "-", "Wage Rudolf Supratman (W.R. Supratman)."]
-        ];
-        sData.forEach(r => {
-          rows.push(new TableRow({
+
+        // Multi-table structure for Semifinal
+        const t1Rows = [
+          new TableRow({
             children: [
-              createCell(r[0], 5, AlignmentType.CENTER),
-              createCell(r[1], 11, AlignmentType.CENTER),
-              createCell(r[2], 34),
-              createCell(r[3], 9),
-              createCell(r[4], 9),
-              createCell(r[5], 9),
-              createCell(r[6], 9),
-              createCell(r[7], 5, AlignmentType.CENTER),
-              createCell(r[8], 18)
+              createHeaderCell("No", 8),
+              createHeaderCell("Pernyataan / Soal & Gambar (Rumus LaTeX $...$)", 52),
+              createHeaderCell("Kunci (B / S)", 14),
+              createHeaderCell("Keterangan / Pembahasan (Opsional)", 26)
+            ]
+          })
+        ];
+        const bsData = [
+          ["1", "Indonesia memiliki tiga zona waktu, yaitu WIB, WITA, dan WIT.", "B", "Indonesia menggunakan tiga zona waktu resmi."],
+          ["2", "Bilangan 1 merupakan bilangan prima karena hanya memiliki satu faktor positif.", "S", "Bilangan prima memiliki tepat dua faktor positif."],
+          ["3", "Jika suatu bilangan habis dibagi 4, bilangan tersebut pasti habis dibagi 2.", "B", "Setiap kelipatan 4 pasti habis dibagi 2."],
+          ["4", "Tumbuhan menyerap oksigen dan melepaskan karbon dioksida sebagai satu-satunya proses pertukaran gas sepanjang hidupnya.", "S", "Tumbuhan juga melakukan fotosintesis."],
+          ["5", "Perubahan wujud dari gas menjadi cair disebut kondensasi atau pengembunan.", "B", "Kondensasi adalah perubahan wujud gas menjadi cair."],
+          ["6", "Candi Borobudur merupakan salah satu warisan budaya Indonesia yang bercorak Buddha.", "B", "Candi Borobudur bercorak Buddha Mahayana."],
+          ["7", "Jika harga barang Rp80.000 naik 25%, harga akhirnya menjadi Rp100.000.", "B", "25% x Rp80.000 = Rp20.000. Total = Rp100.000."],
+          ["8", "Semua benda yang tenggelam di air memiliki massa lebih besar daripada semua benda yang mengapung, tanpa dipengaruhi ukuran dan volume benda.", "S", "Ditentukan massa jenis dan gaya apung."],
+          ["9", "Dalam rantai makanan, energi yang tersedia umumnya semakin berkurang pada tingkat trofik yang lebih tinggi.", "B", "Terjadi penyusutan energi antartingkat trofik."],
+          ["10", "Jika rata-rata lima bilangan adalah 12, jumlah kelima bilangan tersebut adalah 60.", "B", "Jumlah = 5 x 12 = 60."],
+          ["11", "Semua persegi merupakan persegi panjang, tetapi semua persegi panjang belum tentu merupakan persegi.", "B", "Persegi memenuhi seluruh sifat persegi panjang."],
+          ["12", "Bunyi dapat merambat melalui ruang hampa tanpa medium.", "S", "Bunyi memerlukan medium untuk merambat."],
+          ["13", "Jika dua bilangan positif memiliki hasil kali 36, jumlah kedua bilangan tersebut pasti 13.", "S", "Contoh 6x6=36 menghasilkan jumlah 12."],
+          ["14", "ASEAN didirikan pada 8 Agustus 1967 di Bangkok, Thailand.", "B", "Deklarasi Bangkok, 8 Agustus 1967."],
+          ["15", "Dalam demokrasi, hasil pemungutan suara selalu membuat semua orang memperoleh pilihan yang mereka inginkan.", "S", "Keputusan diambil berdasarkan suara mayoritas."],
+          ["16", "Jika jarak pada peta semakin besar, jarak sebenarnya pasti semakin besar meskipun skala petanya berbeda.", "S", "Perlu memperhitungkan skala peta."],
+          ["17", "Pada rangkaian listrik paralel, setiap cabang memiliki jalur arus tersendiri.", "B", "Rangkaian paralel memiliki cabang arus."],
+          ["18", "Jika suatu pernyataan berbunyi 'Semua peserta yang lolos adalah siswa kelas IX', maka dapat dipastikan bahwa semua siswa kelas IX lolos.", "S", "Tidak berarti semua siswa kelas IX lolos."]
+        ];
+        bsData.forEach(r => {
+          t1Rows.push(new TableRow({
+            children: [
+              createCell(r[0], 8, AlignmentType.CENTER),
+              createCell(r[1], 52),
+              createCell(r[2], 14, AlignmentType.CENTER),
+              createCell(r[3], 26)
             ]
           }));
         });
+
+        const t2Rows = [
+          new TableRow({
+            children: [
+              createHeaderCell("No", 5),
+              createHeaderCell("Kategori", 12),
+              createHeaderCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 39),
+              createHeaderCell("Pilihan A", 10),
+              createHeaderCell("Pilihan B", 10),
+              createHeaderCell("Pilihan C", 10),
+              createHeaderCell("Pilihan D", 10),
+              createHeaderCell("Kunci", 4)
+            ]
+          })
+        ];
+        const pgData = [
+          ["1", "PG150", "Negara yang dijuluki Negeri Matahari Terbit adalah ...", "Tiongkok", "Jepang", "Korea Selatan", "Thailand", "B"],
+          ["2", "PG150", "Hasil dari $125 : 5 + 7 \\times 3$ adalah ...", "32", "42", "46", "60", "C"],
+          ["3", "PG150", "Tokoh yang dikenal sebagai Proklamator Kemerdekaan Indonesia bersama Mohammad Hatta adalah ...", "Ki Hajar Dewantara", "Jenderal Sudirman", "Soekarno", "Soepomo", "C"],
+          ["4", "PG150", "Organ tubuh manusia yang berfungsi menyaring darah dan menghasilkan urine adalah ...", "Jantung", "Ginjal", "Paru-paru", "Lambung", "B"],
+          ["5", "PG150", "Benua terbesar di dunia berdasarkan luas wilayah adalah ...", "Afrika", "Eropa", "Amerika Utara", "Asia", "D"],
+          ["6", "PG150", "Sinonim kata cermat adalah ...", "Ceroboh", "Teliti", "Lambat", "Ragu-ragu", "B"],
+          ["7", "PG200", "Sebuah persegi panjang memiliki panjang 12 cm dan lebar 5 cm. Kelilingnya adalah ...", "17 cm", "30 cm", "34 cm", "60 cm", "C"],
+          ["8", "PG200", "Gas yang paling banyak terdapat di atmosfer Bumi adalah ...", "Oksigen", "Karbon dioksida", "Nitrogen", "Hidrogen", "C"],
+          ["9", "PG200", "Sebuah tabung memiliki jari-jari $r = 7\\text{ cm}$ dan tinggi $t = 10\\text{ cm}$. Berapakah volumenya? ($\\pi = \\frac{22}{7}$)", "1.540 cm³", "770 cm³", "3.080 cm³", "154 cm³", "A"],
+          ["10", "PG200", "Hasil operasi aljabar dari $(2x + 3)(x - 4)$ adalah ...", "$2x^2 - 5x - 12$", "$2x^2 + 5x - 12$", "$2x^2 - 11x - 12$", "$2x^2 - 5x + 12$", "A"]
+        ];
+        pgData.forEach(r => {
+          t2Rows.push(new TableRow({
+            children: [
+              createCell(r[0], 5, AlignmentType.CENTER),
+              createCell(r[1], 12, AlignmentType.CENTER),
+              createCell(r[2], 39),
+              createCell(r[3], 10),
+              createCell(r[4], 10),
+              createCell(r[5], 10),
+              createCell(r[6], 10),
+              createCell(r[7], 4, AlignmentType.CENTER)
+            ]
+          }));
+        });
+
+        const t3Rows = [
+          new TableRow({
+            children: [
+              createHeaderCell("No", 8),
+              createHeaderCell("Jenis Soal", 14),
+              createHeaderCell("Pertanyaan Rebutan & Gambar (Rumus LaTeX $...$)", 48),
+              createHeaderCell("Kunci Jawaban Dewan Juri", 30)
+            ]
+          })
+        ];
+        const esData = [
+          ["1", "ES", "Tiga bilangan bulat positif berbeda memiliki jumlah 24. Bilangan terbesar dua kali bilangan terkecil, sedangkan bilangan tengah 4 lebih besar daripada bilangan terkecil. Tentukan ketiga bilangan tersebut!", "5, 9, dan 10. (Misal x, x+4, 2x => 4x+4=24 => x=5)."],
+          ["2", "ES", "Sebuah toko menaikkan harga tas sebesar 20%, lalu mendiskonnya 20%. Jika harga awal Rp250.000, berapakah harga akhirnya? Apakah kembali ke harga awal?", "Rp240.000 (tidak kembali ke harga awal, karena dasar persentase berbeda)."],
+          ["3", "ES", "Jika tanggal 1 suatu bulan jatuh pada hari Rabu, pada hari apakah hari ke-100 jatuh jika dihitung menurut siklus 7 hari?", "Hari Kamis. (Selisih 99 hari, 99 mod 7 = 1 hari setelah Rabu)."],
+          ["4", "ES", "Dalam sebuah kelas, 30 siswa menyukai Matematika, 22 siswa menyukai IPA, dan 12 menyukai keduanya. Berapa jumlah siswa yang menyukai setidaknya salah satu pelajaran?", "40 siswa. (30 + 22 - 12 = 40)."],
+          ["5", "CAD", "SOAL CADANGAN: Siapakah pencipta lagu kebangsaan Indonesia Raya?", "Wage Rudolf Supratman (W.R. Supratman)."],
+          ["6", "CAD", "SOAL CADANGAN: Berapakah hasil dari $25 \\times 4 + 50$?", "150."]
+        ];
+        esData.forEach(r => {
+          t3Rows.push(new TableRow({
+            children: [
+              createCell(r[0], 8, AlignmentType.CENTER),
+              createCell(r[1], 14, AlignmentType.CENTER),
+              createCell(r[2], 48),
+              createCell(r[3], 30)
+            ]
+          }));
+        });
+
+        multiTables = [
+          { title: "🟦 TABEL 1: SOAL BENAR / SALAH (BABAK 1 — 18 KOTAK)", rows: t1Rows },
+          { title: "🟩 TABEL 2: SOAL PILIHAN GANDA (BABAK 2 & 3 — PG150 & PG200)", rows: t2Rows },
+          { title: "🟨 TABEL 3: SOAL ESAI REBUTAN & CADANGAN (BABAK 4 & TIE-BREAK)", rows: t3Rows }
+        ];
       } else {
         title = "TEMPLATE SOAL BABAK GRAND FINAL";
         subtitle = "Matriks 15 Kotak Rebutan & Tie-Breaker Cerdas Cermat IFP";
@@ -827,51 +1122,71 @@
         });
       }
 
-      const doc = new Document({
-        sections: [{
-          children: [
+      const docChildren = [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 80 },
+          children: [new TextRun({ text: title, bold: true, color: "1E3A8A", size: 28, font: "Calibri" })]
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 140 },
+          children: [new TextRun({ text: subtitle, italics: true, color: "475569", size: 20, font: "Calibri" })]
+        }),
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [new TextRun({ text: "📋 PANDUAN PENGISIAN & KETENTUAN FORMAT:", bold: true, color: "D97706", size: 20, font: "Calibri" })]
+        }),
+        ...petunjuk.map(p => new Paragraph({
+          spacing: { after: 40 },
+          bullet: { level: 0 },
+          children: [new TextRun({ text: p, size: 18, font: "Calibri", color: "334155" })]
+        })),
+        new Paragraph({
+          spacing: { before: 100, after: 60 },
+          children: [new TextRun({ text: "💡 DAFTAR MODEL SOAL YANG DIDUKUNG:", bold: true, color: "1E3A8A", size: 20, font: "Calibri" })]
+        }),
+        ...models.map(m => new Paragraph({
+          spacing: { after: 40 },
+          bullet: { level: 0 },
+          children: [new TextRun({ text: m, size: 18, font: "Calibri", color: "1E293B" })]
+        })),
+        new Paragraph({ spacing: { after: 140 }, children: [] })
+      ];
+
+      if (multiTables && multiTables.length > 0) {
+        multiTables.forEach(tObj => {
+          docChildren.push(
             new Paragraph({
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 80 },
-              children: [new TextRun({ text: title, bold: true, color: "1E3A8A", size: 28, font: "Calibri" })]
+              spacing: { before: 180, after: 80 },
+              children: [new TextRun({ text: tObj.title, bold: true, color: "1E3A8A", size: 21, font: "Calibri" })]
             }),
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 140 },
-              children: [new TextRun({ text: subtitle, italics: true, color: "475569", size: 20, font: "Calibri" })]
-            }),
-            new Paragraph({
-              spacing: { after: 60 },
-              children: [new TextRun({ text: "📋 PANDUAN PENGISIAN & KETENTUAN FORMAT:", bold: true, color: "D97706", size: 20, font: "Calibri" })]
-            }),
-            ...petunjuk.map(p => new Paragraph({
-              spacing: { after: 40 },
-              bullet: { level: 0 },
-              children: [new TextRun({ text: p, size: 18, font: "Calibri", color: "334155" })]
-            })),
-            new Paragraph({
-              spacing: { before: 100, after: 60 },
-              children: [new TextRun({ text: "💡 DAFTAR MODEL SOAL YANG DIDUKUNG:", bold: true, color: "1E3A8A", size: 20, font: "Calibri" })]
-            }),
-            ...models.map(m => new Paragraph({
-              spacing: { after: 40 },
-              bullet: { level: 0 },
-              children: [new TextRun({ text: m, size: 18, font: "Calibri", color: "1E293B" })]
-            })),
-            new Paragraph({ spacing: { after: 140 }, children: [] }),
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
-              rows: rows
+              rows: tObj.rows
             })
-          ]
-        }]
+          );
+        });
+      } else {
+        docChildren.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: rows
+          })
+        );
+      }
+
+      const doc = new Document({
+        sections: [{ children: docChildren }]
       });
 
       const blob = await window.docx.Packer.toBlob(doc);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = (stage === 'penyisihan') ? `Template_Soal_Penyisihan_Kelas_${j}.docx` : `Template_Soal_${stage.toUpperCase()}.docx`;
+      a.download = (stage === 'benar_salah' || stage === 'bs') ? `Template_Soal_Benar_Salah.docx` :
+                   (stage === 'penyisihan') ? `Template_Soal_Penyisihan_Kelas_${j}.docx` :
+                   (stage === 'semifinal') ? `Template_Soal_Semifinal.docx` : `Template_Soal_Grand_Final.docx`;
       a.click();
       URL.revokeObjectURL(url);
     },
@@ -879,7 +1194,10 @@
     async exportStageBankToDocx(stage, jenjang = 7) {
       if (!window.docx) throw new Error('Library docx.js belum siap!');
       const j = parseInt(jenjang, 10) || 7;
-      const questions = await this.getStageQuestions(stage, j);
+      const isBs = (stage === 'benar_salah' || stage === 'bs');
+      const queryStage = isBs ? 'semifinal' : stage;
+      const rawQuestions = await this.getStageQuestions(queryStage, j);
+      const questions = isBs ? rawQuestions.filter(q => q.tipe === 'BS') : rawQuestions;
 
       if (!questions || questions.length === 0) {
         throw new Error(`Bank soal babak ${stage.toUpperCase()} (Kelas ${j}) saat ini kosong. Tidak ada soal yang diekspor.`);
@@ -961,6 +1279,7 @@
       }));
 
       const rows = [];
+      let multiTables = null;
       let docTitle = "";
       let docSubtitle = "";
 
@@ -1015,72 +1334,138 @@
             ]
           }));
         });
-      } else if (stage === 'semifinal') {
-        docTitle = "BANK SOAL RESMI: BABAK SEMIFINAL";
-        docSubtitle = `Kejuaraan Cerdas Cermat Multidisiplin IFP — Total ${questions.length} Soal — Format Resmi 9 Kolom`;
+      } else if (stage === 'benar_salah' || stage === 'bs') {
+        const bsQuestions = questions.filter(q => q.tipe === 'BS');
+        docTitle = "BANK SOAL RESMI: BENAR / SALAH (TRUE / FALSE)";
+        docSubtitle = `Kejuaraan Cerdas Cermat Multidisiplin IFP — Total ${bsQuestions.length} Soal — Format Standar 4 Kolom Bersih`;
 
         rows.push(new TableRow({
           children: [
-            createHeaderCell("No", 5),
-            createHeaderCell("Jenis Soal", 11),
-            createHeaderCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 34),
-            createHeaderCell("Pilihan A", 9),
-            createHeaderCell("Pilihan B", 9),
-            createHeaderCell("Pilihan C", 9),
-            createHeaderCell("Pilihan D", 9),
-            createHeaderCell("Kunci", 5),
-            createHeaderCell("Kunci Jawaban Esai (Juri)", 18)
+            createHeaderCell("No", 8),
+            createHeaderCell("Pernyataan / Soal & Gambar (Rumus LaTeX $...$)", 52),
+            createHeaderCell("Kunci (B / S)", 14),
+            createHeaderCell("Keterangan / Pembahasan (Opsional)", 26)
           ]
         }));
 
-        questions.forEach((q, i) => {
+        bsQuestions.forEach((q, i) => {
           const imgInfo = imageInfoMap[q.id] || null;
-          const tipe = q.tipe || 'BS';
-
-          let optA = '', optB = '', optC = '', optD = '';
-          let keyVal = '-';
-          let esVal = '-';
-
-          if (tipe === 'BS') {
-            optA = (q.o && q.o[0]) ? q.o[0] : 'Benar';
-            optB = (q.o && q.o[1]) ? q.o[1] : 'Salah';
-            optC = '-';
-            optD = '-';
-            const isSalah = (q.key === 1 || q.k === 1 || String(q.ans).toLowerCase() === 'salah' || String(q.ans).toLowerCase() === 's');
-            keyVal = isSalah ? 'S' : 'B';
-            esVal = '-';
-          } else if (tipe === 'PG1' || tipe === 'PG2') {
-            optA = (q.o && q.o[0] != null) ? q.o[0] : '';
-            optB = (q.o && q.o[1] != null) ? q.o[1] : '';
-            optC = (q.o && q.o[2] != null) ? q.o[2] : '';
-            optD = (q.o && q.o[3] != null) ? q.o[3] : '';
-            const keyIdx = (q.key != null) ? q.key : (q.k != null ? q.k : 0);
-            keyVal = (keyIdx >= 0 && keyIdx <= 3) ? 'ABCD'[keyIdx] : 'A';
-            esVal = '-';
-          } else {
-            // ES or CAD
-            optA = '-';
-            optB = '-';
-            optC = '-';
-            optD = '-';
-            keyVal = '-';
-            esVal = q.ans || '';
-          }
+          const isSalah = (q.key === 1 || q.k === 1 || String(q.ans).toLowerCase() === 'salah' || String(q.ans).toLowerCase() === 's');
+          const keyVal = isSalah ? 'S' : 'B';
+          const desc = q.desc || (isSalah ? 'Pernyataan Salah' : 'Pernyataan Benar');
 
           rows.push(new TableRow({
             children: [
-              createCell(String(i + 1), 5, AlignmentType.CENTER),
-              createCell(tipe, 11, AlignmentType.CENTER),
-              createCell(q.q || '', 34, AlignmentType.LEFT, imgInfo),
-              createCell(optA, 9),
-              createCell(optB, 9),
-              createCell(optC, 9),
-              createCell(optD, 9),
-              createCell(keyVal, 5, AlignmentType.CENTER),
-              createCell(esVal, 18)
+              createCell(String(i + 1), 8, AlignmentType.CENTER),
+              createCell(q.q || '', 52, AlignmentType.LEFT, imgInfo),
+              createCell(keyVal, 14, AlignmentType.CENTER),
+              createCell(desc, 26)
             ]
           }));
         });
+      } else if (stage === 'semifinal') {
+        docTitle = "BANK SOAL RESMI: BABAK SEMIFINAL";
+        docSubtitle = `Kejuaraan Cerdas Cermat Multidisiplin IFP — Total ${questions.length} Soal — Format Multi-Tabel Resmi`;
+
+        const bsQuestions = questions.filter(q => q.tipe === 'BS');
+        const pgQuestions = questions.filter(q => q.tipe === 'PG1' || q.tipe === 'PG2');
+        const esQuestions = questions.filter(q => q.tipe !== 'BS' && q.tipe !== 'PG1' && q.tipe !== 'PG2');
+
+        // Table 1: Benar / Salah (4 Kolom Bersih)
+        const t1Rows = [
+          new TableRow({
+            children: [
+              createHeaderCell("No", 8),
+              createHeaderCell("Pernyataan / Soal & Gambar (Rumus LaTeX $...$)", 52),
+              createHeaderCell("Kunci (B / S)", 14),
+              createHeaderCell("Keterangan / Pembahasan (Opsional)", 26)
+            ]
+          })
+        ];
+
+        bsQuestions.forEach((q, i) => {
+          const imgInfo = imageInfoMap[q.id] || null;
+          const isSalah = (q.key === 1 || q.k === 1 || String(q.ans).toLowerCase() === 'salah' || String(q.ans).toLowerCase() === 's');
+          const keyVal = isSalah ? 'S' : 'B';
+          const desc = q.desc || (isSalah ? 'Pernyataan Salah' : 'Pernyataan Benar');
+          t1Rows.push(new TableRow({
+            children: [
+              createCell(String(i + 1), 8, AlignmentType.CENTER),
+              createCell(q.q || '', 52, AlignmentType.LEFT, imgInfo),
+              createCell(keyVal, 14, AlignmentType.CENTER),
+              createCell(desc, 26)
+            ]
+          }));
+        });
+
+        // Table 2: Pilihan Ganda PG1 & PG2 (8 Kolom)
+        const t2Rows = [
+          new TableRow({
+            children: [
+              createHeaderCell("No", 5),
+              createHeaderCell("Kategori", 12),
+              createHeaderCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 39),
+              createHeaderCell("Pilihan A", 10),
+              createHeaderCell("Pilihan B", 10),
+              createHeaderCell("Pilihan C", 10),
+              createHeaderCell("Pilihan D", 10),
+              createHeaderCell("Kunci", 4)
+            ]
+          })
+        ];
+
+        pgQuestions.forEach((q, i) => {
+          const imgInfo = imageInfoMap[q.id] || null;
+          const keyIdx = (q.key != null) ? q.key : (q.k != null ? q.k : 0);
+          const keyVal = (keyIdx >= 0 && keyIdx <= 3) ? 'ABCD'[keyIdx] : 'A';
+          const optA = (q.o && q.o[0] != null) ? q.o[0] : '';
+          const optB = (q.o && q.o[1] != null) ? q.o[1] : '';
+          const optC = (q.o && q.o[2] != null) ? q.o[2] : '';
+          const optD = (q.o && q.o[3] != null) ? q.o[3] : '';
+
+          t2Rows.push(new TableRow({
+            children: [
+              createCell(String(i + 1), 5, AlignmentType.CENTER),
+              createCell(q.tipe || 'PG1', 12, AlignmentType.CENTER),
+              createCell(q.q || '', 39, AlignmentType.LEFT, imgInfo),
+              createCell(optA, 10),
+              createCell(optB, 10),
+              createCell(optC, 10),
+              createCell(optD, 10),
+              createCell(keyVal, 4, AlignmentType.CENTER)
+            ]
+          }));
+        });
+
+        // Table 3: Esai Rebutan & Cadangan (4 Kolom)
+        const t3Rows = [
+          new TableRow({
+            children: [
+              createHeaderCell("No", 8),
+              createHeaderCell("Jenis Soal", 14),
+              createHeaderCell("Pertanyaan Rebutan & Gambar (Rumus LaTeX $...$)", 48),
+              createHeaderCell("Kunci Jawaban Dewan Juri", 30)
+            ]
+          })
+        ];
+
+        esQuestions.forEach((q, i) => {
+          const imgInfo = imageInfoMap[q.id] || null;
+          t3Rows.push(new TableRow({
+            children: [
+              createCell(String(i + 1), 8, AlignmentType.CENTER),
+              createCell(q.tipe || 'ES', 14, AlignmentType.CENTER),
+              createCell(q.q || '', 48, AlignmentType.LEFT, imgInfo),
+              createCell(q.ans || '', 30)
+            ]
+          }));
+        });
+
+        multiTables = [
+          { title: `🟦 BAGIAN 1: SOAL BENAR / SALAH (BABAK 1 — ${bsQuestions.length} SOAL)`, rows: t1Rows },
+          { title: `🟩 BAGIAN 2: SOAL PILIHAN GANDA (BABAK 2 & 3 — ${pgQuestions.length} SOAL)`, rows: t2Rows },
+          { title: `🟨 BAGIAN 3: SOAL ESAI REBUTAN & CADANGAN (BABAK 4 — ${esQuestions.length} SOAL)`, rows: t3Rows }
+        ];
       } else {
         // Grand Final
         docTitle = "BANK SOAL RESMI: BABAK GRAND FINAL";
@@ -1116,39 +1501,57 @@
         year: 'numeric'
       });
 
-      const doc = new Document({
-        sections: [{
-          children: [
+      const docBodyElements = [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 60 },
+          children: [new TextRun({ text: docTitle, bold: true, color: "1E3A8A", size: 28, font: "Calibri" })]
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 120 },
+          children: [new TextRun({ text: `${docSubtitle} • Diekspor pada ${exportDateStr}`, italics: true, color: "475569", size: 19, font: "Calibri" })]
+        }),
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [new TextRun({ text: "📋 KETENTUAN PENGGUNAAN DOKUMEN:", bold: true, color: "D97706", size: 20, font: "Calibri" })]
+        }),
+        new Paragraph({
+          spacing: { after: 30 },
+          bullet: { level: 0 },
+          children: [new TextRun({ text: "Dokumen ini diekspor langsung dari Bank Soal Cerdas Cermat IFP dengan mempertahankan 100% format asli (tabel, rumus LaTeX $...$, gambar, opsi pilihan A-D, dan kunci jawaban).", size: 18, font: "Calibri", color: "334155" })]
+        }),
+        new Paragraph({
+          spacing: { after: 120 },
+          bullet: { level: 0 },
+          children: [new TextRun({ text: "Dokumen ini dapat langsung diedit di Microsoft Word dan diimpor kembali ke Bank Soal secara otomatis.", size: 18, font: "Calibri", color: "334155" })]
+        })
+      ];
+
+      if (multiTables && multiTables.length > 0) {
+        multiTables.forEach(tObj => {
+          docBodyElements.push(
             new Paragraph({
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 60 },
-              children: [new TextRun({ text: docTitle, bold: true, color: "1E3A8A", size: 28, font: "Calibri" })]
-            }),
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 120 },
-              children: [new TextRun({ text: `${docSubtitle} • Diekspor pada ${exportDateStr}`, italics: true, color: "475569", size: 19, font: "Calibri" })]
-            }),
-            new Paragraph({
-              spacing: { after: 60 },
-              children: [new TextRun({ text: "📋 KETENTUAN PENGGUNAAN DOKUMEN:", bold: true, color: "D97706", size: 20, font: "Calibri" })]
-            }),
-            new Paragraph({
-              spacing: { after: 30 },
-              bullet: { level: 0 },
-              children: [new TextRun({ text: "Dokumen ini diekspor langsung dari Bank Soal Cerdas Cermat IFP dengan mempertahankan 100% format asli (tabel, rumus LaTeX $...$, gambar, opsi pilihan A-D, dan kunci jawaban).", size: 18, font: "Calibri", color: "334155" })]
-            }),
-            new Paragraph({
-              spacing: { after: 120 },
-              bullet: { level: 0 },
-              children: [new TextRun({ text: "Dokumen ini dapat langsung diedit di Microsoft Word dan diimpor kembali ke Bank Soal secara otomatis.", size: 18, font: "Calibri", color: "334155" })]
+              spacing: { before: 180, after: 80 },
+              children: [new TextRun({ text: tObj.title, bold: true, color: "1E3A8A", size: 21, font: "Calibri" })]
             }),
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
-              rows: rows
+              rows: tObj.rows
             })
-          ]
-        }]
+          );
+        });
+      } else {
+        docBodyElements.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: rows
+          })
+        );
+      }
+
+      const doc = new Document({
+        sections: [{ children: docBodyElements }]
       });
 
       const blob = await window.docx.Packer.toBlob(doc);
@@ -1156,7 +1559,9 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = (stage === 'penyisihan') ? `Bank_Soal_Penyisihan_Kelas_${j}.docx` : `Bank_Soal_${stage.toUpperCase()}.docx`;
+        a.download = (stage === 'benar_salah' || stage === 'bs') ? `Bank_Soal_Benar_Salah_Resmi.docx` :
+                     (stage === 'penyisihan') ? `Bank_Soal_Penyisihan_Kelas_${j}.docx` :
+                     (stage === 'semifinal') ? `Bank_Soal_Semifinal_Resmi.docx` : `Bank_Soal_${stage.toUpperCase()}.docx`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 2000);
       }
@@ -1167,6 +1572,10 @@
         count: questions.length,
         blob
       };
+    },
+
+    async exportBenarSalahBankToDocx() {
+      return this.exportStageBankToDocx('benar_salah');
     },
 
     async exportAllPenyisihanBanksToDocx() {

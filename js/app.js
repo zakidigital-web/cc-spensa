@@ -453,10 +453,50 @@
 
       if (btnDownloadTpl) {
         btnDownloadTpl.addEventListener('click', async () => {
-          try {
-            await window.DocxEngine.downloadTemplateDocx(activeBankStage, activeJenjang);
-          } catch (e) {
-            alert('Gagal unduh template: ' + e.message);
+          if (activeBankStage === 'semifinal') {
+            self.openCustomDeleteModal({
+              icon: '📄',
+              title: 'Unduh Template Word Babak Semifinal (.docx)',
+              message: `Pilih format template yang ingin Anda gunakan untuk Babak Semifinal:<br>
+                <div style="margin-top:10px;text-align:left;background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;">
+                  • <strong>Template Khusus Benar / Salah (4 Kolom Standar):</strong> Format bersih (No, Pernyataan, Kunci B/S, Pembahasan). Tanpa kolom pilihan ganda dummy.<br>
+                  • <strong>Template Semifinal Lengkap (Multi-Tabel Resmi):</strong> Terdiri atas 3 tabel terpisah: Tabel Benar/Salah (4 kolom), Pilihan Ganda PG150/PG200 (8 kolom), dan Esai Rebutan (4 kolom).
+                </div>`,
+              buttons: [
+                {
+                  text: '⚖️ Unduh Template Benar / Salah Saja (.docx)',
+                  class: 'btn-primary',
+                  id: 'btn-tpl-bs',
+                  style: 'background:#ec4899;border:none;padding:10px 18px;font-weight:800;border-radius:10px;',
+                  action: async () => {
+                    self.showToast('📥 Mengunduh Template Khusus Benar / Salah (4 Kolom)...');
+                    await window.DocxEngine.downloadTemplateDocx('benar_salah');
+                  }
+                },
+                {
+                  text: '🎲 Unduh Template Semifinal Lengkap (.docx)',
+                  class: 'btn-gold',
+                  id: 'btn-tpl-sf',
+                  style: 'padding:10px 18px;font-weight:900;border-radius:10px;',
+                  action: async () => {
+                    self.showToast('📥 Mengunduh Template Semifinal Lengkap (Multi-Tabel)...');
+                    await window.DocxEngine.downloadTemplateDocx('semifinal');
+                  }
+                },
+                {
+                  text: 'Batal',
+                  class: 'btn-ghost',
+                  style: 'padding:8px 18px;',
+                  action: () => {}
+                }
+              ]
+            });
+          } else {
+            try {
+              await window.DocxEngine.downloadTemplateDocx(activeBankStage, activeJenjang);
+            } catch (e) {
+              alert('Gagal unduh template: ' + e.message);
+            }
           }
         });
       }
@@ -504,12 +544,51 @@
                 }
               ]
             });
+          } else if (activeBankStage === 'semifinal') {
+            self.openCustomDeleteModal({
+              icon: '📤',
+              title: 'Ekspor Bank Soal Babak Semifinal ke Word (.docx)',
+              message: `Pilih format ekspor bank soal untuk Babak Semifinal:<br>
+                <div style="margin-top:10px;text-align:left;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;">
+                  • <strong>Format Multi-Tabel Resmi:</strong> Seluruh soal Semifinal terbagi rapi ke dalam 3 tabel (Benar/Salah 4-kolom, Pilihan Ganda 8-kolom, dan Esai Rebutan 4-kolom).<br>
+                  • <strong>Ekspor Benar / Salah Saja:</strong> Hanya mengekspor seluruh soal Benar / Salah ke dalam format 4-kolom standar bersih.
+                </div>`,
+              buttons: [
+                {
+                  text: '📦 Ekspor Seluruh Soal Semifinal (Multi-Tabel)',
+                  class: 'btn-primary',
+                  id: 'btn-export-sf-all',
+                  style: 'padding:10px 18px;font-weight:800;border-radius:10px;',
+                  action: async () => {
+                    self.showToast('📤 Menyiapkan Bank Soal Lengkap Babak Semifinal...');
+                    await window.DocxEngine.exportStageBankToDocx('semifinal');
+                    self.showToast('✅ Berhasil mengekspor Bank Soal Babak Semifinal!');
+                  }
+                },
+                {
+                  text: '⚖️ Ekspor Khusus Soal Benar / Salah Saja (.docx)',
+                  class: 'btn-gold',
+                  id: 'btn-export-sf-bs',
+                  style: 'padding:10px 18px;font-weight:900;border-radius:10px;',
+                  action: async () => {
+                    self.showToast('📤 Menyiapkan Bank Soal Benar / Salah...');
+                    await window.DocxEngine.exportStageBankToDocx('benar_salah');
+                    self.showToast('✅ Berhasil mengekspor Soal Benar / Salah!');
+                  }
+                },
+                {
+                  text: 'Batal',
+                  class: 'btn-ghost',
+                  style: 'padding:8px 18px;',
+                  action: () => {}
+                }
+              ]
+            });
           } else {
-            const stageName = activeBankStage === 'semifinal' ? 'Semifinal' : 'Grand Final';
             try {
-              self.showToast(`📤 Menyiapkan Bank Soal Babak ${stageName}...`);
-              await window.DocxEngine.exportStageBankToDocx(activeBankStage, activeJenjang);
-              self.showToast(`✅ Berhasil mengekspor Bank Soal Babak ${stageName}!`);
+              self.showToast('📤 Menyiapkan Bank Soal Babak Grand Final...');
+              await window.DocxEngine.exportStageBankToDocx('final');
+              self.showToast('✅ Berhasil mengekspor Bank Soal Babak Grand Final!');
             } catch (e) {
               alert('Gagal ekspor: ' + e.message);
             }
@@ -1154,7 +1233,7 @@
 
         let optionsHtml = '';
         if (q.tipe === 'BS') {
-          const isBenar = (q.k === 0 || String(q.ans).toLowerCase() === 'benar');
+          const isBenar = (q.key === 0 || q.k === 0 || String(q.ans).toLowerCase() === 'benar' || String(q.ans).toUpperCase() === 'B') && !(q.key === 1 || q.k === 1 || String(q.ans).toLowerCase() === 'salah' || String(q.ans).toUpperCase() === 'S');
           optionsHtml = `
             <div style="margin-top:8px;">
               <span class="badge-pill" style="background:${isBenar ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'};color:${isBenar ? 'var(--ok)' : 'var(--bad)'};border-color:${isBenar ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'};font-weight:800;">
@@ -1467,7 +1546,8 @@
       if (rad) rad.checked = true;
 
       // True/False
-      const bsRad = document.querySelector(`input[name="edit-bs-key"][value="${q.k || 0}"]`);
+      const isBsSalah = (q.key === 1 || q.k === 1 || String(q.ans).toLowerCase() === 'salah' || String(q.ans).toUpperCase() === 'S');
+      const bsRad = document.querySelector(`input[name="edit-bs-key"][value="${isBsSalah ? 1 : 0}"]`);
       if (bsRad) bsRad.checked = true;
 
       // Essay
@@ -1529,7 +1609,7 @@
       const keyEl = document.getElementById('modal-pv-key-box');
 
       if (q.tipe === 'BS') {
-        const isBenar = (q.k === 0 || String(q.ans).toLowerCase() === 'benar');
+        const isBenar = (q.key === 0 || q.k === 0 || String(q.ans).toLowerCase() === 'benar' || String(q.ans).toUpperCase() === 'B') && !(q.key === 1 || q.k === 1 || String(q.ans).toLowerCase() === 'salah' || String(q.ans).toUpperCase() === 'S');
         if (optEl) {
           optEl.innerHTML = `
             <div style="display:flex;gap:16px;">
@@ -1773,6 +1853,7 @@
           const bsKey = bsRadio ? parseInt(bsRadio.value, 10) : 0;
           qObj.o = ['Benar', 'Salah'];
           qObj.k = bsKey;
+          qObj.key = bsKey;
           qObj.ans = bsKey === 0 ? 'Benar' : 'Salah';
         } else if (category === 'PG1' || category === 'PG2') {
           const options = [0, 1, 2, 3].map(i => document.getElementById(`edit-opt-${i}`).value.trim());

@@ -139,28 +139,41 @@ async function runTest() {
     }
     console.log('   ✅ Penyisihan 8-column layout, formulas, and image embedding verified!');
 
-    // Step 4: Test Semifinal Export
-    console.log('4. Testing Semifinal 9-column Word Export...');
+    // Step 4: Test Semifinal Multi-Table Word Export (BS, PG, Esai)
+    console.log('4. Testing Semifinal Multi-Table Word Export (BS, PG, Esai)...');
     const semiResult = await page.evaluate(async () => {
       const res = await window.DocxEngine.exportStageBankToDocx('semifinal');
       const ab = await res.blob.arrayBuffer();
       const mammothRes = await window.mammoth.convertToHtml({ arrayBuffer: ab });
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = mammothRes.value;
-      const table = tempDiv.querySelector('table');
-      const headerCells = table ? Array.from(table.querySelector('tr').querySelectorAll('th, td')).map(c => c.textContent.trim()) : [];
+      const tables = Array.from(tempDiv.querySelectorAll('table'));
       return {
-        columnCount: headerCells.length,
-        headerCells: headerCells,
-        rowCount: table ? table.querySelectorAll('tr').length : 0
+        tableCount: tables.length,
+        tables: tables.map(t => {
+          const firstRow = t.querySelector('tr');
+          const cells = firstRow ? Array.from(firstRow.querySelectorAll('th, td')).map(c => c.textContent.trim()) : [];
+          return {
+            columnCount: cells.length,
+            headerCells: cells,
+            rowCount: t.querySelectorAll('tr').length
+          };
+        })
       };
     });
 
-    console.log('   Semifinal Result:', semiResult);
-    if (semiResult.columnCount !== 9) {
-      throw new Error(`Expected 9 columns for Semifinal export, got ${semiResult.columnCount}: ${JSON.stringify(semiResult.headerCells)}`);
+    console.log('   Semifinal Result Tables Count:', semiResult.tableCount);
+    console.log('   Table 1 (Benar/Salah):', semiResult.tables[0]);
+    if (semiResult.tableCount < 3) {
+      throw new Error(`Expected at least 3 tables for Semifinal export, got ${semiResult.tableCount}`);
     }
-    console.log('   ✅ Semifinal 9-column layout verified!');
+    if (semiResult.tables[0].columnCount !== 4) {
+      throw new Error(`Expected 4 columns for Benar/Salah Table, got ${semiResult.tables[0].columnCount}`);
+    }
+    if (semiResult.tables[1].columnCount !== 8) {
+      throw new Error(`Expected 8 columns for Pilihan Ganda Table, got ${semiResult.tables[1].columnCount}`);
+    }
+    console.log('   ✅ Semifinal Multi-Table (BS 4-col, PG 8-col, Esai 4-col) verified!');
 
     // Step 5: Test Grand Final Export
     console.log('5. Testing Grand Final 4-column Word Export...');
