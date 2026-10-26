@@ -136,17 +136,27 @@
       return formatMathText(text);
     },
 
-    async getStageQuestions(stage = 'penyisihan') {
+    async getPenyisihanJenjangCounts() {
+      const b = await kvGetLegacy('bank');
+      const counts = { 7: 0, 8: 0, 9: 0 };
+      if (b && b.soal) {
+        counts[7] = Array.isArray(b.soal[7]) ? b.soal[7].length : 0;
+        counts[8] = Array.isArray(b.soal[8]) ? b.soal[8].length : 0;
+        counts[9] = Array.isArray(b.soal[9]) ? b.soal[9].length : 0;
+      }
+      return counts;
+    },
+
+    async getStageQuestions(stage = 'penyisihan', jenjang = 7) {
       let list = [];
-      const isExplicitlyCleared = localStorage.getItem(`cc_cleared_${stage}`) === 'true';
+      const j = parseInt(jenjang, 10) || 7;
+      const clearKey = (stage === 'penyisihan') ? `cc_cleared_${stage}_${j}` : `cc_cleared_${stage}`;
+      const isExplicitlyCleared = localStorage.getItem(clearKey) === 'true';
 
       if (stage === 'penyisihan') {
         const b = await kvGetLegacy('bank');
         if (b && b.soal) {
-          const s9 = b.soal[9] || [];
-          const s8 = b.soal[8] || [];
-          const s7 = b.soal[7] || [];
-          list = s9.length ? s9 : (s8.length ? s8 : s7);
+          list = b.soal[j] || [];
         }
       } else if (stage === 'semifinal') {
         const b3 = await kvGetLegacy('bank3');
@@ -173,28 +183,36 @@
       // If empty and not explicitly cleared by user, load defaults
       if ((!list || list.length === 0) && !isExplicitlyCleared && window.DEFAULT_BANKS && window.DEFAULT_BANKS[stage]) {
         list = JSON.parse(JSON.stringify(window.DEFAULT_BANKS[stage]));
-        await this.saveStageQuestions(stage, list);
+        if (stage === 'penyisihan') {
+          list = list.map((q, idx) => {
+            q.jenjang = j;
+            q.id = `p_${j}_${idx + 1}`;
+            return q;
+          });
+        }
+        await this.saveStageQuestions(stage, list, j);
       }
 
       return (list || []).map((q, idx) => {
-        if (!q.id) q.id = `${stage}_${idx + 1}`;
+        if (!q.id) q.id = (stage === 'penyisihan') ? `p_${j}_${idx + 1}` : `${stage}_${idx + 1}`;
+        if (stage === 'penyisihan' && !q.jenjang) q.jenjang = j;
         return q;
       });
     },
 
-    async saveStageQuestions(stage = 'penyisihan', questions = []) {
+    async saveStageQuestions(stage = 'penyisihan', questions = [], jenjang = 7) {
+      const j = parseInt(jenjang, 10) || 7;
+      const clearKey = (stage === 'penyisihan') ? `cc_cleared_${stage}_${j}` : `cc_cleared_${stage}`;
       if (questions.length === 0) {
-        localStorage.setItem(`cc_cleared_${stage}`, 'true');
+        localStorage.setItem(clearKey, 'true');
       } else {
-        localStorage.removeItem(`cc_cleared_${stage}`);
+        localStorage.removeItem(clearKey);
       }
 
       if (stage === 'penyisihan') {
         let b = (await kvGetLegacy('bank')) || { mapel: [], soal: { 7: [], 8: [], 9: [] } };
         b.soal = b.soal || { 7: [], 8: [], 9: [] };
-        b.soal[7] = questions;
-        b.soal[8] = questions;
-        b.soal[9] = questions;
+        b.soal[j] = questions;
 
         const existingMapel = new Set((b.mapel || []).map(m => (typeof m === 'string' ? m : m.n)));
         questions.forEach(q => {
@@ -206,7 +224,8 @@
 
         await kvSetLegacy('bank', b);
         if (window.PortalStorage) {
-          await window.PortalStorage.saveStageBank('penyisihan', questions);
+          await window.PortalStorage.saveStageBank(`penyisihan_${j}`, questions);
+          await window.PortalStorage.saveStageBank('penyisihan', b.soal[9] || questions);
         }
         const frame = document.getElementById('frame-penyisihan');
         if (frame && frame.contentWindow) {
@@ -241,47 +260,63 @@
       return questions;
     },
 
-    async deleteStageQuestions(stage, idsToDelete = []) {
+    async deleteStageQuestions(stage, idsToDelete = [], jenjang = 7) {
       const idSet = new Set(idsToDelete.map(String));
-      let questions = await this.getStageQuestions(stage);
+      let questions = await this.getStageQuestions(stage, jenjang);
       questions = questions.filter(q => !idSet.has(String(q.id)));
-      return this.saveStageQuestions(stage, questions);
+      return this.saveStageQuestions(stage, questions, jenjang);
     },
 
-    async clearStageQuestions(stage) {
-      return this.saveStageQuestions(stage, []);
+    async clearStageQuestions(stage, jenjang = 7) {
+      return this.saveStageQuestions(stage, [], jenjang);
     },
 
-    async updateStageQuestion(stage, qId, updatedData) {
-      let questions = await this.getStageQuestions(stage);
+    async updateStageQuestion(stage, qId, updatedData, jenjang = 7) {
+      let questions = await this.getStageQuestions(stage, jenjang);
       const idx = questions.findIndex(q => String(q.id) === String(qId));
       if (idx !== -1) {
         questions[idx] = Object.assign({}, questions[idx], updatedData);
       } else {
         questions.push(updatedData);
       }
-      return this.saveStageQuestions(stage, questions);
+      return this.saveStageQuestions(stage, questions, jenjang);
     },
 
-    async addStageQuestion(stage, newQuestion) {
-      let questions = await this.getStageQuestions(stage);
+    async addStageQuestion(stage, newQuestion, jenjang = 7) {
+      let questions = await this.getStageQuestions(stage, jenjang);
+      const j = parseInt(jenjang, 10) || 7;
       if (!newQuestion.id) {
-        newQuestion.id = `${stage}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+        newQuestion.id = (stage === 'penyisihan')
+          ? `p_${j}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+          : `${stage}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+      }
+      if (stage === 'penyisihan') {
+        newQuestion.jenjang = j;
       }
       questions.push(newQuestion);
-      return this.saveStageQuestions(stage, questions);
+      return this.saveStageQuestions(stage, questions, jenjang);
     },
 
-    async restoreDefaultStageQuestions(stage) {
-      localStorage.removeItem(`cc_cleared_${stage}`);
+    async restoreDefaultStageQuestions(stage, jenjang = 7) {
+      const j = parseInt(jenjang, 10) || 7;
+      const clearKey = (stage === 'penyisihan') ? `cc_cleared_${stage}_${j}` : `cc_cleared_${stage}`;
+      localStorage.removeItem(clearKey);
       const defaults = (window.DEFAULT_BANKS && window.DEFAULT_BANKS[stage]) || [];
-      const cloned = JSON.parse(JSON.stringify(defaults));
-      return this.saveStageQuestions(stage, cloned);
+      let cloned = JSON.parse(JSON.stringify(defaults));
+      if (stage === 'penyisihan') {
+        cloned = cloned.map((q, idx) => {
+          q.jenjang = j;
+          q.id = `p_${j}_${idx + 1}`;
+          return q;
+        });
+      }
+      return this.saveStageQuestions(stage, cloned, jenjang);
     },
 
-    async importQuestionsFromDocx(file, targetStage = 'penyisihan') {
+    async importQuestionsFromDocx(file, targetStage = 'penyisihan', targetJenjang = 7) {
       if (!window.mammoth) throw new Error('Library Mammoth.js belum siap!');
 
+      const j = parseInt(targetJenjang, 10) || 7;
       const arrayBuffer = await file.arrayBuffer();
       const mathEquations = await extractEquationsFromDocx(arrayBuffer);
 
@@ -326,11 +361,13 @@
             else if (keyRaw === 'D' || keyRaw === '3') keyIdx = 3;
 
             parsedQuestions.push({
-              id: 'imp_' + Date.now().toString(36) + i,
+              id: `imp_${j}_${Date.now().toString(36)}${i}`,
+              jenjang: j,
               mapel: category,
               q: qText,
               o: options.length >= 2 ? options : ['A', 'B', 'C', 'D'],
               k: keyIdx,
+              ans: options[keyIdx] || '',
               img: imgSrc
             });
           } else if (targetStage === 'semifinal') {
@@ -403,19 +440,21 @@
       }
 
       // Save directly to the native stage storage using unified saveStageQuestions
-      const curQuestions = await this.getStageQuestions(targetStage);
-      await this.saveStageQuestions(targetStage, curQuestions.concat(parsedQuestions));
+      const curQuestions = await this.getStageQuestions(targetStage, j);
+      await this.saveStageQuestions(targetStage, curQuestions.concat(parsedQuestions), j);
 
       return {
         count: parsedQuestions.length,
         questions: parsedQuestions,
         mathCount: mathEquations.length,
-        stage: targetStage
+        stage: targetStage,
+        jenjang: j
       };
     },
 
-    async downloadTemplateDocx(stage = 'penyisihan') {
+    async downloadTemplateDocx(stage = 'penyisihan', jenjang = 7) {
       if (!window.docx) throw new Error('Library docx.js belum siap!');
+      const j = parseInt(jenjang, 10) || 7;
 
       const {
         Document, Paragraph, TextRun, Table, TableRow, TableCell,
@@ -655,14 +694,15 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Template_Soal_${stage.toUpperCase()}.docx`;
+      a.download = (stage === 'penyisihan') ? `Template_Soal_Penyisihan_Kelas_${j}.docx` : `Template_Soal_${stage.toUpperCase()}.docx`;
       a.click();
       URL.revokeObjectURL(url);
     },
 
-    async exportStageBankToDocx(stage) {
+    async exportStageBankToDocx(stage, jenjang = 7) {
       if (!window.docx) throw new Error('Library docx.js belum siap!');
-      const questions = await this.getStageQuestions(stage);
+      const j = parseInt(jenjang, 10) || 7;
+      const questions = await this.getStageQuestions(stage, j);
 
       const {
         Document, Paragraph, TextRun, Table, TableRow, TableCell,
@@ -717,13 +757,17 @@
         }));
       });
 
+      const stageHeading = (stage === 'penyisihan')
+        ? `BANK SOAL RESMI: BABAK PENYISIHAN (KELAS ${j})`
+        : `BANK SOAL RESMI: BABAK ${stage.toUpperCase()}`;
+
       const doc = new Document({
         sections: [{
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
               spacing: { after: 120 },
-              children: [new TextRun({ text: `BANK SOAL RESMI: BABAK ${stage.toUpperCase()}`, bold: true, color: "1E3A8A", size: 26, font: "Calibri" })]
+              children: [new TextRun({ text: stageHeading, bold: true, color: "1E3A8A", size: 26, font: "Calibri" })]
             }),
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
@@ -737,7 +781,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Bank_Soal_${stage.toUpperCase()}.docx`;
+      a.download = (stage === 'penyisihan') ? `Bank_Soal_Penyisihan_Kelas_${j}.docx` : `Bank_Soal_${stage.toUpperCase()}.docx`;
       a.click();
       URL.revokeObjectURL(url);
     }

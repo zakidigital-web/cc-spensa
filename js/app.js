@@ -8,6 +8,7 @@
 
   let currentView = 'hub';
   let activeBankStage = 'penyisihan'; // 'penyisihan' | 'semifinal' | 'final'
+  let activeJenjang = 7; // 7 | 8 | 9 (khusus babak penyisihan)
   let bankSearchQuery = '';
   let bankFilterCategory = '';
   let selectedQuestionIds = new Set();
@@ -381,6 +382,17 @@
         tabF.onclick = () => { activeBankStage = 'final'; this.onBankStageChange(); };
       }
 
+      // ─── PENYISIHAN JENJANG BUTTONS (KELAS 7, 8, 9) ────
+      [7, 8, 9].forEach(j => {
+        const btn = document.getElementById(`btn_jenjang_${j}`);
+        if (btn) {
+          btn.addEventListener('click', () => {
+            activeJenjang = j;
+            self.onJenjangChange();
+          });
+        }
+      });
+
       if (dropzone && fileInput) {
         dropzone.addEventListener('click', () => fileInput.click());
         dropzone.addEventListener('dragover', (e) => {
@@ -406,20 +418,9 @@
       if (btnDownloadTpl) {
         btnDownloadTpl.addEventListener('click', async () => {
           try {
-            const fileNameMap = {
-              penyisihan: 'templates/Template_Soal_Penyisihan.docx',
-              semifinal: 'templates/Template_Soal_Semifinal.docx',
-              final: 'templates/Template_Soal_Grand_Final.docx'
-            };
-            const fileUrl = fileNameMap[activeBankStage];
-            const a = document.createElement('a');
-            a.href = fileUrl;
-            a.download = `Template_Soal_${activeBankStage.toUpperCase()}.docx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            await window.DocxEngine.downloadTemplateDocx(activeBankStage, activeJenjang);
           } catch (e) {
-            await window.DocxEngine.downloadTemplateDocx(activeBankStage);
+            alert('Gagal unduh template: ' + e.message);
           }
         });
       }
@@ -427,7 +428,7 @@
       if (btnExportWord) {
         btnExportWord.addEventListener('click', async () => {
           try {
-            await window.DocxEngine.exportStageBankToDocx(activeBankStage);
+            await window.DocxEngine.exportStageBankToDocx(activeBankStage, activeJenjang);
           } catch (e) {
             alert('Gagal ekspor: ' + e.message);
           }
@@ -484,14 +485,16 @@
         btnDeleteSelected.addEventListener('click', () => {
           if (selectedQuestionIds.size === 0) return;
           const count = selectedQuestionIds.size;
+          const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
           self.openConfirmDeleteModal({
             title: '🗑️ Hapus Soal Terpilih',
-            message: `Apakah Anda yakin ingin menghapus <strong>${count} soal terpilih</strong> dari Bank Soal Babak ${activeBankStage.toUpperCase()}? Tindakan ini tidak dapat dibatalkan.`,
+            message: `Apakah Anda yakin ingin menghapus <strong>${count} soal terpilih</strong> dari Bank Soal Babak ${stageDesc}? Tindakan ini tidak dapat dibatalkan.`,
             onConfirm: async () => {
               try {
-                await window.DocxEngine.deleteStageQuestions(activeBankStage, Array.from(selectedQuestionIds));
+                await window.DocxEngine.deleteStageQuestions(activeBankStage, Array.from(selectedQuestionIds), activeJenjang);
                 selectedQuestionIds.clear();
                 await self.renderBankList();
+                self.updateJenjangCountsUI();
                 self.showToast(`✅ Berhasil menghapus ${count} soal terpilih!`);
               } catch (err) {
                 alert('Gagal menghapus soal: ' + err.message);
@@ -504,15 +507,17 @@
       const btnDeleteAll = document.getElementById('btn-delete-all');
       if (btnDeleteAll) {
         btnDeleteAll.addEventListener('click', () => {
+          const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
           self.openConfirmDeleteModal({
-            title: `⚠️ Hapus SEMUA Soal ${activeBankStage.toUpperCase()}`,
-            message: `PERINGATAN: Seluruh soal di Bank Soal Babak ${activeBankStage.toUpperCase()} akan dihapus. Anda dapat memulihkan soal bawaan kapan saja dengan menekan tombol <strong>'Pulihkan Soal Bawaan'</strong>. Lanjutkan?`,
+            title: `⚠️ Hapus SEMUA Soal ${stageDesc}`,
+            message: `PERINGATAN: Seluruh soal di Bank Soal Babak ${stageDesc} akan dihapus. Anda dapat memulihkan soal bawaan kapan saja dengan menekan tombol <strong>'Pulihkan Soal Bawaan'</strong>. Lanjutkan?`,
             onConfirm: async () => {
               try {
-                await window.DocxEngine.clearStageQuestions(activeBankStage);
+                await window.DocxEngine.clearStageQuestions(activeBankStage, activeJenjang);
                 selectedQuestionIds.clear();
                 await self.renderBankList();
-                self.showToast(`⚠️ Seluruh soal Bank ${activeBankStage.toUpperCase()} telah dikosongkan!`, 'warning');
+                self.updateJenjangCountsUI();
+                self.showToast(`⚠️ Seluruh soal Bank ${stageDesc} telah dikosongkan!`, 'warning');
               } catch (err) {
                 alert('Gagal mengosongkan bank soal: ' + err.message);
               }
@@ -524,15 +529,17 @@
       const btnRestoreDefault = document.getElementById('btn-restore-default');
       if (btnRestoreDefault) {
         btnRestoreDefault.addEventListener('click', () => {
+          const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
           self.openConfirmDeleteModal({
             title: '🔄 Pulihkan Soal Bawaan',
-            message: `Bank Soal Babak ${activeBankStage.toUpperCase()} akan diisi kembali dengan daftar soal standar bawaan awal. Lanjutkan?`,
+            message: `Bank Soal Babak ${stageDesc} akan diisi kembali dengan daftar soal standar bawaan awal. Lanjutkan?`,
             onConfirm: async () => {
               try {
-                await window.DocxEngine.restoreDefaultStageQuestions(activeBankStage);
+                await window.DocxEngine.restoreDefaultStageQuestions(activeBankStage, activeJenjang);
                 selectedQuestionIds.clear();
                 await self.renderBankList();
-                self.showToast(`✅ Soal standar babak ${activeBankStage.toUpperCase()} berhasil dipulihkan!`);
+                self.updateJenjangCountsUI();
+                self.showToast(`✅ Soal standar ${stageDesc} berhasil dipulihkan!`);
               } catch (err) {
                 alert('Gagal memulihkan soal: ' + err.message);
               }
@@ -575,14 +582,16 @@
           if (btnDel) {
             const id = btnDel.dataset.id;
             const q = allQuestionsCache.find(x => String(x.id) === String(id));
+            const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
             self.openConfirmDeleteModal({
               title: '🗑️ Hapus Soal',
-              message: `Apakah Anda yakin ingin menghapus soal ini dari Bank Soal Babak ${activeBankStage.toUpperCase()}?<br><br><em>"${(q ? q.q : id).slice(0, 100)}..."</em>`,
+              message: `Apakah Anda yakin ingin menghapus soal ini dari Bank Soal Babak ${stageDesc}?<br><br><em>"${(q ? q.q : id).slice(0, 100)}..."</em>`,
               onConfirm: async () => {
                 try {
-                  await window.DocxEngine.deleteStageQuestions(activeBankStage, [id]);
+                  await window.DocxEngine.deleteStageQuestions(activeBankStage, [id], activeJenjang);
                   selectedQuestionIds.delete(String(id));
                   await self.renderBankList();
+                  self.updateJenjangCountsUI();
                   self.showToast('✅ Soal berhasil dihapus!');
                 } catch (err) {
                   alert('Gagal menghapus soal: ' + err.message);
@@ -620,16 +629,60 @@
       this.updateBankStageUI();
     },
 
+    onJenjangChange() {
+      [7, 8, 9].forEach(j => {
+        const b = document.getElementById(`btn_jenjang_${j}`);
+        if (b) b.classList.toggle('active', activeJenjang === j);
+      });
+      bankSearchQuery = '';
+      bankFilterCategory = '';
+      selectedQuestionIds.clear();
+      const searchInput = document.getElementById('bank-search-input');
+      if (searchInput) searchInput.value = '';
+      const btnClearSearch = document.getElementById('btn-clear-search');
+      if (btnClearSearch) btnClearSearch.style.display = 'none';
+
+      const badgeEl = document.getElementById('active-bank-stage-label');
+      if (badgeEl) badgeEl.textContent = `Target Aktif: Babak Penyisihan — Kelas ${activeJenjang} (11 Mapel)`;
+
+      this.renderBankList();
+      this.updateJenjangCountsUI();
+    },
+
+    async updateJenjangCountsUI() {
+      if (activeBankStage !== 'penyisihan') return;
+      try {
+        const counts = await window.DocxEngine.getPenyisihanJenjangCounts();
+        [7, 8, 9].forEach(j => {
+          const el = document.getElementById(`count_jenjang_${j}`);
+          if (el) el.textContent = String(counts[j] || 0);
+        });
+      } catch (e) {}
+    },
+
     updateBankStageUI() {
       ['penyisihan', 'semifinal', 'final'].forEach(st => {
         const btn = document.getElementById(`bank_tab_${st}`);
         if (btn) btn.classList.toggle('btn-primary', activeBankStage === st);
       });
 
-      const stLabel = activeBankStage === 'penyisihan' ? 'Babak Penyisihan (11 Mapel)' :
+      const jenjangStrip = document.getElementById('penyisihan-jenjang-strip');
+      if (jenjangStrip) {
+        jenjangStrip.style.display = (activeBankStage === 'penyisihan') ? 'flex' : 'none';
+      }
+
+      const stLabel = activeBankStage === 'penyisihan' ? `Babak Penyisihan — Kelas ${activeJenjang} (11 Mapel)` :
                       (activeBankStage === 'semifinal' ? 'Babak Semifinal (BS, PG1, PG2, Essay)' : 'Babak Grand Final (Tier 1, 2, 3)');
       const badgeEl = document.getElementById('active-bank-stage-label');
       if (badgeEl) badgeEl.textContent = `Target Aktif: ${stLabel}`;
+
+      if (activeBankStage === 'penyisihan') {
+        [7, 8, 9].forEach(j => {
+          const b = document.getElementById(`btn_jenjang_${j}`);
+          if (b) b.classList.toggle('active', activeJenjang === j);
+        });
+        this.updateJenjangCountsUI();
+      }
 
       this.renderBankList();
     },
@@ -637,15 +690,17 @@
     async handleWordImport(file) {
       try {
         const statusEl = document.getElementById('import-status-msg');
-        if (statusEl) statusEl.textContent = `Mengekstrak file Word ke Bank Soal ${activeBankStage.toUpperCase()}...`;
+        const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
+        if (statusEl) statusEl.textContent = `Mengekstrak file Word ke Bank Soal ${stageDesc}...`;
 
-        const result = await window.DocxEngine.importQuestionsFromDocx(file, activeBankStage);
+        const result = await window.DocxEngine.importQuestionsFromDocx(file, activeBankStage, activeJenjang);
 
         if (statusEl) {
-          statusEl.textContent = `✅ Berhasil mengimpor ${result.count} soal ke Bank ${activeBankStage.toUpperCase()} (Ditemukan ${result.mathCount} rumus matematika)!`;
+          statusEl.textContent = `✅ Berhasil mengimpor ${result.count} soal ke Bank ${stageDesc} (Ditemukan ${result.mathCount} rumus matematika)!`;
         }
-        this.showToast(`Berhasil mengimpor ${result.count} soal ke Bank Soal ${activeBankStage.toUpperCase()}!`);
-        this.renderBankList();
+        this.showToast(`Berhasil mengimpor ${result.count} soal ke Bank Soal ${stageDesc}!`);
+        await this.renderBankList();
+        this.updateJenjangCountsUI();
       } catch (err) {
         alert('Gagal membaca file Word: ' + err.message);
       }
@@ -723,8 +778,12 @@
       const container = document.getElementById('bank-list-container');
       if (!container) return;
 
-      const qList = await window.DocxEngine.getStageQuestions(activeBankStage);
+      const qList = await window.DocxEngine.getStageQuestions(activeBankStage, activeJenjang);
       allQuestionsCache = qList;
+
+      if (activeBankStage === 'penyisihan') {
+        this.updateJenjangCountsUI();
+      }
 
       // Populate Category Filter dropdown dynamically
       const categoryFilter = document.getElementById('bank-filter-category');
@@ -744,20 +803,24 @@
       // Update total stats badge
       const totalStatsEl = document.getElementById('bank-total-stats');
       if (totalStatsEl) {
+        const stageDesc = (activeBankStage === 'penyisihan') ? `Kelas ${activeJenjang}` : activeBankStage.toUpperCase();
         if (filtered.length === qList.length) {
-          totalStatsEl.textContent = `Total: ${qList.length} Soal`;
+          totalStatsEl.textContent = `Total: ${qList.length} Soal (${stageDesc})`;
         } else {
-          totalStatsEl.textContent = `Menampilkan: ${filtered.length} dari ${qList.length} Soal`;
+          totalStatsEl.textContent = `Menampilkan: ${filtered.length} dari ${qList.length} Soal (${stageDesc})`;
         }
       }
 
       if (!qList.length) {
+        const stageHeading = (activeBankStage === 'penyisihan')
+          ? `Bank Soal Babak PENYISIHAN (Kelas ${activeJenjang}) Kosong`
+          : `Bank Soal Babak ${activeBankStage.toUpperCase()} Kosong`;
         container.innerHTML = `
           <div style="text-align:center;padding:48px 24px;border:2px dashed var(--card-border);border-radius:16px;background:rgba(255,255,255,0.01);">
             <div style="font-size:48px;margin-bottom:12px;">📭</div>
-            <h4 style="font-size:18px;font-weight:800;margin:0 0 8px 0;">Bank Soal Babak ${activeBankStage.toUpperCase()} Kosong</h4>
+            <h4 style="font-size:18px;font-weight:800;margin:0 0 8px 0;">${stageHeading}</h4>
             <p style="color:var(--text-mut);font-size:14px;max-width:480px;margin:0 auto 20px auto;">
-              Belum ada soal pada babak ini. Anda dapat menambahkan soal secara manual atau memulihkan soal bawaan awal.
+              Belum ada soal pada bagian ini. Anda dapat menambahkan soal secara manual atau memulihkan soal bawaan awal.
             </p>
             <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
               <button class="btn btn-primary" onclick="window.App.openAddQuestionModal()">➕ Tambah Soal Manual</button>
@@ -788,6 +851,7 @@
         const cat = q.mapel || q.tipe || q.tier || 'Umum';
         const isSel = selectedQuestionIds.has(String(q.id));
         const qMath = window.DocxEngine.formatMath(q.q);
+        const catBadgeText = (activeBankStage === 'penyisihan') ? `Kelas ${q.jenjang || activeJenjang} · ${cat}` : cat;
 
         let optionsHtml = '';
         if (q.tipe === 'BS') {
@@ -835,7 +899,7 @@
             </div>
             <div class="q-card-content">
               <div class="q-card-header">
-                <span class="q-card-badge">${cat}</span>
+                <span class="q-card-badge">${catBadgeText}</span>
                 ${extraBadge}
                 <span style="font-size:11px;color:var(--text-mut);margin-left:auto;font-family:monospace;">ID: ${q.id}</span>
               </div>
@@ -997,10 +1061,22 @@
 
       document.getElementById('modal-edit-q-title').textContent = '➕ Tambah Soal Baru';
       const badge = document.getElementById('modal-edit-q-stage-badge');
-      if (badge) badge.textContent = `Babak ${activeBankStage.toUpperCase()}`;
+      if (badge) {
+        badge.textContent = (activeBankStage === 'penyisihan')
+          ? `Penyisihan (Kelas ${activeJenjang})`
+          : `Babak ${activeBankStage.toUpperCase()}`;
+      }
 
       document.getElementById('edit-q-id').value = '';
       document.getElementById('edit-q-stage').value = activeBankStage;
+
+      // Jenjang radio selector for Penyisihan
+      const jGroup = document.getElementById('group-edit-jenjang');
+      if (jGroup) {
+        jGroup.style.display = (activeBankStage === 'penyisihan') ? 'block' : 'none';
+        const jRadio = document.querySelector(`input[name="edit-q-jenjang"][value="${activeJenjang}"]`);
+        if (jRadio) jRadio.checked = true;
+      }
 
       // Reset text & live preview
       const qText = document.getElementById('edit-q-text');
@@ -1053,11 +1129,24 @@
       if (!modal) return;
 
       document.getElementById('modal-edit-q-title').textContent = '✏️ Edit Soal';
+      const qJ = q.jenjang || activeJenjang;
       const badge = document.getElementById('modal-edit-q-stage-badge');
-      if (badge) badge.textContent = `Babak ${activeBankStage.toUpperCase()}`;
+      if (badge) {
+        badge.textContent = (activeBankStage === 'penyisihan')
+          ? `Penyisihan (Kelas ${qJ})`
+          : `Babak ${activeBankStage.toUpperCase()}`;
+      }
 
       document.getElementById('edit-q-id').value = q.id || '';
       document.getElementById('edit-q-stage').value = activeBankStage;
+
+      // Jenjang radio selector for Penyisihan
+      const jGroup = document.getElementById('group-edit-jenjang');
+      if (jGroup) {
+        jGroup.style.display = (activeBankStage === 'penyisihan') ? 'block' : 'none';
+        const jRadio = document.querySelector(`input[name="edit-q-jenjang"][value="${qJ}"]`);
+        if (jRadio) jRadio.checked = true;
+      }
 
       // Populate Category options and select current category
       this.populateCategorySelectOptions(activeBankStage, q.mapel || q.tipe || q.tier);
@@ -1291,6 +1380,9 @@
       };
 
       if (stage === 'penyisihan') {
+        const jRadio = document.querySelector('input[name="edit-q-jenjang"]:checked');
+        const targetJenjang = jRadio ? (parseInt(jRadio.value, 10) || activeJenjang) : activeJenjang;
+        qObj.jenjang = targetJenjang;
         qObj.mapel = category;
         const options = [0, 1, 2, 3].map(i => document.getElementById(`edit-opt-${i}`).value.trim());
         if (options.some(opt => !opt)) {
@@ -1302,6 +1394,28 @@
         qObj.o = options;
         qObj.k = keyIdx;
         qObj.ans = options[keyIdx];
+
+        try {
+          if (qId) {
+            qObj.id = qId;
+            if (targetJenjang !== activeJenjang) {
+              await window.DocxEngine.deleteStageQuestions('penyisihan', [qId], activeJenjang);
+            }
+            await window.DocxEngine.updateStageQuestion('penyisihan', qId, qObj, targetJenjang);
+            this.showToast(`✅ Soal berhasil diperbarui di Kelas ${targetJenjang}!`);
+          } else {
+            await window.DocxEngine.addStageQuestion('penyisihan', qObj, targetJenjang);
+            this.showToast(`✅ Soal baru berhasil ditambahkan ke Kelas ${targetJenjang}!`);
+          }
+
+          const modal = document.getElementById('modal-edit-question');
+          if (modal) modal.classList.remove('active');
+          await this.renderBankList();
+          this.updateJenjangCountsUI();
+        } catch (err) {
+          alert('Gagal menyimpan soal: ' + err.message);
+        }
+        return;
       } else if (stage === 'semifinal') {
         qObj.tipe = category;
         if (category === 'BS') {
@@ -1370,10 +1484,12 @@
 
     async restoreDefaultQuestions() {
       try {
-        await window.DocxEngine.restoreDefaultStageQuestions(activeBankStage);
+        await window.DocxEngine.restoreDefaultStageQuestions(activeBankStage, activeJenjang);
         selectedQuestionIds.clear();
         await this.renderBankList();
-        this.showToast(`✅ Soal standar babak ${activeBankStage.toUpperCase()} berhasil dipulihkan!`);
+        this.updateJenjangCountsUI();
+        const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
+        this.showToast(`✅ Soal standar ${stageDesc} berhasil dipulihkan!`);
       } catch (err) {
         alert('Gagal memulihkan soal: ' + err.message);
       }

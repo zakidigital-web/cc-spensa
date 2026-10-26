@@ -178,8 +178,35 @@
           <button class="btn btn-ghost btn-sm" id="bank_tab_final" style="padding:8px 18px;font-size:13.5px;">🔥 Bank Grand Final</button>
         </div>
         <span id="active-bank-stage-label" class="badge" style="background:rgba(245,158,11,0.15);color:var(--gold);padding:6px 16px;border-radius:20px;font-size:12.5px;font-weight:700;">
-          Target Aktif: Babak Penyisihan (11 Mapel)
+          Target Aktif: Babak Penyisihan — Kelas 7 (11 Mapel)
         </span>
+      </div>
+
+      <!-- ════════════ KHUSUS PENYISIHAN: PILIHAN JENJANG KELAS 7, 8, 9 ════════════ -->
+      <div id="penyisihan-jenjang-strip" class="penyisihan-jenjang-strip" style="display:flex;align-items:center;justify-content:space-between;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);padding:10px 16px;border-radius:14px;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-weight:800;font-size:13.5px;color:var(--text-main);display:flex;align-items:center;gap:6px;">
+            <span style="font-size:16px;">🎓</span>
+            <span>Pilih Jenjang Kelas:</span>
+          </span>
+          <div class="jenjang-btn-group" style="display:flex;gap:6px;background:rgba(0,0,0,0.22);padding:4px;border-radius:12px;border:1px solid var(--card-border);">
+            <button type="button" class="btn-jenjang-pill active" data-jenjang="7" id="btn_jenjang_7">
+              <span style="font-weight:800;">Kelas 7</span>
+              <span class="badge-jenjang-count" id="count_jenjang_7">0</span>
+            </button>
+            <button type="button" class="btn-jenjang-pill" data-jenjang="8" id="btn_jenjang_8">
+              <span style="font-weight:800;">Kelas 8</span>
+              <span class="badge-jenjang-count" id="count_jenjang_8">0</span>
+            </button>
+            <button type="button" class="btn-jenjang-pill" data-jenjang="9" id="btn_jenjang_9">
+              <span style="font-weight:800;">Kelas 9</span>
+              <span class="badge-jenjang-count" id="count_jenjang_9">0</span>
+            </button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-mut);">
+          Bank soal kelas 7, 8, dan 9 disimpan terpisah &amp; dapat dikelola secara independen.
+        </div>
       </div>
 
       <!-- Quick Template Downloads Strip -->
@@ -340,6 +367,27 @@
       <form id="form-edit-question" onsubmit="return false;" style="display:flex;flex-direction:column;gap:14px;">
         <input type="hidden" id="edit-q-id">
         <input type="hidden" id="edit-q-stage">
+
+        <!-- Jenjang Kelas (Khusus Babak Penyisihan) -->
+        <div id="group-edit-jenjang" style="display:none;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.25);border-radius:12px;padding:12px 14px;">
+          <label style="font-size:13px;font-weight:800;color:var(--text-main);display:block;margin-bottom:8px;">
+            🎓 Jenjang Kelas Soal (Penyisihan):
+          </label>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <label class="theme-choice-card" style="display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;border-radius:8px;">
+              <input type="radio" name="edit-q-jenjang" value="7" checked style="width:auto;margin:0;">
+              <span style="font-weight:800;color:var(--blue);">Kelas 7</span>
+            </label>
+            <label class="theme-choice-card" style="display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;border-radius:8px;">
+              <input type="radio" name="edit-q-jenjang" value="8" style="width:auto;margin:0;">
+              <span style="font-weight:800;color:var(--ok);">Kelas 8</span>
+            </label>
+            <label class="theme-choice-card" style="display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;border-radius:8px;">
+              <input type="radio" name="edit-q-jenjang" value="9" style="width:auto;margin:0;">
+              <span style="font-weight:800;color:var(--gold);">Kelas 9</span>
+            </label>
+          </div>
+        </div>
 
         <!-- Kategori / Mapel / Tipe / Tier -->
         <div id="group-edit-category">
