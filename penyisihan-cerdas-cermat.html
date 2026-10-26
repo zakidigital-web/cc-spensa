@@ -178,7 +178,20 @@ function loadSample(){
   });
   localStorage.removeItem('cc_cleared_penyisihan');
   saveBank()}
-const saveBank=()=>kvSet('bank',bank);
+const saveBank=()=>{
+  kvSet('bank',bank);
+  try {
+    if (window.fetch) {
+      [7, 8, 9].forEach(j => {
+        fetch('/api/banks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage: 'penyisihan_' + j, questions: bank.soal[j] || [] })
+        }).catch(() => {});
+      });
+    }
+  } catch(e) {}
+};
 const saveCfg=()=>kvSet('cfg',cfg);
 const saveSkor=()=>{kvSet('skor',skorAll);if(window.top&&window.top!==window.self){try{window.top.postMessage({type:'PENYISIHAN_SKOR_UPDATED',skor:skorAll},'*')}catch(e){}}};
 const saveSess=()=>S&&kvSet('sess',S);
@@ -536,7 +549,32 @@ document.addEventListener('contextmenu',e=>{if(view==='play')e.preventDefault()}
                      (localStorage.getItem('cc_cleared_penyisihan') === 'true') ||
                      (localStorage.getItem('cc_init_penyisihan') === 'true');
   if(!b && !wasCleared && !bank.soal[7].length&&!bank.soal[8].length&&!bank.soal[9].length){
-    loadSample();
+    let cloudLoaded = false;
+    try {
+      const res = await fetch('/api/banks?stage=penyisihan');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+          data.questions.forEach(q => {
+            const j = q.jenjang || (q.stage === 'penyisihan_8' ? 8 : (q.stage === 'penyisihan_9' ? 9 : 7));
+            bank.soal[j] = bank.soal[j] || [];
+            bank.soal[j].push(q);
+          });
+          const existingMapel = new Set((bank.mapel || []).map(m => m.n));
+          data.questions.forEach(q => {
+            if (q.mapel && !existingMapel.has(q.mapel)) {
+              bank.mapel.push({ n: q.mapel, k: 0 });
+              existingMapel.add(q.mapel);
+            }
+          });
+          saveBank();
+          cloudLoaded = true;
+        }
+      }
+    } catch(e) {}
+    if (!cloudLoaded) {
+      loadSample();
+    }
   }
   localStorage.setItem('cc_init_penyisihan', 'true');
   render()})();

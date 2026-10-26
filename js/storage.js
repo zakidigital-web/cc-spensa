@@ -123,23 +123,35 @@
   };
 
   // ─── CLOUD DATABASE BRIDGE (NEON POSTGRESQL API) ─────────────
-  function cloudSyncPost(endpoint, payload) {
-    if (typeof window === 'undefined' || !window.fetch) return;
+  async function cloudSyncPost(endpoint, payload) {
+    if (typeof window === 'undefined' || !window.fetch) return false;
     try {
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timer = controller ? setTimeout(() => controller.abort(), 4000) : null;
-      fetch(endpoint, {
+      const timer = controller ? setTimeout(() => controller.abort(), 15000) : null;
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: controller ? controller.signal : undefined
-      })
-      .then(() => { if (timer) clearTimeout(timer); })
-      .catch(() => {});
-    } catch (e) {}
+      });
+      if (timer) clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        return data && data.success;
+      }
+      return false;
+    } catch (e) {
+      console.warn('cloudSyncPost error:', e);
+      return false;
+    }
   }
 
   const Storage = {
+    get,
+    set,
+    getLegacy,
+    setLegacy,
+
     async checkCloudDatabase() {
       try {
         const res = await fetch('/api/health');
@@ -154,8 +166,9 @@
     async syncFromCloud() {
       try {
         const cloud = await this.checkCloudDatabase();
-        if (!cloud) return false;
+        if (!cloud) return { success: false, reason: 'offline' };
 
+        // 1. Config sync
         const resCfg = await fetch('/api/config');
         if (resCfg.ok) {
           const dataCfg = await resCfg.json();
@@ -164,18 +177,87 @@
           }
         }
 
-        for (const stage of ['penyisihan', 'semifinal', 'final']) {
-          const resB = await fetch(`/api/banks?stage=${stage}`);
-          if (resB.ok) {
-            const dataB = await resB.json();
-            if (dataB && Array.isArray(dataB.questions) && dataB.questions.length > 0) {
-              await set(`bank_${stage}`, dataB.questions);
+        // 2. Question Banks sync for all stages from PostgreSQL
+        const resB = await fetch('/api/banks?stage=all');
+        let totalCount = 0;
+        let stagesCount = { penyisihan_7: 0, penyisihan_8: 0, penyisihan_9: 0, semifinal: 0, final: 0 };
+
+        if (resB.ok) {
+          const dataB = await resB.json();
+          if (dataB && dataB.success && Array.isArray(dataB.questions) && dataB.questions.length > 0) {
+            const allQ = dataB.questions;
+            totalCount = allQ.length;
+
+            const p7 = allQ.filter(q => q.stage === 'penyisihan_7' || q.jenjang === 7);
+            const p8 = allQ.filter(q => q.stage === 'penyisihan_8' || q.jenjang === 8);
+            const p9 = allQ.filter(q => q.stage === 'penyisihan_9' || q.stage === 'penyisihan' || q.jenjang === 9);
+            const semi = allQ.filter(q => q.stage === 'semifinal');
+            const fin = allQ.filter(q => q.stage === 'final');
+
+            stagesCount = {
+              penyisihan_7: p7.length,
+              penyisihan_8: p8.length,
+              penyisihan_9: p9.length,
+              semifinal: semi.length,
+              final: fin.length
+            };
+
+            // 2a. Hydrate Legacy Penyisihan DB ('bank' in 'cerdascermat')
+            let b = (await getLegacy('bank')) || { mapel: [], soal: { 7: [], 8: [], 9: [] } };
+            b.soal = b.soal || { 7: [], 8: [], 9: [] };
+            if (p7.length > 0) { b.soal[7] = p7; localStorage.removeItem('cc_cleared_penyisihan_7'); }
+            if (p8.length > 0) { b.soal[8] = p8; localStorage.removeItem('cc_cleared_penyisihan_8'); }
+            if (p9.length > 0) { b.soal[9] = p9; localStorage.removeItem('cc_cleared_penyisihan_9'); }
+            if (p7.length > 0 || p8.length > 0 || p9.length > 0) {
+              localStorage.removeItem('cc_cleared_penyisihan');
             }
+
+            const mapelSet = new Set((b.mapel || []).map(m => (typeof m === 'string' ? m : m.n)));
+            [...p7, ...p8, ...p9].forEach(q => {
+              if (q.mapel && !mapelSet.has(q.mapel)) {
+                b.mapel.push({ n: q.mapel, k: 0 });
+                mapelSet.add(q.mapel);
+              }
+            });
+            await setLegacy('bank', b);
+
+            // Hydrate portal v2 IndexedDB
+            await set('bank_penyisihan_7', p7);
+            await set('bank_penyisihan_8', p8);
+            await set('bank_penyisihan_9', p9);
+            await set('bank_penyisihan', p9);
+
+            // 2b. Hydrate Semifinal DB ('bank3' in 'cerdascermat')
+            if (semi.length > 0) {
+              await setLegacy('bank3', { soal: semi });
+              await set('bank_semifinal', semi);
+              localStorage.removeItem('cc_cleared_semifinal');
+            }
+
+            // 2c. Hydrate Grand Final ('cc-final3' in localStorage)
+            if (fin.length > 0) {
+              let curFinal = {};
+              try { curFinal = JSON.parse(localStorage.getItem('cc-final3') || '{}'); } catch(e) {}
+              curFinal.q = fin.map(q => `${q.q} ||| ${q.ans}`).join('\n');
+              localStorage.setItem('cc-final3', JSON.stringify(curFinal));
+              await set('bank_final', fin);
+              localStorage.removeItem('cc_cleared_final');
+            }
+
+            // 2d. Reload active iframes if available to reflect changes live
+            ['frame-penyisihan', 'frame-semifinal', 'frame-final'].forEach(id => {
+              const frame = document.getElementById(id);
+              if (frame && frame.contentWindow) {
+                try { frame.contentWindow.location.reload(); } catch(e) {}
+              }
+            });
           }
         }
-        return true;
+
+        return { success: true, count: totalCount, stages: stagesCount };
       } catch (e) {
-        return false;
+        console.warn('Sync from cloud error:', e);
+        return { success: false, reason: e.message };
       }
     },
 
@@ -216,8 +298,9 @@
       } else if (questions && questions.length > 0) {
         localStorage.removeItem(`cc_cleared_${stage}`);
       }
-      cloudSyncPost('/api/banks', { stage, questions });
-      return set(`bank_${stage}`, questions);
+      await set(`bank_${stage}`, questions);
+      const cloudSuccess = await cloudSyncPost('/api/banks', { stage, questions });
+      return { success: true, cloud: cloudSuccess };
     },
 
     // ─── BABAK 1: PENYISIHAN ───────────────────────────────────

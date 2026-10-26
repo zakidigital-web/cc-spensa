@@ -192,56 +192,90 @@
     async getPenyisihanJenjangCounts() {
       const b = await kvGetLegacy('bank');
       const counts = { 7: 0, 8: 0, 9: 0 };
-      const defaultLen = (window.DEFAULT_BANKS && window.DEFAULT_BANKS.penyisihan) ? window.DEFAULT_BANKS.penyisihan.length : 44;
+      let hasAny = false;
       [7, 8, 9].forEach(j => {
-        const isCleared = (localStorage.getItem(`cc_cleared_penyisihan_${j}`) === 'true') ||
-                          (localStorage.getItem('cc_cleared_penyisihan') === 'true');
-        if (b && b.soal && Array.isArray(b.soal[j])) {
+        if (b && b.soal && Array.isArray(b.soal[j]) && b.soal[j].length > 0) {
           counts[j] = b.soal[j].length;
-        } else if (!isCleared) {
-          counts[j] = defaultLen;
-        } else {
-          counts[j] = 0;
+          hasAny = true;
         }
       });
+
+      // If local cache is empty and not cleared, check cloud database
+      if (!hasAny && !localStorage.getItem('cc_cleared_penyisihan')) {
+        try {
+          const res = await fetch('/api/banks?stage=penyisihan');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+              data.questions.forEach(q => {
+                const j = q.jenjang || (q.stage === 'penyisihan_8' ? 8 : (q.stage === 'penyisihan_9' ? 9 : 7));
+                counts[j] = (counts[j] || 0) + 1;
+              });
+            }
+          }
+        } catch (e) {}
+      }
+
       return counts;
     },
 
-    async getStageQuestions(stage = 'penyisihan', jenjang = 7) {
+    async getStageQuestions(stage = 'penyisihan', jenjang = 7, forceCloud = false) {
       let list = [];
       const j = parseInt(jenjang, 10) || 7;
       const clearKey = (stage === 'penyisihan') ? `cc_cleared_${stage}_${j}` : `cc_cleared_${stage}`;
       const isExplicitlyCleared = (localStorage.getItem(clearKey) === 'true') ||
                                   (stage === 'penyisihan' && localStorage.getItem('cc_cleared_penyisihan') === 'true');
 
-      if (stage === 'penyisihan') {
-        const b = await kvGetLegacy('bank');
-        if (b && b.soal) {
-          list = b.soal[j] || [];
-        }
-      } else if (stage === 'semifinal') {
-        const b3 = await kvGetLegacy('bank3');
-        if (b3 && b3.soal) list = b3.soal;
-      } else {
-        try {
-          const f = JSON.parse(localStorage.getItem('cc-final3') || '{}');
-          if (f && f.q) {
-            list = f.q.split('\n').filter(Boolean).map((line, i) => {
-              const p = line.split('|||');
-              const tier = i < 5 ? 'Tier 1 (50 Poin)' : (i < 10 ? 'Tier 2 (75 Poin)' : (i < 15 ? 'Tier 3 (100 Poin)' : 'Soal Tambahan'));
-              return {
-                id: `fn_${i+1}`,
-                tier: tier,
-                q: (p[0] || '').trim(),
-                ans: (p[1] || '').trim(),
-                img: null
-              };
-            });
+      if (!forceCloud) {
+        if (stage === 'penyisihan') {
+          const b = await kvGetLegacy('bank');
+          if (b && b.soal && Array.isArray(b.soal[j]) && b.soal[j].length > 0) {
+            list = b.soal[j];
           }
-        } catch (e) {}
+        } else if (stage === 'semifinal') {
+          const b3 = await kvGetLegacy('bank3');
+          if (b3 && b3.soal && Array.isArray(b3.soal) && b3.soal.length > 0) {
+            list = b3.soal;
+          }
+        } else {
+          try {
+            const f = JSON.parse(localStorage.getItem('cc-final3') || '{}');
+            if (f && f.q && f.q.trim()) {
+              list = f.q.split('\n').filter(Boolean).map((line, i) => {
+                const p = line.split('|||');
+                const tier = i < 5 ? 'Tier 1 (50 Poin)' : (i < 10 ? 'Tier 2 (75 Poin)' : (i < 15 ? 'Tier 3 (100 Poin)' : 'Soal Tambahan'));
+                return {
+                  id: `fn_${i+1}`,
+                  tier: tier,
+                  q: (p[0] || '').trim(),
+                  ans: (p[1] || '').trim(),
+                  img: null
+                };
+              });
+            }
+          } catch (e) {}
+        }
       }
 
-      // If empty and not explicitly cleared by user, load defaults
+      // If local list is empty and NOT explicitly cleared (or forced cloud reload), fetch from PostgreSQL Cloud DB
+      if ((!list || list.length === 0 || forceCloud) && !isExplicitlyCleared) {
+        try {
+          const targetApiStage = (stage === 'penyisihan') ? `penyisihan_${j}` : stage;
+          const res = await fetch(`/api/banks?stage=${targetApiStage}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+              list = data.questions;
+              // Hydrate local cache without echoing back to cloud
+              await this.saveStageQuestions(stage, list, j, true /* skipCloudPush */);
+            }
+          }
+        } catch (e) {
+          console.warn('Could not reach cloud database for questions:', e);
+        }
+      }
+
+      // If still empty and not explicitly cleared by user, load defaults
       if ((!list || list.length === 0) && !isExplicitlyCleared && window.DEFAULT_BANKS && window.DEFAULT_BANKS[stage]) {
         list = JSON.parse(JSON.stringify(window.DEFAULT_BANKS[stage]));
         if (stage === 'penyisihan') {
@@ -251,7 +285,7 @@
             return q;
           });
         }
-        await this.saveStageQuestions(stage, list, j);
+        await this.saveStageQuestions(stage, list, j, false);
       }
 
       return (list || []).map((q, idx) => {
@@ -261,7 +295,7 @@
       });
     },
 
-    async saveStageQuestions(stage = 'penyisihan', questions = [], jenjang = 7) {
+    async saveStageQuestions(stage = 'penyisihan', questions = [], jenjang = 7, skipCloudPush = false) {
       const j = parseInt(jenjang, 10) || 7;
       const clearKey = (stage === 'penyisihan') ? `cc_cleared_${stage}_${j}` : `cc_cleared_${stage}`;
       if (questions.length === 0) {
@@ -278,6 +312,8 @@
         }
       }
 
+      let cloudPromise = null;
+
       if (stage === 'penyisihan') {
         let b = (await kvGetLegacy('bank')) || { mapel: [], soal: { 7: [], 8: [], 9: [] } };
         b.soal = b.soal || { 7: [], 8: [], 9: [] };
@@ -293,8 +329,11 @@
 
         await kvSetLegacy('bank', b);
         if (window.PortalStorage) {
-          await window.PortalStorage.saveStageBank(`penyisihan_${j}`, questions);
-          await window.PortalStorage.saveStageBank('penyisihan', b.soal[9] || questions);
+          await window.PortalStorage.set(`bank_penyisihan_${j}`, questions);
+          if (j === 9) await window.PortalStorage.set('bank_penyisihan', questions);
+          if (!skipCloudPush) {
+            cloudPromise = window.PortalStorage.saveStageBank(`penyisihan_${j}`, questions);
+          }
         }
         const frame = document.getElementById('frame-penyisihan');
         if (frame && frame.contentWindow) {
@@ -305,7 +344,10 @@
         b3.soal = questions;
         await kvSetLegacy('bank3', b3);
         if (window.PortalStorage) {
-          await window.PortalStorage.saveStageBank('semifinal', questions);
+          await window.PortalStorage.set('bank_semifinal', questions);
+          if (!skipCloudPush) {
+            cloudPromise = window.PortalStorage.saveStageBank('semifinal', questions);
+          }
         }
         const frame = document.getElementById('frame-semifinal');
         if (frame && frame.contentWindow) {
@@ -319,13 +361,25 @@
           localStorage.setItem('cc-final3', JSON.stringify(curFinal));
         } catch(e) {}
         if (window.PortalStorage) {
-          await window.PortalStorage.saveStageBank('final', questions);
+          await window.PortalStorage.set('bank_final', questions);
+          if (!skipCloudPush) {
+            cloudPromise = window.PortalStorage.saveStageBank('final', questions);
+          }
         }
         const frame = document.getElementById('frame-final');
         if (frame && frame.contentWindow) {
           try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
         }
       }
+
+      if (cloudPromise) {
+        try {
+          await cloudPromise;
+        } catch (e) {
+          console.warn('Cloud sync error during save:', e);
+        }
+      }
+
       return questions;
     },
 
@@ -352,7 +406,7 @@
           await window.PortalStorage.saveStageBank('penyisihan_7', []);
           await window.PortalStorage.saveStageBank('penyisihan_8', []);
           await window.PortalStorage.saveStageBank('penyisihan_9', []);
-          await window.PortalStorage.saveStageBank('penyisihan', []);
+          await window.PortalStorage.saveStageBank('penyisihan_all', []);
         }
 
         const frame = document.getElementById('frame-penyisihan');
@@ -368,6 +422,9 @@
       await this.clearStageQuestions('penyisihan', 7, true);
       await this.clearStageQuestions('semifinal');
       await this.clearStageQuestions('final');
+      if (window.PortalStorage) {
+        await window.PortalStorage.saveStageBank('clear_all', []);
+      }
       return true;
     },
 

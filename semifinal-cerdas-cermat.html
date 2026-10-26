@@ -215,7 +215,18 @@ const JENIS0=[{k:'BS',n:'Benar / Salah',cnt:18,val:100,sec:20},{k:'PG1',n:'Pilih
 let cfg={nTim:9,tim:[],lolos:5,awal:'undi',ronde:'geser',suara:true,pin:'',jenis:JSON.parse(JSON.stringify(JENIS0))};
 let bank={soal:[]};
 let G=null,view='setup',tick=null,lastT=0,lastSec=-1,saveC=0,drawIv=null;
-const saveBank=()=>kvSet('bank3',bank),saveCfg=()=>kvSet('cfg3',cfg),saveG=()=>{if(G){kvSet('game3',G);if(window.top&&window.top!==window.self){try{window.top.postMessage({type:'SEMIFINAL_GAME_UPDATED',game:G},'*')}catch(e){}}}};
+const saveBank=()=>{
+  kvSet('bank3',bank);
+  try {
+    if (window.fetch) {
+      fetch('/api/banks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: 'semifinal', questions: bank.soal || [] })
+      }).catch(() => {});
+    }
+  } catch(e) {}
+},saveCfg=()=>kvSet('cfg3',cfg),saveG=()=>{if(G){kvSet('game3',G);if(window.top&&window.top!==window.self){try{window.top.postMessage({type:'SEMIFINAL_GAME_UPDATED',game:G},'*')}catch(e){}}}};
 const avail=k=>bank.soal.filter(s=>s.tipe===k).length;
 const tname=(i)=>(cfg.tim[i]||'').trim()||('Tim '+(i+1));
 function ensureTim(){cfg.nTim=Math.min(12,Math.max(2,+cfg.nTim||9));while(cfg.tim.length<cfg.nTim)cfg.tim.push('');if(!cfg.jenis||cfg.jenis.length!==4)cfg.jenis=JSON.parse(JSON.stringify(JENIS0));if(!['undi','nomor'].includes(cfg.awal))cfg.awal='undi';if(!['geser','tetap'].includes(cfg.ronde))cfg.ronde='geser'}
@@ -635,7 +646,21 @@ document.addEventListener('contextmenu',e=>{if(view==='game')e.preventDefault()}
   const wasCleared = (localStorage.getItem('cc_cleared_semifinal') === 'true') ||
                      (localStorage.getItem('cc_init_semifinal') === 'true');
   if(!b && !wasCleared && !bank.soal.length){
-    loadSample();
+    let cloudLoaded = false;
+    try {
+      const res = await fetch('/api/banks?stage=semifinal');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+          bank.soal = data.questions;
+          saveBank();
+          cloudLoaded = true;
+        }
+      }
+    } catch(e) {}
+    if (!cloudLoaded) {
+      loadSample();
+    }
   }
   localStorage.setItem('cc_init_semifinal', 'true');
   render()})();

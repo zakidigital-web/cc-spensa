@@ -37,6 +37,7 @@
       this.bindLaporan();
       this.bindSettings(cfg);
       this.bindShortcuts();
+      this.initCloudDatabaseSync();
 
       // Protocol alert for file:// protocol
       if (window.location.protocol === 'file:') {
@@ -381,6 +382,36 @@
       const tabS = document.getElementById('bank_tab_semifinal');
       const tabF = document.getElementById('bank_tab_final');
 
+      // ─── CLOUD MANUAL SYNC BUTTON ────────────────────────
+      const btnSyncCloud = document.getElementById('btn-sync-cloud');
+      if (btnSyncCloud) {
+        btnSyncCloud.addEventListener('click', async () => {
+          const iconEl = document.getElementById('btn-sync-cloud-icon');
+          const textEl = document.getElementById('btn-sync-cloud-text');
+          btnSyncCloud.disabled = true;
+          if (iconEl) iconEl.textContent = '⏳';
+          if (textEl) textEl.textContent = 'Menyinkronkan...';
+
+          try {
+            const syncRes = await window.PortalStorage.syncFromCloud();
+            if (syncRes && syncRes.success) {
+              await self.refreshCloudStatusUI();
+              await self.renderBankList();
+              self.updateJenjangCountsUI();
+              self.showToast(`✅ Berhasil menyinkronkan ${syncRes.count} soal dari Database Cloud Neon!`);
+            } else {
+              self.showToast('⚠️ Gagal terhubung ke Database Cloud. Menggunakan penyimpanan lokal.');
+            }
+          } catch (err) {
+            self.showToast('⚠️ Kesalahan sinkronisasi: ' + err.message);
+          } finally {
+            btnSyncCloud.disabled = false;
+            if (iconEl) iconEl.textContent = '🔄';
+            if (textEl) textEl.textContent = 'Sinkronkan Cloud';
+          }
+        });
+      }
+
       if (tabP && tabS && tabF) {
         tabP.onclick = () => { activeBankStage = 'penyisihan'; this.onBankStageChange(); };
         tabS.onclick = () => { activeBankStage = 'semifinal'; this.onBankStageChange(); };
@@ -546,7 +577,8 @@
                 selectedQuestionIds.clear();
                 await self.renderBankList();
                 self.updateJenjangCountsUI();
-                self.showToast(`✅ Berhasil menghapus ${count} soal terpilih!`);
+                self.refreshCloudStatusUI();
+                self.showToast(`✅ Berhasil menghapus ${count} soal terpilih dari database & lokal!`);
               } catch (err) {
                 alert('Gagal menghapus soal: ' + err.message);
               }
@@ -583,6 +615,7 @@
                     selectedQuestionIds.clear();
                     await self.renderBankList();
                     self.updateJenjangCountsUI();
+                    self.refreshCloudStatusUI();
                     self.showToast(`⚠️ Soal Penyisihan Kelas ${activeJenjang} telah dikosongkan!`, 'warning');
                   }
                 },
@@ -596,7 +629,8 @@
                     selectedQuestionIds.clear();
                     await self.renderBankList();
                     self.updateJenjangCountsUI();
-                    self.showToast('💥 Seluruh soal Penyisihan (Kelas 7, 8, dan 9) telah dikosongkan!', 'warning');
+                    self.refreshCloudStatusUI();
+                    self.showToast('💥 Seluruh soal Penyisihan (Kelas 7, 8, dan 9) telah dikosongkan dari database & lokal!', 'warning');
                   }
                 },
                 {
@@ -609,6 +643,7 @@
                     selectedQuestionIds.clear();
                     await self.renderBankList();
                     self.updateJenjangCountsUI();
+                    self.refreshCloudStatusUI();
                     self.showToast('⚠️ Seluruh Bank Soal Semua Babak telah dikosongkan!', 'warning');
                   }
                 },
@@ -692,6 +727,7 @@
                     selectedQuestionIds.clear();
                     await self.renderBankList();
                     self.updateJenjangCountsUI();
+                    self.refreshCloudStatusUI();
                     self.showToast(`✅ Soal standar Penyisihan Kelas ${activeJenjang} berhasil dipulihkan!`);
                   }
                 },
@@ -704,6 +740,7 @@
                     selectedQuestionIds.clear();
                     await self.renderBankList();
                     self.updateJenjangCountsUI();
+                    self.refreshCloudStatusUI();
                     self.showToast('✅ Soal standar Penyisihan untuk Kelas 7, 8, dan 9 berhasil dipulihkan!');
                   }
                 },
@@ -726,6 +763,7 @@
                 selectedQuestionIds.clear();
                 await self.renderBankList();
                 self.updateJenjangCountsUI();
+                self.refreshCloudStatusUI();
                 self.showToast(`✅ Soal standar Babak ${stageName} berhasil dipulihkan!`);
               }
             });
@@ -777,7 +815,8 @@
                   selectedQuestionIds.delete(String(id));
                   await self.renderBankList();
                   self.updateJenjangCountsUI();
-                  self.showToast('✅ Soal berhasil dihapus!');
+                  self.refreshCloudStatusUI();
+                  self.showToast('✅ Soal berhasil dihapus dari database & lokal!');
                 } catch (err) {
                   alert('Gagal menghapus soal: ' + err.message);
                 }
@@ -800,6 +839,80 @@
             return;
           }
         });
+      }
+    },
+
+    async initCloudDatabaseSync() {
+      await this.refreshCloudStatusUI();
+      // Hydrate from cloud database in background
+      try {
+        const syncRes = await window.PortalStorage.syncFromCloud();
+        if (syncRes && syncRes.success) {
+          await this.refreshCloudStatusUI();
+          this.updateJenjangCountsUI();
+          if (currentView === 'bank') {
+            await this.renderBankList();
+          }
+        }
+      } catch (e) {
+        console.warn('Initial cloud sync notice:', e);
+      }
+    },
+
+    async refreshCloudStatusUI() {
+      const indicator = document.getElementById('cloud-db-indicator');
+      const statusText = document.getElementById('cloud-db-status-text');
+      const countBadge = document.getElementById('cloud-db-count-badge');
+      if (!indicator && !statusText) return;
+
+      try {
+        const health = await window.PortalStorage.checkCloudDatabase();
+        if (health && health.status === 'online') {
+          if (indicator) {
+            indicator.style.background = '#10b981';
+            indicator.style.boxShadow = '0 0 10px #10b981';
+          }
+          if (statusText) {
+            statusText.textContent = 'Terhubung Online';
+            statusText.style.background = 'rgba(16,185,129,0.18)';
+            statusText.style.color = '#10b981';
+            statusText.style.borderColor = 'rgba(16,185,129,0.3)';
+          }
+          // Fetch question count from cloud
+          const resB = await fetch('/api/banks?stage=all');
+          if (resB.ok) {
+            const dataB = await resB.json();
+            const totalQ = dataB.count != null ? dataB.count : (dataB.questions ? dataB.questions.length : 0);
+            if (countBadge) {
+              countBadge.textContent = `${totalQ} Soal Tersimpan di Cloud`;
+            }
+          }
+        } else {
+          if (indicator) {
+            indicator.style.background = '#f59e0b';
+            indicator.style.boxShadow = '0 0 10px #f59e0b';
+          }
+          if (statusText) {
+            statusText.textContent = 'Mode Offline (IndexedDB)';
+            statusText.style.background = 'rgba(245,158,11,0.18)';
+            statusText.style.color = '#f59e0b';
+            statusText.style.borderColor = 'rgba(245,158,11,0.3)';
+          }
+          if (countBadge) {
+            countBadge.textContent = 'Penyimpanan Lokal Aktif';
+          }
+        }
+      } catch (e) {
+        if (indicator) {
+          indicator.style.background = '#ef4444';
+          indicator.style.boxShadow = '0 0 10px #ef4444';
+        }
+        if (statusText) {
+          statusText.textContent = 'Offline';
+          statusText.style.background = 'rgba(239,68,68,0.18)';
+          statusText.style.color = '#ef4444';
+          statusText.style.borderColor = 'rgba(239,68,68,0.3)';
+        }
       }
     },
 
@@ -883,9 +996,10 @@
         if (statusEl) {
           statusEl.textContent = `✅ Berhasil mengimpor ${result.count} soal ke Bank ${stageDesc} (Ditemukan ${result.mathCount} rumus matematika)!`;
         }
-        this.showToast(`Berhasil mengimpor ${result.count} soal ke Bank Soal ${stageDesc}!`);
+        this.showToast(`✅ Berhasil mengimpor ${result.count} soal ke Bank Soal ${stageDesc} & tersimpan di Database Cloud!`);
         await this.renderBankList();
         this.updateJenjangCountsUI();
+        this.refreshCloudStatusUI();
       } catch (err) {
         alert('Gagal membaca file Word: ' + err.message);
       }
@@ -1704,15 +1818,16 @@
         if (qId) {
           qObj.id = qId;
           await window.DocxEngine.updateStageQuestion(stage, qId, qObj);
-          this.showToast('✅ Soal berhasil diperbarui!');
+          this.showToast('✅ Soal berhasil diperbarui & tersimpan di Database Cloud!');
         } else {
           await window.DocxEngine.addStageQuestion(stage, qObj);
-          this.showToast('✅ Soal baru berhasil ditambahkan!');
+          this.showToast('✅ Soal baru berhasil ditambahkan & tersimpan di Database Cloud!');
         }
 
         const modal = document.getElementById('modal-edit-question');
         if (modal) modal.classList.remove('active');
         await this.renderBankList();
+        this.refreshCloudStatusUI();
       } catch (err) {
         alert('Gagal menyimpan soal: ' + err.message);
       }
@@ -1724,8 +1839,9 @@
         selectedQuestionIds.clear();
         await this.renderBankList();
         this.updateJenjangCountsUI();
+        this.refreshCloudStatusUI();
         const stageDesc = (activeBankStage === 'penyisihan') ? `PENYISIHAN (Kelas ${activeJenjang})` : activeBankStage.toUpperCase();
-        this.showToast(`✅ Soal standar ${stageDesc} berhasil dipulihkan!`);
+        this.showToast(`✅ Soal standar ${stageDesc} berhasil dipulihkan & tersimpan di Database Cloud!`);
       } catch (err) {
         alert('Gagal memulihkan soal: ' + err.message);
       }
