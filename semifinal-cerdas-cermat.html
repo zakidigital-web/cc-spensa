@@ -477,12 +477,13 @@ function vBank(){
    <button class="pri" data-act="qnew">Tambah soal</button><button data-act="csvin">Impor CSV</button><button data-act="csvtpl">Template CSV</button>
    <button data-act="jsout">Ekspor cadangan (JSON)</button><button data-act="jsin">Impor cadangan</button>
    <button class="ghost" data-act="sample">Muat soal contoh (45 + 3 cadangan)</button>
-   <button class="dng" data-act="clearall">Hapus SEMUA soal</button>
+   <button class="dng" data-act="batchdel" id="btn_batchdel" disabled style="opacity:0.5">🗑 Hapus Terpilih (<span id="batch_cnt">0</span>)</button>
+   <button class="dng" data-act="clearall">⚠️ Hapus SEMUA soal</button>
    <input id="fcsv" type="file" accept=".csv,text/csv" hidden><input id="fjs" type="file" accept=".json" hidden></div>
    <p class="sub" style="margin:10px 0 0">Rumus: tulis di antara tanda dolar, mis. <code>$\\frac{a}{b}$</code>, <code>$x^2$</code>. Kolom CSV: <code>jenis, soal, A, B, C, D, kunci, jawaban, gambar</code> — jenis: BS, PG150, PG200, ES, CAD. Kunci BS = B atau S; PG = A–D; ES/CAD isi kolom jawaban. (PG150 = PG pertama, PG200 = PG kedua.)</p></div>
   <div class="card"><div class="row" style="margin-bottom:10px"><select id="fm" style="width:auto"><option value="">Semua jenis</option>${['BS','PG1','PG2','ES','CAD'].map(k=>`<option value="${k}" ${bf.t===k?'selected':''}>${TYN[k]}${k==='PG1'?' I':k==='PG2'?' II':''}</option>`).join('')}</select><span class="mut">${list.length} soal</span></div>
-  <table><tr><th>#</th><th>Jenis</th><th>Soal</th><th>Kunci</th><th></th></tr>
-  ${list.slice(0,400).map((s,i)=>`<tr><td>${i+1}</td><td><span class="tag" style="background:${TY[s.tipe]}">${s.tipe}</span></td><td>${esc(s.q.slice(0,90))}${s.img?' 🖼':''}</td><td>${s.tipe==='BS'?(s.key===0?'Benar':'Salah'):(s.tipe==='ES'||s.tipe==='CAD')?esc((s.ans||'').slice(0,40)):'ABCD'[s.key]}</td><td style="white-space:nowrap"><button data-act="qedit" data-id="${s.id}" style="padding:4px 10px">✏</button> <button class="dng" data-act="qdel" data-id="${s.id}" style="padding:4px 10px">🗑</button></td></tr>`).join('')||'<tr><td colspan="5" class="mut">Belum ada soal.</td></tr>'}</table></div></div></div>`}
+  <table><tr><th style="width:36px"><input type="checkbox" id="cb_all"></th><th>#</th><th>Jenis</th><th>Soal</th><th>Kunci</th><th></th></tr>
+  ${list.slice(0,400).map((s,i)=>`<tr><td><input type="checkbox" class="q_cb" data-id="${s.id}"></td><td>${i+1}</td><td><span class="tag" style="background:${TY[s.tipe]}">${s.tipe}</span></td><td>${esc(s.q.slice(0,90))}${s.img?' 🖼':''}</td><td>${s.tipe==='BS'?(s.key===0?'Benar':'Salah'):(s.tipe==='ES'||s.tipe==='CAD')?esc((s.ans||'').slice(0,40)):'ABCD'[s.key]}</td><td style="white-space:nowrap"><button data-act="qedit" data-id="${s.id}" style="padding:4px 10px">✏</button> <button class="dng" data-act="qdel" data-id="${s.id}" style="padding:4px 10px">🗑</button></td></tr>`).join('')||'<tr><td colspan="6" class="mut">Belum ada soal.</td></tr>'}</table></div></div></div>`}
 function qForm(s){
   s=s||{id:uid(),tipe:bf.t||'BS',q:'',o:['','','',''],key:0,ans:'',img:null};
   if(!s.o||s.o.length<4)s.o=(s.o||[]).concat(['','','','']).slice(0,4);
@@ -575,11 +576,34 @@ const acts={
   csvin(){$('#fcsv').click()},csvtpl(){csvTemplate()},
   jsout(){download('bank-soal-semifinal.json',JSON.stringify(bank),'application/json')},jsin(){$('#fjs').click()},
   sample(){if(confirm('Muat soal contoh (45 soal + 3 cadangan)? Soal contoh lama diganti, soal buatan Anda tetap.')){loadSample();render()}},
+  batchdel(){
+    const sel = Array.from(document.querySelectorAll('.q_cb:checked')).map(c => c.dataset.id);
+    if (!sel.length) return;
+    if (confirm(`Hapus ${sel.length} soal terpilih?`)) {
+      const set = new Set(sel);
+      bank.soal = bank.soal.filter(s => !set.has(s.id));
+      saveBank();
+      render();
+    }
+  },
   clearall(){if(confirm('Hapus SEMUA soal di bank?')){bank.soal=[];saveBank();render()}}
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&acts[b.dataset.act])acts[b.dataset.act](b.dataset,e)});
 document.addEventListener('change',e=>{
   const id=e.target.id,ds=e.target.dataset||{};
+  if(id==='cb_all'){
+    const on=e.target.checked;
+    document.querySelectorAll('.q_cb').forEach(c=>c.checked=on);
+    const cnt=on?document.querySelectorAll('.q_cb').length:0;
+    const b=$('#btn_batchdel');if(b){b.disabled=!cnt;b.style.opacity=cnt?'1':'0.5';}
+    const cEl=$('#batch_cnt');if(cEl)cEl.textContent=cnt;
+  }
+  if(e.target.classList.contains('q_cb')){
+    const cnt=document.querySelectorAll('.q_cb:checked').length;
+    const b=$('#btn_batchdel');if(b){b.disabled=!cnt;b.style.opacity=cnt?'1':'0.5';}
+    const cEl=$('#batch_cnt');if(cEl)cEl.textContent=cnt;
+    const all=$('#cb_all');if(all)all.checked=(cnt>0&&cnt===document.querySelectorAll('.q_cb').length);
+  }
   if(id==='fm'){bf.t=e.target.value;render()}
   if(id==='q_t'){secToggle();pv()}
   if(view==='setup'&&(id==='nTim'||id==='awal'||ds.jc!==undefined||ds.jv!==undefined||ds.js!==undefined)){readSetup();render()}

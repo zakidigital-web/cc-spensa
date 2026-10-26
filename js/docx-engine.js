@@ -110,24 +110,52 @@
     return mathMap;
   }
 
+  function formatMathText(t) {
+    if (!t) return '';
+    t = String(t);
+    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    if (!window.katex) return esc(t);
+
+    let out = '', last = 0, m;
+    const re = /\$\$([\s\S]+?)\$\$|\$([^\$\n]+?)\$/g;
+    while ((m = re.exec(t)) !== null) {
+      out += esc(t.slice(last, m.index));
+      const eq = m[1] || m[2], disp = !!m[1];
+      try {
+        out += window.katex.renderToString(eq, { displayMode: disp, throwOnError: false });
+      } catch (e) {
+        out += esc(m[0]);
+      }
+      last = m.index + m[0].length;
+    }
+    return out + esc(t.slice(last));
+  }
+
   const DocxEngine = {
+    formatMath(text) {
+      return formatMathText(text);
+    },
+
     async getStageQuestions(stage = 'penyisihan') {
+      let list = [];
+      const isExplicitlyCleared = localStorage.getItem(`cc_cleared_${stage}`) === 'true';
+
       if (stage === 'penyisihan') {
         const b = await kvGetLegacy('bank');
         if (b && b.soal) {
-          const s7 = b.soal[7] || [];
-          const s8 = b.soal[8] || [];
           const s9 = b.soal[9] || [];
-          return s9.length ? s9 : (s8.length ? s8 : s7);
+          const s8 = b.soal[8] || [];
+          const s7 = b.soal[7] || [];
+          list = s9.length ? s9 : (s8.length ? s8 : s7);
         }
       } else if (stage === 'semifinal') {
         const b3 = await kvGetLegacy('bank3');
-        if (b3 && b3.soal) return b3.soal;
+        if (b3 && b3.soal) list = b3.soal;
       } else {
         try {
           const f = JSON.parse(localStorage.getItem('cc-final3') || '{}');
           if (f && f.q) {
-            return f.q.split('\n').filter(Boolean).map((line, i) => {
+            list = f.q.split('\n').filter(Boolean).map((line, i) => {
               const p = line.split('|||');
               const tier = i < 5 ? 'Tier 1 (50 Poin)' : (i < 10 ? 'Tier 2 (75 Poin)' : (i < 15 ? 'Tier 3 (100 Poin)' : 'Soal Tambahan'));
               return {
@@ -141,7 +169,114 @@
           }
         } catch (e) {}
       }
-      return (window.DEFAULT_BANKS && window.DEFAULT_BANKS[stage]) || [];
+
+      // If empty and not explicitly cleared by user, load defaults
+      if ((!list || list.length === 0) && !isExplicitlyCleared && window.DEFAULT_BANKS && window.DEFAULT_BANKS[stage]) {
+        list = JSON.parse(JSON.stringify(window.DEFAULT_BANKS[stage]));
+        await this.saveStageQuestions(stage, list);
+      }
+
+      return (list || []).map((q, idx) => {
+        if (!q.id) q.id = `${stage}_${idx + 1}`;
+        return q;
+      });
+    },
+
+    async saveStageQuestions(stage = 'penyisihan', questions = []) {
+      if (questions.length === 0) {
+        localStorage.setItem(`cc_cleared_${stage}`, 'true');
+      } else {
+        localStorage.removeItem(`cc_cleared_${stage}`);
+      }
+
+      if (stage === 'penyisihan') {
+        let b = (await kvGetLegacy('bank')) || { mapel: [], soal: { 7: [], 8: [], 9: [] } };
+        b.soal = b.soal || { 7: [], 8: [], 9: [] };
+        b.soal[7] = questions;
+        b.soal[8] = questions;
+        b.soal[9] = questions;
+
+        const existingMapel = new Set((b.mapel || []).map(m => (typeof m === 'string' ? m : m.n)));
+        questions.forEach(q => {
+          if (q.mapel && !existingMapel.has(q.mapel)) {
+            b.mapel.push({ n: q.mapel, k: 0 });
+            existingMapel.add(q.mapel);
+          }
+        });
+
+        await kvSetLegacy('bank', b);
+        if (window.PortalStorage) {
+          await window.PortalStorage.saveStageBank('penyisihan', questions);
+        }
+        const frame = document.getElementById('frame-penyisihan');
+        if (frame && frame.contentWindow) {
+          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
+        }
+      } else if (stage === 'semifinal') {
+        let b3 = (await kvGetLegacy('bank3')) || { soal: [] };
+        b3.soal = questions;
+        await kvSetLegacy('bank3', b3);
+        if (window.PortalStorage) {
+          await window.PortalStorage.saveStageBank('semifinal', questions);
+        }
+        const frame = document.getElementById('frame-semifinal');
+        if (frame && frame.contentWindow) {
+          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
+        }
+      } else if (stage === 'final') {
+        try {
+          let curFinal = JSON.parse(localStorage.getItem('cc-final3') || '{}');
+          const lines = questions.map(q => `${q.q} ||| ${q.ans}`);
+          curFinal.q = lines.join('\n');
+          localStorage.setItem('cc-final3', JSON.stringify(curFinal));
+        } catch(e) {}
+        if (window.PortalStorage) {
+          await window.PortalStorage.saveStageBank('final', questions);
+        }
+        const frame = document.getElementById('frame-final');
+        if (frame && frame.contentWindow) {
+          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
+        }
+      }
+      return questions;
+    },
+
+    async deleteStageQuestions(stage, idsToDelete = []) {
+      const idSet = new Set(idsToDelete.map(String));
+      let questions = await this.getStageQuestions(stage);
+      questions = questions.filter(q => !idSet.has(String(q.id)));
+      return this.saveStageQuestions(stage, questions);
+    },
+
+    async clearStageQuestions(stage) {
+      return this.saveStageQuestions(stage, []);
+    },
+
+    async updateStageQuestion(stage, qId, updatedData) {
+      let questions = await this.getStageQuestions(stage);
+      const idx = questions.findIndex(q => String(q.id) === String(qId));
+      if (idx !== -1) {
+        questions[idx] = Object.assign({}, questions[idx], updatedData);
+      } else {
+        questions.push(updatedData);
+      }
+      return this.saveStageQuestions(stage, questions);
+    },
+
+    async addStageQuestion(stage, newQuestion) {
+      let questions = await this.getStageQuestions(stage);
+      if (!newQuestion.id) {
+        newQuestion.id = `${stage}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+      }
+      questions.push(newQuestion);
+      return this.saveStageQuestions(stage, questions);
+    },
+
+    async restoreDefaultStageQuestions(stage) {
+      localStorage.removeItem(`cc_cleared_${stage}`);
+      const defaults = (window.DEFAULT_BANKS && window.DEFAULT_BANKS[stage]) || [];
+      const cloned = JSON.parse(JSON.stringify(defaults));
+      return this.saveStageQuestions(stage, cloned);
     },
 
     async importQuestionsFromDocx(file, targetStage = 'penyisihan') {
@@ -267,65 +402,9 @@
         }
       }
 
-      // Save directly to the native stage storage
-      if (targetStage === 'penyisihan') {
-        let b = (await kvGetLegacy('bank')) || { mapel: [], soal: { 7: [], 8: [], 9: [] } };
-        b.soal = b.soal || { 7: [], 8: [], 9: [] };
-        // Sync to all jenjang classes 7, 8, and 9 so questions are immediately available
-        b.soal[7] = (b.soal[7] || []).concat(parsedQuestions);
-        b.soal[8] = (b.soal[8] || []).concat(parsedQuestions);
-        b.soal[9] = (b.soal[9] || []).concat(parsedQuestions);
-        await kvSetLegacy('bank', b);
-
-        // Also save to PortalStorage
-        if (window.PortalStorage) {
-          await window.PortalStorage.saveStageBank('penyisihan', b.soal[9]);
-        }
-
-        // Reload iframe
-        const frame = document.getElementById('frame-penyisihan');
-        if (frame && frame.contentWindow) {
-          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
-        }
-      } else if (targetStage === 'semifinal') {
-        let b3 = (await kvGetLegacy('bank3')) || { soal: [] };
-        b3.soal = (b3.soal || []).concat(parsedQuestions);
-        await kvSetLegacy('bank3', b3);
-
-        if (window.PortalStorage) {
-          await window.PortalStorage.saveStageBank('semifinal', b3.soal);
-        }
-
-        const frame = document.getElementById('frame-semifinal');
-        if (frame && frame.contentWindow) {
-          try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
-        }
-      } else {
-        try {
-          let curFinal = JSON.parse(localStorage.getItem('cc-final3') || '{}');
-          const newLines = parsedQuestions.map(q => `${q.q} ||| ${q.ans}`);
-          curFinal.q = (curFinal.q ? curFinal.q + '\n' : '') + newLines.join('\n');
-          localStorage.setItem('cc-final3', JSON.stringify(curFinal));
-
-          if (window.PortalStorage) {
-            const finalItems = curFinal.q.split('\n').filter(Boolean).map((line, idx) => {
-              const p = line.split('|||');
-              return {
-                id: `fn_${idx+1}`,
-                tier: idx < 5 ? 'Tier 1 (50 Poin)' : (idx < 10 ? 'Tier 2 (75 Poin)' : (idx < 15 ? 'Tier 3 (100 Poin)' : 'Soal Tambahan')),
-                q: (p[0] || '').trim(),
-                ans: (p[1] || '').trim()
-              };
-            });
-            await window.PortalStorage.saveStageBank('final', finalItems);
-          }
-
-          const frame = document.getElementById('frame-final');
-          if (frame && frame.contentWindow) {
-            try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
-          }
-        } catch (e) {}
-      }
+      // Save directly to the native stage storage using unified saveStageQuestions
+      const curQuestions = await this.getStageQuestions(targetStage);
+      await this.saveStageQuestions(targetStage, curQuestions.concat(parsedQuestions));
 
       return {
         count: parsedQuestions.length,

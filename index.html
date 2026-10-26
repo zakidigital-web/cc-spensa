@@ -237,9 +237,62 @@
       </div>
       <div id="import-status-msg" style="text-align:center;font-weight:bold;margin:12px 0;color:var(--gold);"></div>
 
-      <!-- Question List Preview -->
-      <h3 style="font-size:18px;font-weight:800;margin:28px 0 14px;">Daftar Soal pada Babak Ini:</h3>
-      <div id="bank-list-container"></div>
+      <!-- ════════════ QUESTION MANAGEMENT CONTROLS & BATCH ACTIONS ════════════ -->
+      <div class="bank-controls-panel" style="margin-top:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h3 style="font-size:19px;font-weight:900;margin:0 0 4px 0;">📚 Daftar &amp; Manajemen Soal</h3>
+            <p style="color:var(--text-mut);font-size:13px;margin:0;">
+              Cari, edit, preview, tambah manual, atau hapus soal (tunggal, batch terpilih, atau hapus seluruh bank).
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" id="btn-add-question" style="font-weight:800;padding:8px 16px;">
+              <span>➕ Tambah Soal Manual</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" id="btn-restore-default" title="Pulihkan soal standar bawaan awal">
+              <span>🔄 Pulihkan Soal Bawaan</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Strip -->
+        <div class="bank-filter-bar">
+          <div class="bank-search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="bank-search-input" placeholder="Cari teks soal, pilihan kata, atau jawaban..." class="form-control" style="padding-left:36px;">
+            <button id="btn-clear-search" class="btn-clear-search" style="display:none;" title="Bersihkan">✕</button>
+          </div>
+          <div style="min-width:200px;">
+            <select id="bank-filter-category" class="form-control" style="width:100%;">
+              <option value="">Semua Kategori / Mapel</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Batch Operations Bar -->
+        <div class="bank-batch-bar">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <label class="bank-select-all-label">
+              <input type="checkbox" id="bank-select-all" style="width:18px;height:18px;cursor:pointer;">
+              <span style="font-size:13.5px;font-weight:700;">Pilih Semua</span>
+            </label>
+            <span id="bank-selected-count" class="badge-pill" style="display:none;">0 soal dipilih</span>
+            <span id="bank-total-stats" class="badge-pill badge-info">Total: 0 Soal</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-danger-soft btn-sm" id="btn-delete-selected" disabled style="display:inline-flex;align-items:center;gap:6px;">
+              <span>🗑️ Hapus Terpilih (<span id="btn-del-count">0</span>)</span>
+            </button>
+            <button class="btn btn-danger-ghost btn-sm" id="btn-delete-all" style="display:inline-flex;align-items:center;gap:6px;">
+              <span>⚠️ Hapus SEMUA Soal</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question List Container -->
+      <div id="bank-list-container" style="margin-top:14px;"></div>
     </section>
 
     <!-- ════════════ VIEW 6: LAPORAN JUARA GRAND FINAL ════════════ -->
@@ -271,6 +324,204 @@
     <button id="btn-fs-hub-dock" class="btn-fs-pill" title="Kembali ke Beranda Portal">
       <span>🏠 Beranda</span>
     </button>
+  </div>
+
+  <!-- ════════════ MODAL EDIT / TAMBAH SOAL ════════════ -->
+  <div id="modal-edit-question" class="modal-overlay">
+    <div class="glass-panel" style="width:min(760px, 95vw);max-height:calc(100vh - 40px);overflow-y:auto;display:flex;flex-direction:column;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--card-border);padding-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <h2 id="modal-edit-q-title" style="font-size:20px;font-weight:900;margin:0;">✏️ Edit Soal</h2>
+          <span id="modal-edit-q-stage-badge" class="badge-pill badge-info">Penyisihan</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-close-edit-q-x" style="padding:4px 10px;font-size:15px;" title="Tutup">✕</button>
+      </div>
+
+      <form id="form-edit-question" onsubmit="return false;" style="display:flex;flex-direction:column;gap:14px;">
+        <input type="hidden" id="edit-q-id">
+        <input type="hidden" id="edit-q-stage">
+
+        <!-- Kategori / Mapel / Tipe / Tier -->
+        <div id="group-edit-category">
+          <label id="label-edit-category" style="font-size:13px;font-weight:700;color:var(--text-main);display:block;margin-bottom:6px;">
+            Mata Pelajaran
+          </label>
+          <div id="wrap-category-select">
+            <select id="edit-q-category" class="input-field" style="width:100%;font-weight:600;">
+              <!-- Options dynamically populated in js/app.js -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Teks Soal -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label style="font-size:13px;font-weight:700;color:var(--text-main);">
+              Teks Soal / Pertanyaan <span style="color:var(--bad);">*</span>
+            </label>
+            <span style="font-size:11.5px;color:var(--text-mut);">Rumus: <code>$...$</code> atau <code>$$...$$</code></span>
+          </div>
+          <textarea id="edit-q-text" rows="3" class="input-field" placeholder="Ketik pertanyaan... Rumus matematika dapat ditulis menggunakan notasi LaTeX seperti $x^2 + y^2 = z^2$ atau $\frac{a}{b}$." required style="resize:vertical;"></textarea>
+        </div>
+
+        <!-- Live KaTeX Math Preview -->
+        <div class="katex-live-preview" id="edit-q-preview-wrap">
+          <div class="preview-header">
+            <span>👁️ Live Preview Teks &amp; Rumus KaTeX:</span>
+            <span id="katex-status-indicator" style="font-size:11px;color:var(--ok);">⚡ Realtime KaTeX</span>
+          </div>
+          <div id="edit-q-preview-content" class="preview-box">
+            <span style="color:var(--text-mut);font-style:italic;">Preview akan muncul otomatis di sini saat mengetik...</span>
+          </div>
+        </div>
+
+        <!-- Section: Pilihan Ganda (Penyisihan / Semifinal PG) -->
+        <div id="section-edit-mc" style="display:none;background:rgba(255,255,255,0.02);border:1px solid var(--card-border);border-radius:12px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <label style="font-size:13px;font-weight:800;color:var(--text-main);">Pilihan Jawaban (Pilih radio button untuk KUNCI BENAR):</label>
+            <span style="font-size:11.5px;color:var(--ok);font-weight:700;">🟢 Hijau = Kunci Benar</span>
+          </div>
+          <div style="display:grid;gap:8px;">
+            <div class="mc-option-row">
+              <label class="mc-radio-label">
+                <input type="radio" name="edit-q-key" value="0" checked>
+                <span class="mc-letter">A</span>
+              </label>
+              <input type="text" id="edit-opt-0" class="input-field mc-input" placeholder="Pilihan A">
+            </div>
+            <div class="mc-option-row">
+              <label class="mc-radio-label">
+                <input type="radio" name="edit-q-key" value="1">
+                <span class="mc-letter">B</span>
+              </label>
+              <input type="text" id="edit-opt-1" class="input-field mc-input" placeholder="Pilihan B">
+            </div>
+            <div class="mc-option-row">
+              <label class="mc-radio-label">
+                <input type="radio" name="edit-q-key" value="2">
+                <span class="mc-letter">C</span>
+              </label>
+              <input type="text" id="edit-opt-2" class="input-field mc-input" placeholder="Pilihan C">
+            </div>
+            <div class="mc-option-row">
+              <label class="mc-radio-label">
+                <input type="radio" name="edit-q-key" value="3">
+                <span class="mc-letter">D</span>
+              </label>
+              <input type="text" id="edit-opt-3" class="input-field mc-input" placeholder="Pilihan D">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Benar / Salah (Semifinal BS) -->
+        <div id="section-edit-bs" style="display:none;background:rgba(255,255,255,0.02);border:1px solid var(--card-border);border-radius:12px;padding:14px;">
+          <label style="font-size:13px;font-weight:800;color:var(--text-main);display:block;margin-bottom:10px;">
+            Kunci Jawaban Pernyataan:
+          </label>
+          <div style="display:flex;gap:18px;">
+            <label class="theme-choice-card" style="display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;border-radius:8px;">
+              <input type="radio" name="edit-bs-key" value="0" checked style="width:auto;margin:0;">
+              <span style="font-weight:800;color:var(--ok);">🟢 BENAR</span>
+            </label>
+            <label class="theme-choice-card" style="display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;border-radius:8px;">
+              <input type="radio" name="edit-bs-key" value="1" style="width:auto;margin:0;">
+              <span style="font-weight:800;color:var(--bad);">🔴 SALAH</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Section: Jawaban Isian / Grand Final / Essay -->
+        <div id="section-edit-essay" style="display:none;">
+          <label style="font-size:13px;font-weight:700;color:var(--text-main);display:block;margin-bottom:6px;">
+            Kunci Jawaban Singkat / Dewan Juri <span style="color:var(--bad);">*</span>
+          </label>
+          <input type="text" id="edit-essay-ans" class="input-field" placeholder="Contoh: Central Processing Unit / Biner / 45 derajat">
+        </div>
+
+        <!-- Section: Nilai / Bobot Poin (Grand Final) -->
+        <div id="section-edit-points" style="display:none;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:13px;font-weight:700;color:var(--text-main);display:block;margin-bottom:6px;">
+              Poin Jawaban Benar
+            </label>
+            <input type="number" id="edit-q-val" class="input-field" placeholder="50" min="0" step="5">
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:700;color:var(--text-main);display:block;margin-bottom:6px;">
+              Pengurangan Poin Salah (Minus)
+            </label>
+            <input type="number" id="edit-q-pen" class="input-field" placeholder="25" min="0" step="5">
+          </div>
+        </div>
+
+        <!-- Section: Gambar Ilustrasi (Opsional) -->
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--card-border);border-radius:12px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <label style="font-size:13px;font-weight:700;color:var(--text-main);">🖼️ Gambar Ilustrasi (Opsional)</label>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-del-img" style="display:none;color:var(--bad);padding:2px 8px;font-size:11.5px;">Hapus Gambar</button>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="file" id="edit-q-img-file" accept="image/*" class="input-field" style="width:auto;padding:6px 10px;font-size:12px;">
+            <span style="font-size:12px;color:var(--text-mut);">atau URL gambar:</span>
+            <input type="text" id="edit-q-img-url" class="input-field" placeholder="https://... atau data:image/..." style="flex:1;min-width:180px;font-size:12px;">
+          </div>
+          <div id="edit-q-img-preview" style="display:none;margin-top:10px;text-align:center;">
+            <img id="edit-q-img-el" src="" alt="Preview Gambar Soal" style="max-height:160px;max-width:100%;border-radius:8px;border:1px solid var(--card-border);">
+          </div>
+        </div>
+
+        <!-- Dialog Buttons -->
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;padding-top:12px;border-top:1px solid var(--card-border);">
+          <button type="button" class="btn btn-ghost" id="btn-close-edit-q">Batal</button>
+          <button type="button" class="btn btn-primary" id="btn-save-edit-q" style="font-weight:800;padding:8px 20px;">💾 Simpan Soal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ════════════ MODAL KONFIRMASI HAPUS ════════════ -->
+  <div id="modal-confirm-delete" class="modal-overlay">
+    <div class="glass-panel" style="width:min(480px, 95vw);text-align:center;">
+      <div style="font-size:44px;margin-bottom:10px;">⚠️</div>
+      <h3 id="modal-del-title" style="font-size:20px;font-weight:900;margin:0 0 8px 0;color:var(--bad);">Konfirmasi Hapus Soal</h3>
+      <p id="modal-del-msg" style="color:var(--text-mut);font-size:14px;line-height:1.5;margin:0 0 20px 0;">
+        Apakah Anda yakin ingin menghapus soal ini?
+      </p>
+      <div style="display:flex;justify-content:center;gap:12px;">
+        <button class="btn btn-ghost" id="btn-cancel-del">Batal</button>
+        <button class="btn btn-danger" id="btn-confirm-del-action" style="background:var(--bad);color:#fff;font-weight:800;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;">Ya, Hapus Sekarang</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ MODAL PREVIEW DETAIL SOAL ════════════ -->
+  <div id="modal-preview-question" class="modal-overlay">
+    <div class="glass-panel" style="width:min(680px, 95vw);max-height:calc(100vh - 48px);overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid var(--card-border);padding-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <h3 style="font-size:18px;font-weight:900;margin:0;">👁️ Tampilan Penuh Soal</h3>
+          <span id="modal-pv-badge" class="badge-pill badge-info">Mapel</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-close-pv-x" style="padding:4px 10px;font-size:15px;" title="Tutup">✕</button>
+      </div>
+
+      <div id="modal-pv-body" style="display:flex;flex-direction:column;gap:14px;">
+        <!-- Question Text & Formulas -->
+        <div id="modal-pv-question" style="font-size:18px;font-weight:700;line-height:1.5;color:var(--text-main);"></div>
+        <!-- Question Image -->
+        <div id="modal-pv-img-wrap" style="display:none;text-align:center;">
+          <img id="modal-pv-img" src="" style="max-height:240px;max-width:100%;border-radius:10px;border:1px solid var(--card-border);" alt="Ilustrasi Soal">
+        </div>
+        <!-- Options or Answer -->
+        <div id="modal-pv-options" style="display:grid;gap:8px;"></div>
+        <!-- Answer Key -->
+        <div id="modal-pv-key-box" style="padding:10px 14px;border-radius:8px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--ok);font-weight:800;font-size:14px;"></div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:20px;border-top:1px solid var(--card-border);padding-top:14px;">
+        <button class="btn btn-ghost" id="btn-close-pv">Tutup</button>
+      </div>
+    </div>
   </div>
 
   <!-- ════════════ SETTINGS MODAL ════════════ -->

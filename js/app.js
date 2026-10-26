@@ -8,6 +8,11 @@
 
   let currentView = 'hub';
   let activeBankStage = 'penyisihan'; // 'penyisihan' | 'semifinal' | 'final'
+  let bankSearchQuery = '';
+  let bankFilterCategory = '';
+  let selectedQuestionIds = new Set();
+  let allQuestionsCache = [];
+  let pendingDelAction = null;
 
   const App = {
     async init() {
@@ -306,8 +311,10 @@
           }
         } else if (e.key === 'Escape') {
           closeModal();
-          const setModal = document.getElementById('settings-modal');
-          if (setModal) setModal.classList.remove('active');
+          ['settings-modal', 'shortcuts-modal', 'modal-edit-question', 'modal-confirm-delete', 'modal-preview-question'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+          });
         } else if (e.key === 'F11' || ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) {
           e.preventDefault();
           this.toggleFullscreen();
@@ -315,8 +322,50 @@
       });
     },
 
+    // ─── TOAST NOTIFICATION HELPER ─────────────────────────
+    showToast(message, type = 'success') {
+      let toastEl = document.getElementById('portal-toast');
+      if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.id = 'portal-toast';
+        toastEl.style.cssText = `
+          position: fixed;
+          bottom: 28px;
+          right: 28px;
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 22px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 700;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          opacity: 0;
+          transform: translateY(20px);
+          pointer-events: none;
+        `;
+        document.body.appendChild(toastEl);
+      }
+
+      const bg = type === 'error' ? '#ef4444' : (type === 'warning' ? '#f59e0b' : '#10b981');
+      toastEl.style.background = bg;
+      toastEl.style.color = '#ffffff';
+      toastEl.textContent = message;
+      toastEl.style.opacity = '1';
+      toastEl.style.transform = 'translateY(0)';
+
+      clearTimeout(toastEl._timer);
+      toastEl._timer = setTimeout(() => {
+        toastEl.style.opacity = '0';
+        toastEl.style.transform = 'translateY(20px)';
+      }, 3200);
+    },
+
     // ─── BANK SOAL INTERACTION (SEPARATE PER STAGE) ─────────
     bindBankSoal() {
+      const self = this;
       const dropzone = document.getElementById('word-dropzone');
       const fileInput = document.getElementById('word-file-input');
       const btnDownloadTpl = document.getElementById('btn-download-tpl');
@@ -327,9 +376,9 @@
       const tabF = document.getElementById('bank_tab_final');
 
       if (tabP && tabS && tabF) {
-        tabP.onclick = () => { activeBankStage = 'penyisihan'; this.updateBankStageUI(); };
-        tabS.onclick = () => { activeBankStage = 'semifinal'; this.updateBankStageUI(); };
-        tabF.onclick = () => { activeBankStage = 'final'; this.updateBankStageUI(); };
+        tabP.onclick = () => { activeBankStage = 'penyisihan'; this.onBankStageChange(); };
+        tabS.onclick = () => { activeBankStage = 'semifinal'; this.onBankStageChange(); };
+        tabF.onclick = () => { activeBankStage = 'final'; this.onBankStageChange(); };
       }
 
       if (dropzone && fileInput) {
@@ -384,6 +433,191 @@
           }
         });
       }
+
+      // ─── SEARCH & FILTER LISTENERS ───────────────────────
+      const searchInput = document.getElementById('bank-search-input');
+      const btnClearSearch = document.getElementById('btn-clear-search');
+      const categoryFilter = document.getElementById('bank-filter-category');
+
+      if (searchInput) {
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+          bankSearchQuery = searchInput.value;
+          if (btnClearSearch) btnClearSearch.style.display = bankSearchQuery ? 'flex' : 'none';
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => self.renderBankList(), 150);
+        });
+      }
+
+      if (btnClearSearch) {
+        btnClearSearch.addEventListener('click', () => {
+          if (searchInput) searchInput.value = '';
+          bankSearchQuery = '';
+          btnClearSearch.style.display = 'none';
+          self.renderBankList();
+        });
+      }
+
+      if (categoryFilter) {
+        categoryFilter.addEventListener('change', () => {
+          bankFilterCategory = categoryFilter.value;
+          self.renderBankList();
+        });
+      }
+
+      // ─── SELECT ALL & BATCH DELETE LISTENERS ─────────────
+      const selectAllCb = document.getElementById('bank-select-all');
+      if (selectAllCb) {
+        selectAllCb.addEventListener('change', () => {
+          const visibleIds = self.getFilteredQuestions().map(q => String(q.id));
+          if (selectAllCb.checked) {
+            visibleIds.forEach(id => selectedQuestionIds.add(id));
+          } else {
+            visibleIds.forEach(id => selectedQuestionIds.delete(id));
+          }
+          self.updateBatchSelectionUI();
+        });
+      }
+
+      const btnDeleteSelected = document.getElementById('btn-delete-selected');
+      if (btnDeleteSelected) {
+        btnDeleteSelected.addEventListener('click', () => {
+          if (selectedQuestionIds.size === 0) return;
+          const count = selectedQuestionIds.size;
+          self.openConfirmDeleteModal({
+            title: '🗑️ Hapus Soal Terpilih',
+            message: `Apakah Anda yakin ingin menghapus <strong>${count} soal terpilih</strong> dari Bank Soal Babak ${activeBankStage.toUpperCase()}? Tindakan ini tidak dapat dibatalkan.`,
+            onConfirm: async () => {
+              try {
+                await window.DocxEngine.deleteStageQuestions(activeBankStage, Array.from(selectedQuestionIds));
+                selectedQuestionIds.clear();
+                await self.renderBankList();
+                self.showToast(`✅ Berhasil menghapus ${count} soal terpilih!`);
+              } catch (err) {
+                alert('Gagal menghapus soal: ' + err.message);
+              }
+            }
+          });
+        });
+      }
+
+      const btnDeleteAll = document.getElementById('btn-delete-all');
+      if (btnDeleteAll) {
+        btnDeleteAll.addEventListener('click', () => {
+          self.openConfirmDeleteModal({
+            title: `⚠️ Hapus SEMUA Soal ${activeBankStage.toUpperCase()}`,
+            message: `PERINGATAN: Seluruh soal di Bank Soal Babak ${activeBankStage.toUpperCase()} akan dihapus. Anda dapat memulihkan soal bawaan kapan saja dengan menekan tombol <strong>'Pulihkan Soal Bawaan'</strong>. Lanjutkan?`,
+            onConfirm: async () => {
+              try {
+                await window.DocxEngine.clearStageQuestions(activeBankStage);
+                selectedQuestionIds.clear();
+                await self.renderBankList();
+                self.showToast(`⚠️ Seluruh soal Bank ${activeBankStage.toUpperCase()} telah dikosongkan!`, 'warning');
+              } catch (err) {
+                alert('Gagal mengosongkan bank soal: ' + err.message);
+              }
+            }
+          });
+        });
+      }
+
+      const btnRestoreDefault = document.getElementById('btn-restore-default');
+      if (btnRestoreDefault) {
+        btnRestoreDefault.addEventListener('click', () => {
+          self.openConfirmDeleteModal({
+            title: '🔄 Pulihkan Soal Bawaan',
+            message: `Bank Soal Babak ${activeBankStage.toUpperCase()} akan diisi kembali dengan daftar soal standar bawaan awal. Lanjutkan?`,
+            onConfirm: async () => {
+              try {
+                await window.DocxEngine.restoreDefaultStageQuestions(activeBankStage);
+                selectedQuestionIds.clear();
+                await self.renderBankList();
+                self.showToast(`✅ Soal standar babak ${activeBankStage.toUpperCase()} berhasil dipulihkan!`);
+              } catch (err) {
+                alert('Gagal memulihkan soal: ' + err.message);
+              }
+            }
+          });
+        });
+      }
+
+      // ─── ADD QUESTION MANUAL BUTTON ──────────────────────
+      const btnAddQuestion = document.getElementById('btn-add-question');
+      if (btnAddQuestion) {
+        btnAddQuestion.addEventListener('click', () => {
+          self.openAddQuestionModal();
+        });
+      }
+
+      // ─── FORM & MODAL ACTIONS ────────────────────────────
+      this.bindBankModals();
+
+      // ─── EVENT DELEGATION FOR QUESTION CARDS ─────────────
+      const container = document.getElementById('bank-list-container');
+      if (container) {
+        container.addEventListener('click', (e) => {
+          const btnDel = e.target.closest('.btn-del');
+          const btnEdit = e.target.closest('.btn-edit');
+          const btnPv = e.target.closest('.btn-pv');
+          const cb = e.target.closest('.q-checkbox');
+
+          if (cb) {
+            const id = cb.dataset.id;
+            if (cb.checked) {
+              selectedQuestionIds.add(id);
+            } else {
+              selectedQuestionIds.delete(id);
+            }
+            self.updateBatchSelectionUI();
+            return;
+          }
+
+          if (btnDel) {
+            const id = btnDel.dataset.id;
+            const q = allQuestionsCache.find(x => String(x.id) === String(id));
+            self.openConfirmDeleteModal({
+              title: '🗑️ Hapus Soal',
+              message: `Apakah Anda yakin ingin menghapus soal ini dari Bank Soal Babak ${activeBankStage.toUpperCase()}?<br><br><em>"${(q ? q.q : id).slice(0, 100)}..."</em>`,
+              onConfirm: async () => {
+                try {
+                  await window.DocxEngine.deleteStageQuestions(activeBankStage, [id]);
+                  selectedQuestionIds.delete(String(id));
+                  await self.renderBankList();
+                  self.showToast('✅ Soal berhasil dihapus!');
+                } catch (err) {
+                  alert('Gagal menghapus soal: ' + err.message);
+                }
+              }
+            });
+            return;
+          }
+
+          if (btnEdit) {
+            const id = btnEdit.dataset.id;
+            const q = allQuestionsCache.find(x => String(x.id) === String(id));
+            if (q) self.openEditQuestionModal(q);
+            return;
+          }
+
+          if (btnPv) {
+            const id = btnPv.dataset.id;
+            const q = allQuestionsCache.find(x => String(x.id) === String(id));
+            if (q) self.openPreviewQuestionModal(q);
+            return;
+          }
+        });
+      }
+    },
+
+    onBankStageChange() {
+      bankSearchQuery = '';
+      bankFilterCategory = '';
+      selectedQuestionIds.clear();
+      const searchInput = document.getElementById('bank-search-input');
+      if (searchInput) searchInput.value = '';
+      const btnClearSearch = document.getElementById('btn-clear-search');
+      if (btnClearSearch) btnClearSearch.style.display = 'none';
+      this.updateBankStageUI();
     },
 
     updateBankStageUI() {
@@ -410,11 +644,79 @@
         if (statusEl) {
           statusEl.textContent = `✅ Berhasil mengimpor ${result.count} soal ke Bank ${activeBankStage.toUpperCase()} (Ditemukan ${result.mathCount} rumus matematika)!`;
         }
-        alert(`Berhasil mengimpor ${result.count} soal ke Bank Soal Babak ${activeBankStage.toUpperCase()}!`);
+        this.showToast(`Berhasil mengimpor ${result.count} soal ke Bank Soal ${activeBankStage.toUpperCase()}!`);
         this.renderBankList();
       } catch (err) {
         alert('Gagal membaca file Word: ' + err.message);
       }
+    },
+
+    getFilteredQuestions() {
+      let filtered = allQuestionsCache || [];
+      if (bankFilterCategory) {
+        filtered = filtered.filter(q => {
+          const cat = q.mapel || q.tipe || q.tier || '';
+          return String(cat).toLowerCase() === bankFilterCategory.toLowerCase();
+        });
+      }
+      if (bankSearchQuery.trim()) {
+        const qTerm = bankSearchQuery.trim().toLowerCase();
+        filtered = filtered.filter(q => {
+          const qText = (q.q || '').toLowerCase();
+          const ansText = (q.ans || '').toLowerCase();
+          const catText = (q.mapel || q.tipe || q.tier || '').toLowerCase();
+          const optText = (q.o && Array.isArray(q.o)) ? q.o.join(' ').toLowerCase() : '';
+          return qText.includes(qTerm) || ansText.includes(qTerm) || catText.includes(qTerm) || optText.includes(qTerm);
+        });
+      }
+      return filtered;
+    },
+
+    updateBatchSelectionUI() {
+      const filtered = this.getFilteredQuestions();
+      const visibleIds = filtered.map(q => String(q.id));
+      const selCount = selectedQuestionIds.size;
+
+      // Update counters
+      const selCountEl = document.getElementById('bank-selected-count');
+      const delCountNum = document.getElementById('btn-del-count');
+      const btnDeleteSelected = document.getElementById('btn-delete-selected');
+
+      if (selCountEl) {
+        if (selCount > 0) {
+          selCountEl.style.display = 'inline-flex';
+          selCountEl.textContent = `${selCount} soal dipilih`;
+        } else {
+          selCountEl.style.display = 'none';
+        }
+      }
+      if (delCountNum) delCountNum.textContent = String(selCount);
+      if (btnDeleteSelected) btnDeleteSelected.disabled = selCount === 0;
+
+      // Update select-all checkbox state
+      const selectAllCb = document.getElementById('bank-select-all');
+      if (selectAllCb) {
+        if (visibleIds.length === 0) {
+          selectAllCb.checked = false;
+          selectAllCb.indeterminate = false;
+          selectAllCb.disabled = true;
+        } else {
+          selectAllCb.disabled = false;
+          const allVisSelected = visibleIds.every(id => selectedQuestionIds.has(id));
+          const someVisSelected = visibleIds.some(id => selectedQuestionIds.has(id));
+          selectAllCb.checked = allVisSelected;
+          selectAllCb.indeterminate = !allVisSelected && someVisSelected;
+        }
+      }
+
+      // Update card selected highlight class and checkbox
+      document.querySelectorAll('#bank-list-container .question-card-item').forEach(card => {
+        const id = card.dataset.id;
+        const cb = card.querySelector('.q-checkbox');
+        const isSel = selectedQuestionIds.has(String(id));
+        card.classList.toggle('selected', isSel);
+        if (cb) cb.checked = isSel;
+      });
     },
 
     async renderBankList() {
@@ -422,41 +724,661 @@
       if (!container) return;
 
       const qList = await window.DocxEngine.getStageQuestions(activeBankStage);
+      allQuestionsCache = qList;
+
+      // Populate Category Filter dropdown dynamically
+      const categoryFilter = document.getElementById('bank-filter-category');
+      if (categoryFilter) {
+        const uniqueCategories = Array.from(new Set(qList.map(q => q.mapel || q.tipe || q.tier || 'Umum'))).filter(Boolean);
+        const currentVal = bankFilterCategory;
+        let optionsHtml = '<option value="">Semua Kategori / Mapel</option>';
+        uniqueCategories.forEach(cat => {
+          const sel = (cat.toLowerCase() === currentVal.toLowerCase()) ? 'selected' : '';
+          optionsHtml += `<option value="${cat}" ${sel}>${cat}</option>`;
+        });
+        categoryFilter.innerHTML = optionsHtml;
+      }
+
+      const filtered = this.getFilteredQuestions();
+
+      // Update total stats badge
+      const totalStatsEl = document.getElementById('bank-total-stats');
+      if (totalStatsEl) {
+        if (filtered.length === qList.length) {
+          totalStatsEl.textContent = `Total: ${qList.length} Soal`;
+        } else {
+          totalStatsEl.textContent = `Menampilkan: ${filtered.length} dari ${qList.length} Soal`;
+        }
+      }
 
       if (!qList.length) {
-        container.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-mut);">Belum ada soal di Bank Soal ${activeBankStage.toUpperCase()}. Silakan unggah file Word template di atas.</div>`;
+        container.innerHTML = `
+          <div style="text-align:center;padding:48px 24px;border:2px dashed var(--card-border);border-radius:16px;background:rgba(255,255,255,0.01);">
+            <div style="font-size:48px;margin-bottom:12px;">📭</div>
+            <h4 style="font-size:18px;font-weight:800;margin:0 0 8px 0;">Bank Soal Babak ${activeBankStage.toUpperCase()} Kosong</h4>
+            <p style="color:var(--text-mut);font-size:14px;max-width:480px;margin:0 auto 20px auto;">
+              Belum ada soal pada babak ini. Anda dapat menambahkan soal secara manual atau memulihkan soal bawaan awal.
+            </p>
+            <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="window.App.openAddQuestionModal()">➕ Tambah Soal Manual</button>
+              <button class="btn btn-gold" onclick="window.App.restoreDefaultQuestions()">🔄 Pulihkan Soal Bawaan</button>
+            </div>
+          </div>
+        `;
+        this.updateBatchSelectionUI();
         return;
       }
 
-      container.innerHTML = qList.map((q, idx) => {
+      if (!filtered.length) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:40px 20px;border:1px dashed var(--card-border);border-radius:12px;">
+            <div style="font-size:36px;margin-bottom:8px;">🔍</div>
+            <h4 style="font-size:16px;font-weight:700;margin:0 0 6px 0;">Tidak Ada Soal yang Cocok</h4>
+            <p style="color:var(--text-mut);font-size:13.5px;margin:0 0 14px 0;">
+              Tidak ditemukan soal dengan kata kunci "<strong>${window.DocxEngine.formatMath(bankSearchQuery)}</strong>" pada kategori ini.
+            </p>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('btn-clear-search').click()">✕ Bersihkan Pencarian</button>
+          </div>
+        `;
+        this.updateBatchSelectionUI();
+        return;
+      }
+
+      container.innerHTML = filtered.map((q, idx) => {
         const cat = q.mapel || q.tipe || q.tier || 'Umum';
-        let keyText = q.ans || '';
-        if (q.o && q.o.length && q.k != null) {
-          keyText = `${String.fromCharCode(65 + q.k)}. ${q.o[q.k] || ''}`;
+        const isSel = selectedQuestionIds.has(String(q.id));
+        const qMath = window.DocxEngine.formatMath(q.q);
+
+        let optionsHtml = '';
+        if (q.tipe === 'BS') {
+          const isBenar = (q.k === 0 || String(q.ans).toLowerCase() === 'benar');
+          optionsHtml = `
+            <div style="margin-top:8px;">
+              <span class="badge-pill" style="background:${isBenar ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'};color:${isBenar ? 'var(--ok)' : 'var(--bad)'};border-color:${isBenar ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'};font-weight:800;">
+                Kunci: ${isBenar ? '🟢 BENAR' : '🔴 SALAH'}
+              </span>
+            </div>
+          `;
+        } else if (q.o && q.o.length > 0) {
+          optionsHtml = `
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:8px;margin-top:10px;">
+              ${q.o.map((opt, i) => {
+                const isKey = (q.k === i);
+                return `
+                  <div style="padding:7px 12px;border-radius:8px;background:${isKey ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)'};border:1px solid ${isKey ? 'rgba(16,185,129,0.45)' : 'var(--card-border)'};font-size:13.5px;display:flex;align-items:flex-start;gap:8px;">
+                    <strong style="color:${isKey ? 'var(--ok)' : 'var(--gold)'};min-width:18px;">${String.fromCharCode(65 + i)}.</strong>
+                    <span style="flex:1;${isKey ? 'color:var(--ok);font-weight:700;' : ''}">${window.DocxEngine.formatMath(opt)}</span>
+                    ${isKey ? '<span style="color:var(--ok);font-weight:900;">✓</span>' : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+        } else {
+          optionsHtml = `
+            <div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);font-size:13px;color:var(--ok);">
+              <strong style="font-weight:800;">Kunci Jawaban:</strong>
+              <span style="font-weight:700;">${window.DocxEngine.formatMath(q.ans || '')}</span>
+            </div>
+          `;
+        }
+
+        let extraBadge = '';
+        if (q.val != null) {
+          extraBadge = `<span class="badge-pill" style="font-size:11px;background:rgba(245,158,11,0.15);color:var(--gold);border-color:rgba(245,158,11,0.3);">+${q.val} / -${q.pen || 0} Poin</span>`;
         }
 
         return `
-          <div class="question-card-item">
-            <span class="q-card-badge">${cat}</span>
-            <div style="flex:1;">
-              <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${idx + 1}. ${q.q}</div>
-              ${q.img ? `<img src="${q.img}" style="max-height:120px;border-radius:8px;margin:8px 0;border:1px solid var(--card-border);" alt="Ilustrasi">` : ''}
-              ${q.o && q.o.length ? `
-                <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--text-mut);margin-top:6px;">
-                  ${q.o.map((opt, i) => `
-                    <span style="${q.k === i ? 'color:var(--ok);font-weight:bold;' : ''}">
-                      ${String.fromCharCode(65 + i)}. ${opt} ${q.k === i ? '✓' : ''}
-                    </span>
-                  `).join('')}
-                </div>
-              ` : `
-                <div style="font-size:13px;color:var(--ok);font-weight:bold;margin-top:4px;">Kunci: ${keyText}</div>
-              `}
+          <div class="question-card-item ${isSel ? 'selected' : ''}" data-id="${q.id}">
+            <div class="q-card-select">
+              <input type="checkbox" class="q-checkbox" data-id="${q.id}" ${isSel ? 'checked' : ''} title="Pilih soal ini">
+            </div>
+            <div class="q-card-content">
+              <div class="q-card-header">
+                <span class="q-card-badge">${cat}</span>
+                ${extraBadge}
+                <span style="font-size:11px;color:var(--text-mut);margin-left:auto;font-family:monospace;">ID: ${q.id}</span>
+              </div>
+              <div style="font-weight:700;font-size:15.5px;line-height:1.55;color:var(--text-main);margin:4px 0 8px 0;">
+                <span style="color:var(--gold);font-weight:800;">${idx + 1}.</span> ${qMath}
+              </div>
+              ${q.img ? `<div><img src="${q.img}" style="max-height:130px;max-width:100%;border-radius:8px;margin:6px 0;border:1px solid var(--card-border);" alt="Ilustrasi Soal"></div>` : ''}
+              ${optionsHtml}
+            </div>
+            <div class="q-card-actions">
+              <button class="btn-action-sm btn-pv" data-id="${q.id}" title="Lihat Tampilan Penuh Soal">👁️ Preview</button>
+              <button class="btn-action-sm btn-edit" data-id="${q.id}" title="Edit Soal Ini">✏️ Edit</button>
+              <button class="btn-action-sm btn-del" data-id="${q.id}" title="Hapus Soal Ini">🗑️ Hapus</button>
             </div>
           </div>
         `;
       }).join('');
+
+      this.updateBatchSelectionUI();
     },
+
+    // ─── MODAL MANAGEMENT & FORM HANDLERS ────────────────
+    bindBankModals() {
+      const self = this;
+
+      // Close modal events
+      const closeButtons = [
+        'btn-close-edit-q', 'btn-close-edit-q-x',
+        'btn-cancel-del',
+        'btn-close-pv', 'btn-close-pv-x'
+      ];
+      closeButtons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          btn.addEventListener('click', () => {
+            ['modal-edit-question', 'modal-confirm-delete', 'modal-preview-question'].forEach(mId => {
+              const el = document.getElementById(mId);
+              if (el) el.classList.remove('active');
+            });
+          });
+        }
+      });
+
+      // Overlay click to close
+      ['modal-edit-question', 'modal-confirm-delete', 'modal-preview-question'].forEach(mId => {
+        const el = document.getElementById(mId);
+        if (el) {
+          el.addEventListener('click', (e) => {
+            if (e.target === el) el.classList.remove('active');
+          });
+        }
+      });
+
+      // Category change in Edit Modal
+      const editCategory = document.getElementById('edit-q-category');
+      if (editCategory) {
+        editCategory.addEventListener('change', () => {
+          self.updateEditModalSectionsForType(editCategory.value);
+        });
+      }
+
+      // Live KaTeX preview on typing
+      const editQText = document.getElementById('edit-q-text');
+      const editQPvContent = document.getElementById('edit-q-preview-content');
+      if (editQText && editQPvContent) {
+        editQText.addEventListener('input', () => {
+          const val = editQText.value.trim();
+          if (!val) {
+            editQPvContent.innerHTML = '<span style="color:var(--text-mut);font-style:italic;">Preview akan muncul otomatis di sini saat mengetik...</span>';
+          } else {
+            editQPvContent.innerHTML = window.DocxEngine.formatMath(val);
+          }
+        });
+      }
+
+      // Image upload handling
+      const imgFileInput = document.getElementById('edit-q-img-file');
+      const imgUrlInput = document.getElementById('edit-q-img-url');
+      const imgPreviewWrap = document.getElementById('edit-q-img-preview');
+      const imgPreviewEl = document.getElementById('edit-q-img-el');
+      const btnDelImg = document.getElementById('btn-edit-del-img');
+
+      if (imgFileInput) {
+        imgFileInput.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const im = new Image();
+            im.onload = () => {
+              const scale = Math.min(1, 800 / Math.max(im.width, im.height));
+              const cvs = document.createElement('canvas');
+              cvs.width = im.width * scale;
+              cvs.height = im.height * scale;
+              const ctx = cvs.getContext('2d');
+              ctx.drawImage(im, 0, 0, cvs.width, cvs.height);
+              const dataUrl = cvs.toDataURL('image/jpeg', 0.85);
+              if (imgPreviewEl) imgPreviewEl.src = dataUrl;
+              if (imgPreviewWrap) imgPreviewWrap.style.display = 'block';
+              if (btnDelImg) btnDelImg.style.display = 'inline-block';
+              if (imgUrlInput) imgUrlInput.value = '';
+            };
+            im.src = reader.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (imgUrlInput) {
+        imgUrlInput.addEventListener('input', () => {
+          const val = imgUrlInput.value.trim();
+          if (val) {
+            if (imgPreviewEl) imgPreviewEl.src = val;
+            if (imgPreviewWrap) imgPreviewWrap.style.display = 'block';
+            if (btnDelImg) btnDelImg.style.display = 'inline-block';
+          } else {
+            if (imgPreviewWrap) imgPreviewWrap.style.display = 'none';
+            if (btnDelImg) btnDelImg.style.display = 'none';
+          }
+        });
+      }
+
+      if (btnDelImg) {
+        btnDelImg.addEventListener('click', () => {
+          if (imgFileInput) imgFileInput.value = '';
+          if (imgUrlInput) imgUrlInput.value = '';
+          if (imgPreviewEl) imgPreviewEl.src = '';
+          if (imgPreviewWrap) imgPreviewWrap.style.display = 'none';
+          btnDelImg.style.display = 'none';
+        });
+      }
+
+      // Save question button handler
+      const btnSaveQ = document.getElementById('btn-save-edit-q');
+      if (btnSaveQ) {
+        btnSaveQ.addEventListener('click', async () => {
+          await self.handleSaveQuestion();
+        });
+      }
+
+      // Confirm delete action button handler
+      const btnConfirmDel = document.getElementById('btn-confirm-del-action');
+      if (btnConfirmDel) {
+        btnConfirmDel.addEventListener('click', async () => {
+          if (typeof pendingDelAction === 'function') {
+            const action = pendingDelAction;
+            pendingDelAction = null;
+            const delModal = document.getElementById('modal-confirm-delete');
+            if (delModal) delModal.classList.remove('active');
+            await action();
+          }
+        });
+      }
+    },
+
+    openAddQuestionModal() {
+      const modal = document.getElementById('modal-edit-question');
+      if (!modal) return;
+
+      document.getElementById('modal-edit-q-title').textContent = '➕ Tambah Soal Baru';
+      const badge = document.getElementById('modal-edit-q-stage-badge');
+      if (badge) badge.textContent = `Babak ${activeBankStage.toUpperCase()}`;
+
+      document.getElementById('edit-q-id').value = '';
+      document.getElementById('edit-q-stage').value = activeBankStage;
+
+      // Reset text & live preview
+      const qText = document.getElementById('edit-q-text');
+      if (qText) qText.value = '';
+      const qPv = document.getElementById('edit-q-preview-content');
+      if (qPv) qPv.innerHTML = '<span style="color:var(--text-mut);font-style:italic;">Preview akan muncul otomatis di sini saat mengetik...</span>';
+
+      // Populate Category options
+      this.populateCategorySelectOptions(activeBankStage);
+
+      // Reset options & inputs
+      for (let i = 0; i < 4; i++) {
+        const opt = document.getElementById(`edit-opt-${i}`);
+        if (opt) opt.value = '';
+      }
+      const r0 = document.querySelector('input[name="edit-q-key"][value="0"]');
+      if (r0) r0.checked = true;
+      const bs0 = document.querySelector('input[name="edit-bs-key"][value="0"]');
+      if (bs0) bs0.checked = true;
+      const essayAns = document.getElementById('edit-essay-ans');
+      if (essayAns) essayAns.value = '';
+
+      // Reset Grand Final points
+      const valInput = document.getElementById('edit-q-val');
+      const penInput = document.getElementById('edit-q-pen');
+      if (valInput) valInput.value = '50';
+      if (penInput) penInput.value = '25';
+
+      // Reset Image
+      const imgFileInput = document.getElementById('edit-q-img-file');
+      const imgUrlInput = document.getElementById('edit-q-img-url');
+      const imgPreviewWrap = document.getElementById('edit-q-img-preview');
+      const imgPreviewEl = document.getElementById('edit-q-img-el');
+      const btnDelImg = document.getElementById('btn-edit-del-img');
+      if (imgFileInput) imgFileInput.value = '';
+      if (imgUrlInput) imgUrlInput.value = '';
+      if (imgPreviewEl) imgPreviewEl.src = '';
+      if (imgPreviewWrap) imgPreviewWrap.style.display = 'none';
+      if (btnDelImg) btnDelImg.style.display = 'none';
+
+      // Configure sections visibility
+      const catVal = document.getElementById('edit-q-category').value;
+      this.updateEditModalSectionsForType(catVal);
+
+      modal.classList.add('active');
+    },
+
+    openEditQuestionModal(q) {
+      const modal = document.getElementById('modal-edit-question');
+      if (!modal) return;
+
+      document.getElementById('modal-edit-q-title').textContent = '✏️ Edit Soal';
+      const badge = document.getElementById('modal-edit-q-stage-badge');
+      if (badge) badge.textContent = `Babak ${activeBankStage.toUpperCase()}`;
+
+      document.getElementById('edit-q-id').value = q.id || '';
+      document.getElementById('edit-q-stage').value = activeBankStage;
+
+      // Populate Category options and select current category
+      this.populateCategorySelectOptions(activeBankStage, q.mapel || q.tipe || q.tier);
+
+      // Question text & live KaTeX preview
+      const qText = document.getElementById('edit-q-text');
+      if (qText) qText.value = q.q || '';
+      const qPv = document.getElementById('edit-q-preview-content');
+      if (qPv) qPv.innerHTML = window.DocxEngine.formatMath(q.q || '');
+
+      // Populate options
+      if (q.o && Array.isArray(q.o)) {
+        for (let i = 0; i < 4; i++) {
+          const opt = document.getElementById(`edit-opt-${i}`);
+          if (opt) opt.value = q.o[i] || '';
+        }
+      }
+      const rad = document.querySelector(`input[name="edit-q-key"][value="${q.k || 0}"]`);
+      if (rad) rad.checked = true;
+
+      // True/False
+      const bsRad = document.querySelector(`input[name="edit-bs-key"][value="${q.k || 0}"]`);
+      if (bsRad) bsRad.checked = true;
+
+      // Essay
+      const essayAns = document.getElementById('edit-essay-ans');
+      if (essayAns) essayAns.value = q.ans || '';
+
+      // Points for Grand Final
+      const valInput = document.getElementById('edit-q-val');
+      const penInput = document.getElementById('edit-q-pen');
+      if (valInput) valInput.value = q.val != null ? q.val : 50;
+      if (penInput) penInput.value = q.pen != null ? q.pen : 25;
+
+      // Image
+      const imgUrlInput = document.getElementById('edit-q-img-url');
+      const imgPreviewWrap = document.getElementById('edit-q-img-preview');
+      const imgPreviewEl = document.getElementById('edit-q-img-el');
+      const btnDelImg = document.getElementById('btn-edit-del-img');
+      const imgFileInput = document.getElementById('edit-q-img-file');
+      if (imgFileInput) imgFileInput.value = '';
+
+      if (q.img) {
+        if (imgPreviewEl) imgPreviewEl.src = q.img;
+        if (imgUrlInput) imgUrlInput.value = q.img.startsWith('http') ? q.img : '';
+        if (imgPreviewWrap) imgPreviewWrap.style.display = 'block';
+        if (btnDelImg) btnDelImg.style.display = 'inline-block';
+      } else {
+        if (imgPreviewEl) imgPreviewEl.src = '';
+        if (imgUrlInput) imgUrlInput.value = '';
+        if (imgPreviewWrap) imgPreviewWrap.style.display = 'none';
+        if (btnDelImg) btnDelImg.style.display = 'none';
+      }
+
+      const catVal = document.getElementById('edit-q-category').value;
+      this.updateEditModalSectionsForType(catVal);
+
+      modal.classList.add('active');
+    },
+
+    openPreviewQuestionModal(q) {
+      const modal = document.getElementById('modal-preview-question');
+      if (!modal) return;
+
+      const badge = document.getElementById('modal-pv-badge');
+      if (badge) badge.textContent = q.mapel || q.tipe || q.tier || 'Umum';
+
+      const qEl = document.getElementById('modal-pv-question');
+      if (qEl) qEl.innerHTML = window.DocxEngine.formatMath(q.q || '');
+
+      const imgWrap = document.getElementById('modal-pv-img-wrap');
+      const imgEl = document.getElementById('modal-pv-img');
+      if (q.img) {
+        if (imgEl) imgEl.src = q.img;
+        if (imgWrap) imgWrap.style.display = 'block';
+      } else {
+        if (imgWrap) imgWrap.style.display = 'none';
+      }
+
+      const optEl = document.getElementById('modal-pv-options');
+      const keyEl = document.getElementById('modal-pv-key-box');
+
+      if (q.tipe === 'BS') {
+        const isBenar = (q.k === 0 || String(q.ans).toLowerCase() === 'benar');
+        if (optEl) {
+          optEl.innerHTML = `
+            <div style="display:flex;gap:16px;">
+              <div style="padding:10px 24px;border-radius:10px;font-weight:800;font-size:16px;background:${isBenar ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.04)'};border:2px solid ${isBenar ? 'var(--ok)' : 'var(--card-border)'};color:${isBenar ? 'var(--ok)' : 'var(--text-mut)'};">
+                🟢 BENAR ${isBenar ? '✓ (Kunci)' : ''}
+              </div>
+              <div style="padding:10px 24px;border-radius:10px;font-weight:800;font-size:16px;background:${!isBenar ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.04)'};border:2px solid ${!isBenar ? 'var(--bad)' : 'var(--card-border)'};color:${!isBenar ? 'var(--bad)' : 'var(--text-mut)'};">
+                🔴 SALAH ${!isBenar ? '✓ (Kunci)' : ''}
+              </div>
+            </div>
+          `;
+        }
+        if (keyEl) keyEl.innerHTML = `Kunci Jawaban Resmi: <strong>${isBenar ? 'BENAR' : 'SALAH'}</strong>`;
+      } else if (q.o && q.o.length > 0) {
+        if (optEl) {
+          optEl.innerHTML = q.o.map((opt, i) => {
+            const isKey = (q.k === i);
+            return `
+              <div style="padding:10px 16px;border-radius:10px;background:${isKey ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.03)'};border:2px solid ${isKey ? 'var(--ok)' : 'var(--card-border)'};font-size:15px;display:flex;align-items:flex-start;gap:12px;">
+                <strong style="color:${isKey ? 'var(--ok)' : 'var(--gold)'};font-size:16px;">${String.fromCharCode(65 + i)}.</strong>
+                <span style="flex:1;${isKey ? 'color:var(--ok);font-weight:700;' : ''}">${window.DocxEngine.formatMath(opt)}</span>
+                ${isKey ? '<span style="color:var(--ok);font-weight:900;font-size:16px;">✓ Kunci Benar</span>' : ''}
+              </div>
+            `;
+          }).join('');
+        }
+        const keyLetter = String.fromCharCode(65 + (q.k || 0));
+        const keyText = q.o[q.k] || q.ans || '';
+        if (keyEl) keyEl.innerHTML = `Kunci Jawaban: <strong>${keyLetter}. ${window.DocxEngine.formatMath(keyText)}</strong>`;
+      } else {
+        if (optEl) optEl.innerHTML = '';
+        if (keyEl) keyEl.innerHTML = `Kunci Jawaban Singkat: <strong>${window.DocxEngine.formatMath(q.ans || '')}</strong>`;
+      }
+
+      modal.classList.add('active');
+    },
+
+    openConfirmDeleteModal({ title, message, onConfirm }) {
+      const modal = document.getElementById('modal-confirm-delete');
+      if (!modal) return;
+
+      document.getElementById('modal-del-title').innerHTML = title || 'Konfirmasi Hapus';
+      document.getElementById('modal-del-msg').innerHTML = message || 'Apakah Anda yakin ingin menghapus data ini?';
+      pendingDelAction = onConfirm;
+
+      modal.classList.add('active');
+    },
+
+    populateCategorySelectOptions(stage, selectedCategory = '') {
+      const catSelect = document.getElementById('edit-q-category');
+      const catLabel = document.getElementById('label-edit-category');
+      if (!catSelect) return;
+
+      let categories = [];
+      if (stage === 'penyisihan') {
+        if (catLabel) catLabel.textContent = 'Mata Pelajaran';
+        categories = [
+          'Pendidikan Agama', 'PPKn', 'Bahasa Indonesia', 'Matematika',
+          'IPA', 'IPS', 'Bahasa Inggris', 'Seni Budaya', 'PJOK', 'Prakarya', 'Informatika'
+        ];
+      } else if (stage === 'semifinal') {
+        if (catLabel) catLabel.textContent = 'Jenis / Format Soal';
+        categories = ['BS', 'PG1', 'PG2', 'ES', 'CAD'];
+      } else {
+        if (catLabel) catLabel.textContent = 'Tier Soal & Poin';
+        categories = ['Tier 1 (50 Poin)', 'Tier 2 (75 Poin)', 'Tier 3 (100 Poin)', 'Soal Tambahan'];
+      }
+
+      // Add any custom categories from cache
+      allQuestionsCache.forEach(q => {
+        const c = q.mapel || q.tipe || q.tier;
+        if (c && !categories.includes(c)) categories.push(c);
+      });
+
+      catSelect.innerHTML = categories.map(c => {
+        let label = c;
+        if (stage === 'semifinal') {
+          const names = {
+            BS: 'BS — Benar / Salah',
+            PG1: 'PG1 — Pilihan Ganda (150 Poin)',
+            PG2: 'PG2 — Pilihan Ganda (200 Poin)',
+            ES: 'ES — Isian Singkat',
+            CAD: 'CAD — Cadangan'
+          };
+          label = names[c] || c;
+        }
+        const sel = (c.toLowerCase() === (selectedCategory || '').toLowerCase()) ? 'selected' : '';
+        return `<option value="${c}" ${sel}>${label}</option>`;
+      }).join('');
+    },
+
+    updateEditModalSectionsForType(catVal) {
+      const secMc = document.getElementById('section-edit-mc');
+      const secBs = document.getElementById('section-edit-bs');
+      const secEssay = document.getElementById('section-edit-essay');
+      const secPoints = document.getElementById('section-edit-points');
+
+      if (activeBankStage === 'penyisihan') {
+        if (secMc) secMc.style.display = 'block';
+        if (secBs) secBs.style.display = 'none';
+        if (secEssay) secEssay.style.display = 'none';
+        if (secPoints) secPoints.style.display = 'none';
+      } else if (activeBankStage === 'semifinal') {
+        if (secPoints) secPoints.style.display = 'none';
+        if (catVal === 'BS') {
+          if (secBs) secBs.style.display = 'block';
+          if (secMc) secMc.style.display = 'none';
+          if (secEssay) secEssay.style.display = 'none';
+        } else if (catVal === 'PG1' || catVal === 'PG2') {
+          if (secMc) secMc.style.display = 'block';
+          if (secBs) secBs.style.display = 'none';
+          if (secEssay) secEssay.style.display = 'none';
+        } else {
+          // ES or CAD
+          if (secEssay) secEssay.style.display = 'block';
+          if (secMc) secMc.style.display = 'none';
+          if (secBs) secBs.style.display = 'none';
+        }
+      } else {
+        // Final
+        if (secEssay) secEssay.style.display = 'block';
+        if (secPoints) secPoints.style.display = 'grid';
+        if (secMc) secMc.style.display = 'none';
+        if (secBs) secBs.style.display = 'none';
+      }
+    },
+
+    async handleSaveQuestion() {
+      const qText = document.getElementById('edit-q-text').value.trim();
+      if (!qText) {
+        alert('Teks soal / pertanyaan wajib diisi!');
+        document.getElementById('edit-q-text').focus();
+        return;
+      }
+
+      const qId = document.getElementById('edit-q-id').value.trim();
+      const stage = document.getElementById('edit-q-stage').value || activeBankStage;
+      const category = document.getElementById('edit-q-category').value;
+
+      // Extract image
+      const imgPreviewEl = document.getElementById('edit-q-img-el');
+      const imgVal = (imgPreviewEl && imgPreviewEl.src && imgPreviewEl.src.length > 10) ? imgPreviewEl.src : null;
+
+      let qObj = {
+        q: qText,
+        img: imgVal
+      };
+
+      if (stage === 'penyisihan') {
+        qObj.mapel = category;
+        const options = [0, 1, 2, 3].map(i => document.getElementById(`edit-opt-${i}`).value.trim());
+        if (options.some(opt => !opt)) {
+          alert('Keempat pilihan jawaban A, B, C, dan D wajib diisi!');
+          return;
+        }
+        const keyRadio = document.querySelector('input[name="edit-q-key"]:checked');
+        const keyIdx = keyRadio ? parseInt(keyRadio.value, 10) : 0;
+        qObj.o = options;
+        qObj.k = keyIdx;
+        qObj.ans = options[keyIdx];
+      } else if (stage === 'semifinal') {
+        qObj.tipe = category;
+        if (category === 'BS') {
+          const bsRadio = document.querySelector('input[name="edit-bs-key"]:checked');
+          const bsKey = bsRadio ? parseInt(bsRadio.value, 10) : 0;
+          qObj.o = ['Benar', 'Salah'];
+          qObj.k = bsKey;
+          qObj.ans = bsKey === 0 ? 'Benar' : 'Salah';
+        } else if (category === 'PG1' || category === 'PG2') {
+          const options = [0, 1, 2, 3].map(i => document.getElementById(`edit-opt-${i}`).value.trim());
+          if (options.some(opt => !opt)) {
+            alert('Keempat pilihan jawaban wajib diisi!');
+            return;
+          }
+          const keyRadio = document.querySelector('input[name="edit-q-key"]:checked');
+          const keyIdx = keyRadio ? parseInt(keyRadio.value, 10) : 0;
+          qObj.o = options;
+          qObj.k = keyIdx;
+          qObj.ans = options[keyIdx];
+        } else {
+          // ES or CAD
+          const ansText = document.getElementById('edit-essay-ans').value.trim();
+          if (!ansText) {
+            alert('Kunci jawaban wajib diisi!');
+            document.getElementById('edit-essay-ans').focus();
+            return;
+          }
+          qObj.o = [];
+          qObj.k = 0;
+          qObj.ans = ansText;
+        }
+      } else {
+        // Grand Final
+        qObj.tier = category;
+        const ansText = document.getElementById('edit-essay-ans').value.trim();
+        if (!ansText) {
+          alert('Kunci jawaban wajib diisi!');
+          document.getElementById('edit-essay-ans').focus();
+          return;
+        }
+        const valNum = parseInt(document.getElementById('edit-q-val').value, 10) || 50;
+        const penNum = parseInt(document.getElementById('edit-q-pen').value, 10) || 25;
+        qObj.ans = ansText;
+        qObj.val = valNum;
+        qObj.pen = penNum;
+        qObj.o = [];
+      }
+
+      try {
+        if (qId) {
+          qObj.id = qId;
+          await window.DocxEngine.updateStageQuestion(stage, qId, qObj);
+          this.showToast('✅ Soal berhasil diperbarui!');
+        } else {
+          await window.DocxEngine.addStageQuestion(stage, qObj);
+          this.showToast('✅ Soal baru berhasil ditambahkan!');
+        }
+
+        const modal = document.getElementById('modal-edit-question');
+        if (modal) modal.classList.remove('active');
+        await this.renderBankList();
+      } catch (err) {
+        alert('Gagal menyimpan soal: ' + err.message);
+      }
+    },
+
+    async restoreDefaultQuestions() {
+      try {
+        await window.DocxEngine.restoreDefaultStageQuestions(activeBankStage);
+        selectedQuestionIds.clear();
+        await this.renderBankList();
+        this.showToast(`✅ Soal standar babak ${activeBankStage.toUpperCase()} berhasil dipulihkan!`);
+      } catch (err) {
+        alert('Gagal memulihkan soal: ' + err.message);
+      }
+    },
+
 
     // ─── LAPORAN INTERACTION ──────────────────────────────
     bindLaporan() {
