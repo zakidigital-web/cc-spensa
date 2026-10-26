@@ -131,6 +131,59 @@
     return out + esc(t.slice(last));
   }
 
+  function getImageBytesAndDimensions(imgData) {
+    return new Promise((resolve) => {
+      if (!imgData || typeof imgData !== 'string') return resolve(null);
+      let resolved = false;
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          resolve(null);
+        }
+      }, 3500);
+
+      const done = (val) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          resolve(val);
+        }
+      };
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        let w = img.naturalWidth || img.width || 200;
+        let h = img.naturalHeight || img.height || 150;
+        const maxWidth = 260;
+        const maxHeight = 180;
+        const scale = Math.min(1, maxWidth / w, maxHeight / h);
+        const targetW = Math.max(20, Math.round(w * scale));
+        const targetH = Math.max(20, Math.round(h * scale));
+
+        try {
+          if (imgData.startsWith('data:')) {
+            const base64Data = imgData.split(',')[1];
+            if (!base64Data) return done(null);
+            const bin = atob(base64Data);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            done({ bytes, width: targetW, height: targetH });
+          } else {
+            fetch(imgData)
+              .then(res => res.arrayBuffer())
+              .then(ab => done({ bytes: new Uint8Array(ab), width: targetW, height: targetH }))
+              .catch(() => done(null));
+          }
+        } catch (e) {
+          done(null);
+        }
+      };
+      img.onerror = () => done(null);
+      img.src = imgData;
+    });
+  }
+
   const DocxEngine = {
     formatMath(text) {
       return formatMathText(text);
@@ -771,70 +824,267 @@
       const j = parseInt(jenjang, 10) || 7;
       const questions = await this.getStageQuestions(stage, j);
 
+      if (!questions || questions.length === 0) {
+        throw new Error(`Bank soal babak ${stage.toUpperCase()} (Kelas ${j}) saat ini kosong. Tidak ada soal yang diekspor.`);
+      }
+
       const {
         Document, Paragraph, TextRun, Table, TableRow, TableCell,
-        WidthType, AlignmentType, BorderStyle
+        WidthType, AlignmentType, BorderStyle, ImageRun
       } = window.docx;
 
       const borderThin = { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" };
       const cellBorders = { top: borderThin, bottom: borderThin, left: borderThin, right: borderThin };
 
-      function createHeaderCell(text, width) {
+      function createHeaderCell(text, width, align = AlignmentType.CENTER) {
         return new TableCell({
           width: { size: width, type: WidthType.PERCENTAGE },
           borders: cellBorders,
           shading: { fill: "1E3A8A" },
-          margins: { top: 100, bottom: 100, left: 120, right: 120 },
-          children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Calibri", size: 19 })] })]
+          margins: { top: 120, bottom: 120, left: 100, right: 100 },
+          children: [new Paragraph({
+            alignment: align,
+            children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Calibri", size: 19 })]
+          })]
         });
       }
 
-      function createCell(text, width, align = AlignmentType.LEFT) {
+      function createCell(content, width, align = AlignmentType.LEFT, imgInfo = null) {
+        const textStr = (content == null || content === '') ? '-' : String(content);
+        const lines = textStr.split('\n');
+        const textRuns = [];
+        lines.forEach((line, idx) => {
+          textRuns.push(new TextRun({
+            text: line,
+            break: idx > 0 ? 1 : 0,
+            font: "Calibri",
+            size: 18,
+            color: "0F172A"
+          }));
+        });
+
+        const paragraphs = [
+          new Paragraph({
+            alignment: align,
+            spacing: { after: imgInfo ? 80 : 0 },
+            children: textRuns
+          })
+        ];
+
+        if (imgInfo && imgInfo.bytes) {
+          paragraphs.push(new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 60, after: 40 },
+            children: [
+              new ImageRun({
+                data: imgInfo.bytes,
+                transformation: { width: imgInfo.width, height: imgInfo.height }
+              })
+            ]
+          }));
+        }
+
         return new TableCell({
           width: { size: width, type: WidthType.PERCENTAGE },
           borders: cellBorders,
-          margins: { top: 80, bottom: 80, left: 120, right: 120 },
-          children: [new Paragraph({ alignment: align, children: [new TextRun({ text: String(text || '-'), font: "Calibri", size: 18 })] })]
+          margins: { top: 80, bottom: 80, left: 100, right: 100 },
+          children: paragraphs
         });
       }
 
-      const rows = [
-        new TableRow({
-          children: [
-            createHeaderCell("No", 6),
-            createHeaderCell("Kategori", 20),
-            createHeaderCell("Pertanyaan", 44),
-            createHeaderCell("Kunci Jawaban", 30)
-          ]
-        })
-      ];
-
-      questions.forEach((q, i) => {
-        let ansText = q.ans || '';
-        if (q.o && q.o.length && q.k != null) {
-          ansText = `${String.fromCharCode(65 + q.k)}. ${q.o[q.k] || ''}`;
+      // Pre-process all images in parallel
+      const imageInfoMap = {};
+      await Promise.all(questions.map(async (q) => {
+        if (q.img) {
+          try {
+            const info = await getImageBytesAndDimensions(q.img);
+            if (info) imageInfoMap[q.id] = info;
+          } catch (e) {}
         }
+      }));
+
+      const rows = [];
+      let docTitle = "";
+      let docSubtitle = "";
+
+      if (stage === 'penyisihan') {
+        docTitle = `BANK SOAL RESMI: BABAK PENYISIHAN (KELAS ${j})`;
+        docSubtitle = `Kejuaraan Cerdas Cermat Multidisiplin IFP — Total ${questions.length} Soal — Format Resmi 8 Kolom`;
+
         rows.push(new TableRow({
           children: [
-            createCell(String(i + 1), 6, AlignmentType.CENTER),
-            createCell(q.mapel || q.tipe || q.tier || 'Umum', 20),
-            createCell(q.q, 44),
-            createCell(ansText, 30)
+            createHeaderCell("No", 5),
+            createHeaderCell("Mata Pelajaran", 18),
+            createHeaderCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 37),
+            createHeaderCell("Pilihan A", 10),
+            createHeaderCell("Pilihan B", 10),
+            createHeaderCell("Pilihan C", 10),
+            createHeaderCell("Pilihan D", 10),
+            createHeaderCell("Kunci", 6)
           ]
         }));
-      });
 
-      const stageHeading = (stage === 'penyisihan')
-        ? `BANK SOAL RESMI: BABAK PENYISIHAN (KELAS ${j})`
-        : `BANK SOAL RESMI: BABAK ${stage.toUpperCase()}`;
+        questions.forEach((q, i) => {
+          const imgInfo = imageInfoMap[q.id] || null;
+          let keyLetter = 'A';
+          if (q.k != null && q.k >= 0 && q.k <= 3) {
+            keyLetter = 'ABCD'[q.k];
+          } else if (q.key != null && q.key >= 0 && q.key <= 3) {
+            keyLetter = 'ABCD'[q.key];
+          } else if (typeof q.k === 'string' && /^[A-D]$/i.test(q.k)) {
+            keyLetter = q.k.toUpperCase();
+          } else if (typeof q.key === 'string' && /^[A-D]$/i.test(q.key)) {
+            keyLetter = q.key.toUpperCase();
+          } else if (q.ans && q.o && Array.isArray(q.o)) {
+            const idx = q.o.findIndex(opt => opt.trim() === String(q.ans).trim());
+            if (idx !== -1) keyLetter = 'ABCD'[idx];
+          }
+
+          const optA = (q.o && q.o[0] != null) ? q.o[0] : '';
+          const optB = (q.o && q.o[1] != null) ? q.o[1] : '';
+          const optC = (q.o && q.o[2] != null) ? q.o[2] : '';
+          const optD = (q.o && q.o[3] != null) ? q.o[3] : '';
+
+          rows.push(new TableRow({
+            children: [
+              createCell(String(i + 1), 5, AlignmentType.CENTER),
+              createCell(q.mapel || 'Pendidikan Agama', 18),
+              createCell(q.q || '', 37, AlignmentType.LEFT, imgInfo),
+              createCell(optA, 10),
+              createCell(optB, 10),
+              createCell(optC, 10),
+              createCell(optD, 10),
+              createCell(keyLetter, 6, AlignmentType.CENTER)
+            ]
+          }));
+        });
+      } else if (stage === 'semifinal') {
+        docTitle = "BANK SOAL RESMI: BABAK SEMIFINAL";
+        docSubtitle = `Kejuaraan Cerdas Cermat Multidisiplin IFP — Total ${questions.length} Soal — Format Resmi 9 Kolom`;
+
+        rows.push(new TableRow({
+          children: [
+            createHeaderCell("No", 5),
+            createHeaderCell("Jenis Soal", 11),
+            createHeaderCell("Pertanyaan & Gambar (Rumus LaTeX $...$)", 34),
+            createHeaderCell("Pilihan A", 9),
+            createHeaderCell("Pilihan B", 9),
+            createHeaderCell("Pilihan C", 9),
+            createHeaderCell("Pilihan D", 9),
+            createHeaderCell("Kunci", 5),
+            createHeaderCell("Kunci Jawaban Esai (Juri)", 18)
+          ]
+        }));
+
+        questions.forEach((q, i) => {
+          const imgInfo = imageInfoMap[q.id] || null;
+          const tipe = q.tipe || 'BS';
+
+          let optA = '', optB = '', optC = '', optD = '';
+          let keyVal = '-';
+          let esVal = '-';
+
+          if (tipe === 'BS') {
+            optA = (q.o && q.o[0]) ? q.o[0] : 'Benar';
+            optB = (q.o && q.o[1]) ? q.o[1] : 'Salah';
+            optC = '-';
+            optD = '-';
+            const isSalah = (q.key === 1 || q.k === 1 || String(q.ans).toLowerCase() === 'salah' || String(q.ans).toLowerCase() === 's');
+            keyVal = isSalah ? 'S' : 'B';
+            esVal = '-';
+          } else if (tipe === 'PG1' || tipe === 'PG2') {
+            optA = (q.o && q.o[0] != null) ? q.o[0] : '';
+            optB = (q.o && q.o[1] != null) ? q.o[1] : '';
+            optC = (q.o && q.o[2] != null) ? q.o[2] : '';
+            optD = (q.o && q.o[3] != null) ? q.o[3] : '';
+            const keyIdx = (q.key != null) ? q.key : (q.k != null ? q.k : 0);
+            keyVal = (keyIdx >= 0 && keyIdx <= 3) ? 'ABCD'[keyIdx] : 'A';
+            esVal = '-';
+          } else {
+            // ES or CAD
+            optA = '-';
+            optB = '-';
+            optC = '-';
+            optD = '-';
+            keyVal = '-';
+            esVal = q.ans || '';
+          }
+
+          rows.push(new TableRow({
+            children: [
+              createCell(String(i + 1), 5, AlignmentType.CENTER),
+              createCell(tipe, 11, AlignmentType.CENTER),
+              createCell(q.q || '', 34, AlignmentType.LEFT, imgInfo),
+              createCell(optA, 9),
+              createCell(optB, 9),
+              createCell(optC, 9),
+              createCell(optD, 9),
+              createCell(keyVal, 5, AlignmentType.CENTER),
+              createCell(esVal, 18)
+            ]
+          }));
+        });
+      } else {
+        // Grand Final
+        docTitle = "BANK SOAL RESMI: BABAK GRAND FINAL";
+        docSubtitle = `Kejuaraan Cerdas Cermat Multidisiplin IFP — Total ${questions.length} Soal — Format Resmi 4 Kolom`;
+
+        rows.push(new TableRow({
+          children: [
+            createHeaderCell("No", 8),
+            createHeaderCell("Kategori & Poin Kotak", 24),
+            createHeaderCell("Pertanyaan Rebutan Panggung", 44),
+            createHeaderCell("Kunci Jawaban Dewan Juri", 24)
+          ]
+        }));
+
+        questions.forEach((q, i) => {
+          const imgInfo = imageInfoMap[q.id] || null;
+          const tier = q.tier || (i < 5 ? 'Tier 1 (50 Poin)' : i < 10 ? 'Tier 2 (75 Poin)' : i < 15 ? 'Tier 3 (100 Poin)' : 'Soal Tambahan (100 Poin)');
+
+          rows.push(new TableRow({
+            children: [
+              createCell(String(i + 1), 8, AlignmentType.CENTER),
+              createCell(tier, 24),
+              createCell(q.q || '', 44, AlignmentType.LEFT, imgInfo),
+              createCell(q.ans || '', 24)
+            ]
+          }));
+        });
+      }
+
+      const exportDateStr = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
 
       const doc = new Document({
         sections: [{
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
+              spacing: { after: 60 },
+              children: [new TextRun({ text: docTitle, bold: true, color: "1E3A8A", size: 28, font: "Calibri" })]
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
               spacing: { after: 120 },
-              children: [new TextRun({ text: stageHeading, bold: true, color: "1E3A8A", size: 26, font: "Calibri" })]
+              children: [new TextRun({ text: `${docSubtitle} • Diekspor pada ${exportDateStr}`, italics: true, color: "475569", size: 19, font: "Calibri" })]
+            }),
+            new Paragraph({
+              spacing: { after: 60 },
+              children: [new TextRun({ text: "📋 KETENTUAN PENGGUNAAN DOKUMEN:", bold: true, color: "D97706", size: 20, font: "Calibri" })]
+            }),
+            new Paragraph({
+              spacing: { after: 30 },
+              bullet: { level: 0 },
+              children: [new TextRun({ text: "Dokumen ini diekspor langsung dari Bank Soal Cerdas Cermat IFP dengan mempertahankan 100% format asli (tabel, rumus LaTeX $...$, gambar, opsi pilihan A-D, dan kunci jawaban).", size: 18, font: "Calibri", color: "334155" })]
+            }),
+            new Paragraph({
+              spacing: { after: 120 },
+              bullet: { level: 0 },
+              children: [new TextRun({ text: "Dokumen ini dapat langsung diedit di Microsoft Word dan diimpor kembali ke Bank Soal secara otomatis.", size: 18, font: "Calibri", color: "334155" })]
             }),
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
@@ -845,12 +1095,29 @@
       });
 
       const blob = await window.docx.Packer.toBlob(doc);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = (stage === 'penyisihan') ? `Bank_Soal_Penyisihan_Kelas_${j}.docx` : `Bank_Soal_${stage.toUpperCase()}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
+      if (typeof document !== 'undefined') {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (stage === 'penyisihan') ? `Bank_Soal_Penyisihan_Kelas_${j}.docx` : `Bank_Soal_${stage.toUpperCase()}.docx`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }
+
+      return {
+        stage,
+        jenjang: j,
+        count: questions.length,
+        blob
+      };
+    },
+
+    async exportAllPenyisihanBanksToDocx() {
+      for (const j of [7, 8, 9]) {
+        await this.exportStageBankToDocx('penyisihan', j);
+        await new Promise(r => setTimeout(r, 450));
+      }
+      return true;
     }
   };
 

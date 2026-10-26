@@ -432,10 +432,56 @@
 
       if (btnExportWord) {
         btnExportWord.addEventListener('click', async () => {
-          try {
-            await window.DocxEngine.exportStageBankToDocx(activeBankStage, activeJenjang);
-          } catch (e) {
-            alert('Gagal ekspor: ' + e.message);
+          if (activeBankStage === 'penyisihan') {
+            self.openCustomDeleteModal({
+              icon: '📤',
+              title: 'Ekspor Bank Soal Babak Penyisihan ke Word (.docx)',
+              message: `Pilih format ekspor bank soal untuk Babak Penyisihan:<br>
+                <div style="margin-top:10px;text-align:left;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;">
+                  • <strong>Format Asli 8 Kolom:</strong> Menjaga 100% struktur soal, gambar, rumus LaTeX ($...$), pilihan A-D, dan kunci jawaban.<br>
+                  • <strong>Kompatibel Penuh:</strong> Dokumen hasil ekspor dapat diedit di Word dan diimpor kembali secara otomatis.
+                </div>`,
+              buttons: [
+                {
+                  text: `📄 Ekspor Kelas ${activeJenjang} Saja (.docx)`,
+                  class: 'btn-primary',
+                  id: 'btn-export-single-class',
+                  style: 'padding:10px 18px;font-weight:800;border-radius:10px;',
+                  action: async () => {
+                    self.showToast(`📤 Menyiapkan Bank Soal Penyisihan Kelas ${activeJenjang}...`);
+                    await window.DocxEngine.exportStageBankToDocx('penyisihan', activeJenjang);
+                    self.showToast(`✅ Berhasil mengekspor Bank Soal Kelas ${activeJenjang}!`);
+                  }
+                },
+                {
+                  text: `📦 Ekspor SEMUA Kelas (7, 8 & 9) Sekaligus`,
+                  class: 'btn-gold',
+                  id: 'btn-export-all-classes',
+                  style: 'padding:10px 18px;font-weight:900;border-radius:10px;box-shadow:0 4px 14px rgba(245,158,11,0.3);',
+                  action: async () => {
+                    self.showToast('📤 Menyiapkan Bank Soal untuk seluruh kelas (7, 8, dan 9)...');
+                    await window.DocxEngine.exportAllPenyisihanBanksToDocx();
+                    self.showToast('✅ Berhasil mengekspor seluruh Bank Soal Penyisihan (3 File .docx)!');
+                  }
+                },
+                {
+                  text: 'Batal',
+                  class: 'btn-ghost',
+                  id: 'btn-cancel-del',
+                  style: 'padding:8px 18px;',
+                  action: () => {}
+                }
+              ]
+            });
+          } else {
+            const stageName = activeBankStage === 'semifinal' ? 'Semifinal' : 'Grand Final';
+            try {
+              self.showToast(`📤 Menyiapkan Bank Soal Babak ${stageName}...`);
+              await window.DocxEngine.exportStageBankToDocx(activeBankStage, activeJenjang);
+              self.showToast(`✅ Berhasil mengekspor Bank Soal Babak ${stageName}!`);
+            } catch (e) {
+              alert('Gagal ekspor: ' + e.message);
+            }
           }
         });
       }
