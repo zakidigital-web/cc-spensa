@@ -42,35 +42,55 @@ td input{padding:5px 8px}
 .modal{position:fixed;inset:0;background:rgba(3,10,30,.85);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
 .mbox{background:var(--bg2);border:2px solid #3b5cc0;border-radius:18px;padding:20px;max-width:760px;width:100%;max-height:92vh;overflow:auto}
 /* PLAY */
-#play{height:100%;display:flex;flex-direction:column}
-#top{height:7vh;min-height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#06122b;border-bottom:2px solid #284b9a}
-#top .t{font-weight:700;font-size:clamp(14px,1.6vw,30px)}
-#gt{font-size:clamp(20px,2.6vw,48px);font-weight:800;font-variant-numeric:tabular-nums;color:var(--warn)}
+#play{height:100%;display:flex;flex-direction:column;overflow:hidden}
+#top{height:7vh;min-height:48px;max-height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#06122b;border-bottom:2px solid #284b9a;z-index:10}
+#top .t{font-weight:700;font-size:clamp(14px,1.4vw,24px)}
+#gt{font-size:clamp(20px,2.2vw,38px);font-weight:800;font-variant-numeric:tabular-nums;color:var(--warn)}
 #gt.low{color:var(--bad);animation:bl 1s infinite}
 @keyframes bl{50%{opacity:.4}}
-#cols{flex:1;display:grid;gap:4px;background:#000;min-height:0}
-.col{display:flex;flex-direction:column;background:var(--bg);min-width:0;min-height:0;border-top:.8vh solid var(--c)}
-.ch{background:var(--c);color:#111;padding:.8vh 1vw;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:clamp(14px,1.7vw,34px)}
-.ch small{font-size:.62em;font-weight:700}
-.tb{height:1.3vh;min-height:8px;background:#0a1530}
+#cols{flex:1;display:grid;gap:4px;background:#000;min-height:0;overflow:hidden}
+.col{display:flex;flex-direction:column;background:var(--bg);min-width:0;min-height:0;border-top:.8vh solid var(--c);overflow:hidden}
+.ch{background:var(--c);color:#111;padding:.6vh 1vw;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:clamp(14px,1.4vw,26px);flex-shrink:0}
+.ch small{font-size:.65em;font-weight:700}
+.tb{height:1vh;min-height:7px;background:#0a1530;flex-shrink:0}
 .tb i{display:block;height:100%;width:100%;background:var(--c);transition:width .25s linear}
 .tb i.low{background:var(--bad)}
-.turn{font-size:clamp(13px,1.5vw,28px);font-weight:700;color:var(--c);background:#0a1530;display:flex;justify-content:space-between;padding:.6vh 1vw}
-.qa{flex:1;overflow:auto;padding:1.2vh 1.1vw;min-height:0}
-.badge{display:inline-block;background:var(--c);color:#111;font-weight:800;border-radius:8px;padding:2px 10px;font-size:clamp(11px,1.1vw,22px);margin-bottom:.8vh}
-.qimg{max-width:100%;max-height:22vh;display:block;margin:.6vh auto;border-radius:10px;background:#fff}
-.qt{font-size:clamp(16px,1.75vw,38px);line-height:1.35;font-weight:600;margin-bottom:1.2vh}
-.opts{display:flex;flex-direction:column;gap:1vh}
-.opt{display:flex;align-items:center;gap:.8vw;text-align:left;background:#14306f;border:3px solid #2d4a9c;border-radius:14px;padding:1.1vh 1vw;font-size:clamp(15px,1.55vw,34px);font-weight:600;line-height:1.25;min-height:7vh}
-.opt b{flex:none;width:2.2em;height:2.2em;border-radius:50%;background:var(--c);color:#111;display:flex;align-items:center;justify-content:center}
+.turn{font-size:clamp(12px,1.1vw,20px);font-weight:700;color:var(--c);background:#0a1530;display:flex;justify-content:space-between;padding:.5vh 1vw;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.08)}
+.qa{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:clamp(8px,1.2vh,16px) clamp(10px,1.1vw,16px);min-height:0;scrollbar-width:thin;scrollbar-color:rgba(76,201,240,0.4) transparent}
+.qa::-webkit-scrollbar{width:5px}
+.qa::-webkit-scrollbar-track{background:transparent}
+.qa::-webkit-scrollbar-thumb{background:rgba(76,201,240,0.35);border-radius:4px}
+.qa::-webkit-scrollbar-thumb:hover{background:rgba(76,201,240,0.6)}
+.badge{display:inline-block;align-self:flex-start;background:var(--c);color:#111;font-weight:800;border-radius:6px;padding:2px 10px;font-size:clamp(11px,0.9vw,15px);margin-bottom:clamp(4px,0.6vh,8px);flex-shrink:0}
+.qimg{max-width:100%;max-height:clamp(80px,14vh,160px);display:block;margin:.4vh auto;border-radius:8px;object-fit:contain;background:#fff;flex-shrink:0}
+.qt{font-weight:600;line-height:1.38;margin-bottom:clamp(8px,1.2vh,14px);word-break:break-word;overflow-wrap:anywhere;hyphens:auto;flex-shrink:0}
+.opts{display:flex;flex-direction:column;gap:clamp(6px,0.8vh,10px);width:100%;margin-top:auto}
+.opt{display:flex;align-items:flex-start;gap:clamp(8px,0.8vw,12px);text-align:left;background:#14306f;border:2px solid #2d4a9c;border-radius:12px;padding:clamp(7px,0.85vh,12px) clamp(10px,0.85vw,14px);min-height:clamp(38px,4.4vh,52px);line-height:1.32;width:100%;color:var(--ink);cursor:pointer;transition:background .12s,border-color .12s}
+.opt b{flex:none;border-radius:50%;background:var(--c);color:#111;display:inline-flex;align-items:center;justify-content:center;font-weight:800;margin-top:1px}
+.opt span,.opt .opt-text{flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;white-space:normal;hyphens:auto}
 .opt.sel{background:var(--c);color:#111;border-color:#fff}
 .opt.sel b{background:#111;color:var(--c)}
 .opt.lk{pointer-events:none}
-.kunci{margin-top:1vh;width:100%;font-size:clamp(16px,1.6vw,34px);padding:1.2vh}
+/* 3 TIERS OF FONT SIZING */
+.qa.tier-lg .qt{font-size:clamp(16px,1.25vw,24px);line-height:1.4}
+.qa.tier-lg .opt{font-size:clamp(14px,1.05vw,20px)}
+.qa.tier-lg .opt b{width:clamp(28px,1.6vw,34px);height:clamp(28px,1.6vw,34px);font-size:clamp(13px,0.9vw,16px)}
+.qa.tier-md .qt{font-size:clamp(14px,1.0vw,19.5px);line-height:1.38}
+.qa.tier-md .opt{font-size:clamp(13px,0.88vw,16.5px)}
+.qa.tier-md .opt b{width:clamp(25px,1.4vw,30px);height:clamp(25px,1.4vw,30px);font-size:clamp(12px,0.8vw,14.5px)}
+.qa.tier-sm .qt{font-size:clamp(12.5px,0.84vw,16px);line-height:1.34}
+.qa.tier-sm .opt{font-size:clamp(11.5px,0.74vw,14px);line-height:1.28;padding:clamp(5px,0.65vh,9px) clamp(8px,0.75vw,12px);min-height:clamp(34px,3.8vh,44px)}
+.qa.tier-sm .opt b{width:clamp(22px,1.2vw,26px);height:clamp(22px,1.2vw,26px);font-size:clamp(11px,0.7vw,13px)}
+.qa.tier-sm .opts{gap:clamp(4px,0.6vh,7px)}
+.qa.tier-sm .qimg{max-height:clamp(65px,11vh,120px)}
+.qt .katex-display,.opt .katex-display{margin:.25em 0;overflow-x:auto;overflow-y:hidden;max-width:100%}
+.qt .katex,.opt .katex{max-width:100%;font-size:1.02em}
+.kunci{margin-top:clamp(6px,0.8vh,10px);width:100%;font-size:clamp(14px,1.1vw,20px);padding:clamp(8px,1vh,14px);flex-shrink:0}
 .wait{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1vh;padding:2vw}
-.wait .big{font-size:clamp(28px,3.4vw,72px);font-weight:800;color:var(--c)}
-.wait p{font-size:clamp(14px,1.5vw,30px);color:var(--mut);margin:0}
-#cd{position:fixed;inset:0;background:var(--bg);z-index:60;display:flex;align-items:center;justify-content:center;font-size:30vh;font-weight:900;color:var(--warn)}
+.wait .big{font-size:clamp(22px,2.4vw,48px);font-weight:800;color:var(--c)}
+.wait p{font-size:clamp(13px,1.2vw,22px);color:var(--mut);margin:0}
+#cd{position:fixed;inset:0;background:var(--bg);z-index:60;display:flex;align-items:center;justify-content:center;font-size:24vh;font-weight:900;color:var(--warn)}
+
 /* RESULT */
 .rcards{display:grid;gap:18px;margin:26px 0}
 .rc{background:var(--bg2);border:4px solid var(--c);border-radius:22px;padding:28px 18px;text-align:center;min-height:300px;display:flex;flex-direction:column;justify-content:center;gap:10px;animation:pop .6s}
@@ -123,7 +143,7 @@ const kvSet=(k,v)=>DB.then(db=>new Promise(r=>{const t=db.transaction('kv','read
 const MAPEL0=['Pendidikan Agama','PPKn','Bahasa Indonesia','Matematika','IPA','IPS','Bahasa Inggris','PJOK','Informatika','Seni Budaya','Prakarya / B. Daerah'];
 const KUOTA0=[5,5,5,5,5,5,4,4,4,4,4];
 let bank={mapel:MAPEL0.map((n,i)=>({n,k:KUOTA0[i]})),soal:{7:[],8:[],9:[]}};
-let cfg={jenjang:9,nTim:9,tim:{},gel:0,anak:10,wSoal:30,gMenit:30,poin:2,penalti:0,kunci:true,label:true,pin:'',mode:'batas'};
+let cfg={jenjang:9,nTim:9,tim:{},gel:0,anak:10,wSoal:30,gMenit:30,poin:2,penalti:0,kunci:true,label:true,pin:'',mode:'batas',fontSize:'auto'};
 let skorAll={7:{},8:{},9:{}};
 let S=null,QI={},view='setup',tick=null,lastT=0;
 const SAMPLE=`0|Rukun Islam yang pertama adalah ...|Syahadat|Salat|Zakat|Puasa|0
@@ -237,6 +257,7 @@ function vSetup(){
    <div><label>PIN panitia (kosong = tanpa PIN)</label><input id="pin" value="${esc(cfg.pin)}" maxlength="8"></div>
    <div><label>Label mapel di soal</label><select id="label"><option value="1" ${cfg.label?'selected':''}>Tampilkan</option><option value="0" ${!cfg.label?'selected':''}>Sembunyikan</option></select></div>
    <div><label>Penguncian jawaban</label><select id="kunci"><option value="1" ${cfg.kunci?'selected':''}>Langsung terkunci saat disentuh</option><option value="0" ${!cfg.kunci?'selected':''}>Ada tombol "Kunci Jawaban"</option></select></div>
+   <div><label>Ukuran Tulisan IFP (3 Kolom)</label><select id="fontSize"><option value="auto" ${(!cfg.fontSize||cfg.fontSize==='auto')?'selected':''}>Otomatis (Adaptif)</option><option value="lg" ${cfg.fontSize==='lg'?'selected':''}>Besar (Soal Pendek)</option><option value="md" ${cfg.fontSize==='md'?'selected':''}>Sedang (Seimbang)</option><option value="sm" ${cfg.fontSize==='sm'?'selected':''}>Kecil / Ringkas</option></select></div>
   </div>
   ${loop?`<p class="sub" style="margin:10px 0 0">Mode tanpa batas: semua soal tiap mapel muncul acak <b>tanpa pengulangan</b> sampai seluruh bank terpakai, baru diacak ulang dan diputar lagi. Permainan berakhir saat timer global habis.</p>`:''}</div>
   <div class="card"><h2>3. Mapel &amp; Bobot (Kelas ${j})</h2>
@@ -256,7 +277,7 @@ function readSetup(){
   const n=id=>Math.max(0,+$('#'+id).value||0);
   cfg.nTim=Math.min(26,Math.max(1,n('nTim')||1));
   cfg.anak=n('anak')||1;cfg.wSoal=n('wSoal')||30;cfg.gMenit=n('gMenit')||30;cfg.poin=n('poin')||1;cfg.penalti=n('penalti');
-  cfg.pin=$('#pin').value.trim();cfg.kunci=$('#kunci').value==='1';cfg.label=$('#label').value==='1';cfg.mode=$('#mode').value;
+  cfg.pin=$('#pin').value.trim();cfg.kunci=$('#kunci').value==='1';cfg.label=$('#label').value==='1';cfg.mode=$('#mode').value;cfg.fontSize=$('#fontSize')?$('#fontSize').value:(cfg.fontSize||'auto');
   document.querySelectorAll('[data-mn]').forEach(e=>{const i=+e.dataset.mn,old=bank.mapel[i].n,nw=e.value.trim()||old;
     if(nw!==old){[7,8,9].forEach(x=>bank.soal[x].forEach(s=>{if(s.mapel===old)s.mapel=nw}));bank.mapel[i].n=nw}});
   document.querySelectorAll('[data-mk]').forEach(e=>{bank.mapel[+e.dataset.mk].k=Math.max(0,+e.value||0)});
@@ -323,22 +344,56 @@ function updTimers(){
   S.groups.forEach((g,i)=>{const t=$('#tm'+i),b=$('#bar'+i);if(!t||!b||g.done)return;
     t.textContent=mmss(g.tLeft);b.style.width=Math.max(0,g.tLeft/(S.cfg.wSoal*1000)*100)+'%';b.classList.toggle('low',g.tLeft<=5000)})}
 /* ===== PLAY ===== */
+function getQuestionTier(q){
+  if(cfg.fontSize && cfg.fontSize !== 'auto') return cfg.fontSize;
+  if(!q) return 'md';
+  const qLen = (q.q || '').length;
+  const opts = Array.isArray(q.o) ? q.o : [];
+  const maxOptLen = opts.reduce((m, o) => Math.max(m, (o || '').length), 0);
+  const totalOptLen = opts.reduce((m, o) => m + (o || '').length, 0);
+  const totalLen = qLen + totalOptLen;
+  const hasImg = !!q.img;
+  const hasDisplayMath = (q.q || '').includes('$$') || opts.some(o => (o || '').includes('$$'));
+
+  if (hasImg || qLen > 140 || maxOptLen > 60 || totalLen > 210 || hasDisplayMath) {
+    return 'sm'; // Kecil / Ringkas (Muat teks panjang & gambar tanpa overlap)
+  }
+  if (qLen > 65 || maxOptLen > 25 || totalLen > 95) {
+    return 'md'; // Sedang (Seimbang)
+  }
+  return 'lg'; // Besar (Soal & pilihan ringkas)
+}
+
 function vPlay(){
+  const fs = cfg.fontSize || 'auto';
   return `<div id="play"><div id="top"><div class="t">🎓 Cerdas Cermat · Kelas ${S.cfg.jenjang} · Gelombang ${S.cfg.gel+1}</div>
-  <div id="gt">${mmss(S.gLeft)}</div><div><button class="ghost" data-act="fs" style="padding:6px 14px;margin-right:6px">⛶ Layar Penuh</button><button class="ghost" data-act="panel" style="padding:6px 14px">⚙ Panitia</button></div></div>
+  <div id="gt">${mmss(S.gLeft)}</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="fs-bar" style="display:inline-flex;align-items:center;background:#091a42;border:1px solid #284b9a;border-radius:10px;padding:2px 5px;font-size:12px">
+      <span style="color:var(--mut);padding:0 5px;font-weight:600">🔤 Teks:</span>
+      <button class="ghost btn-fs" data-act="setfs" data-fs="auto" style="padding:4px 7px;font-size:11px;border-radius:6px;margin:0 1px;border:0;background:${fs==='auto'?'var(--warn)':'transparent'};color:${fs==='auto'?'#111':'var(--ink)'};font-weight:700">Auto</button>
+      <button class="ghost btn-fs" data-act="setfs" data-fs="lg" style="padding:4px 7px;font-size:11px;border-radius:6px;margin:0 1px;border:0;background:${fs==='lg'?'var(--warn)':'transparent'};color:${fs==='lg'?'#111':'var(--ink)'};font-weight:700">Besar</button>
+      <button class="ghost btn-fs" data-act="setfs" data-fs="md" style="padding:4px 7px;font-size:11px;border-radius:6px;margin:0 1px;border:0;background:${fs==='md'?'var(--warn)':'transparent'};color:${fs==='md'?'#111':'var(--ink)'};font-weight:700">Sedang</button>
+      <button class="ghost btn-fs" data-act="setfs" data-fs="sm" style="padding:4px 7px;font-size:11px;border-radius:6px;margin:0 1px;border:0;background:${fs==='sm'?'var(--warn)':'transparent'};color:${fs==='sm'?'#111':'var(--ink)'};font-weight:700">Kecil</button>
+    </div>
+    <button class="ghost" data-act="fs" style="padding:6px 14px">⛶ Layar Penuh</button>
+    <button class="ghost" data-act="panel" style="padding:6px 14px">⚙ Panitia</button>
+  </div></div>
   <div id="cols" style="grid-template-columns:repeat(${S.groups.length},1fr)">${S.groups.map((g,i)=>`<div class="col" id="col${i}" style="--c:var(--c${i})"></div>`).join('')}</div></div>`}
+
 function renderCol(i){
   const g=S.groups[i],el=$('#col'+i);if(!el)return;
   if(g.done){el.innerHTML=`<div class="ch"><span>${esc(g.nama)}</span><small>SELESAI</small></div>
    <div class="wait"><div style="font-size:8vh">✅</div><div class="big">${esc(g.nama)} selesai!</div><p>${g.qs.length} soal terjawab.<br>Menunggu kelompok lain / waktu global habis…</p></div>`;return}
   const e=g.qs[g.i],q=QI[e.id],c=S.cfg,loop=c.mode==='loop';
-  el.innerHTML=`<div class="ch"><span>${esc(g.nama)}</span><small>Soal ${g.i+1}${loop?'':' / '+g.qs.length}</small></div>
+  const tier=getQuestionTier(q);
+  el.innerHTML=`<div class="ch"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%">${esc(g.nama)}</span><small>Soal ${g.i+1}${loop?'':' / '+g.qs.length}</small></div>
    <div class="tb"><i id="bar${i}" style="width:${Math.max(0,g.tLeft/(c.wSoal*1000)*100)}%"></i></div>
    <div class="turn"><span>👤 Giliran: Anak ke-${g.turn+1}</span><span id="tm${i}">${mmss(g.tLeft)}</span></div>
-   <div class="qa">${c.label?`<span class="badge">${esc(q.mapel)}</span>`:''}
+   <div class="qa tier-${tier}">${c.label?`<span class="badge">${esc(q.mapel)}</span>`:''}
     ${q.img?`<img class="qimg" src="${q.img}">`:''}
     <div class="qt">${fmt(q.q)}</div>
-    <div class="opts">${e.perm.map((oi,p)=>`<button class="opt ${g.sel===oi?'sel':''} ${g.lock?'lk':''}" data-act="pick" data-g="${i}" data-o="${oi}"><b>${'ABCD'[p]}</b><span>${fmt(q.o[oi])}</span></button>`).join('')}</div>
+    <div class="opts">${e.perm.map((oi,p)=>`<button class="opt ${g.sel===oi?'sel':''} ${g.lock?'lk':''}" data-act="pick" data-g="${i}" data-o="${oi}"><b>${'ABCD'[p]}</b><span class="opt-text">${fmt(q.o[oi])}</span></button>`).join('')}</div>
     ${(!c.kunci&&g.sel!=null&&!g.lock)?`<button class="pri kunci" data-act="lock" data-g="${i}">🔒 KUNCI JAWABAN</button>`:''}
    </div>`}
 function pick(i,o){
@@ -369,9 +424,19 @@ function finishAll(){
 function hidePanel(){const m=$('#pm');if(m)m.remove()}
 function openPanel(){
   if(S)S.paused=true;
+  const fs = cfg.fontSize || 'auto';
   const d=document.createElement('div');d.className='modal';d.id='pm';
-  d.innerHTML=`<div class="mbox" style="max-width:520px"><h2>⚙ Panel Panitia — permainan DIJEDA</h2>
+  d.innerHTML=`<div class="mbox" style="max-width:540px"><h2>⚙ Panel Panitia — permainan DIJEDA</h2>
   <div class="row" style="flex-direction:column;align-items:stretch;gap:10px">
+  <div style="background:#0a1530;padding:10px 14px;border-radius:12px;border:1px solid #284b9a;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-weight:600;font-size:14px">Ukuran Tulisan IFP (3 Kolom):</span>
+    <select id="p_fs" style="width:190px;padding:6px 10px;font-size:13px" onchange="acts.setfs({fs:this.value})">
+      <option value="auto" ${fs==='auto'?'selected':''}>Otomatis (Adaptif)</option>
+      <option value="lg" ${fs==='lg'?'selected':''}>Besar (Soal Pendek)</option>
+      <option value="md" ${fs==='md'?'selected':''}>Sedang (Seimbang)</option>
+      <option value="sm" ${fs==='sm'?'selected':''}>Kecil / Ringkas</option>
+    </select>
+  </div>
   <button class="pri" data-act="presume">▶ Lanjutkan permainan</button>
   <button data-act="plus">⏱ Tambah 1 menit timer global</button>
   <button class="dng" data-act="stopall">⏹ Hentikan &amp; tampilkan skor sekarang</button>
@@ -477,6 +542,18 @@ const acts={
   csvboard(){csvBoard()},
   resetboard(){if(confirm('Hapus semua skor kelas '+bj2+'?')){skorAll[bj2]={};saveSkor();render()}},
   resume(){S.paused=true;buildQI();view='play';render();runTick();openPanel()},
+  setfs(d){
+    cfg.fontSize=d.fs||'auto';
+    saveCfg();
+    if(S&&S.phase==='play'){
+      document.querySelectorAll('.btn-fs').forEach(b=>{
+        const on=b.dataset.fs===cfg.fontSize;
+        b.style.background=on?'var(--warn)':'transparent';
+        b.style.color=on?'#111':'var(--ink)';
+      });
+      S.groups.forEach((_,i)=>renderCol(i));
+    }else render();
+  },
   pick(d){pick(+d.g,+d.o)},lock(d){lockAns(+d.g)},
   panel(){if(cfg.pin){const p=prompt('Masukkan PIN panitia:');if(p!==cfg.pin)return}openPanel()},
   presume(){hidePanel();S.paused=false;lastT=Date.now();saveSess()},
@@ -577,6 +654,13 @@ document.addEventListener('contextmenu',e=>{if(view==='play')e.preventDefault()}
     }
   }
   localStorage.setItem('cc_init_penyisihan', 'true');
+  window.bank = bank;
+  window.cfg = cfg;
+  window.saveBank = saveBank;
+  window.saveCfg = saveCfg;
+  window.renderCol = renderCol;
+  window.getQuestionTier = getQuestionTier;
+  window.acts = acts;
   render()})();
 </script>
 </body>
